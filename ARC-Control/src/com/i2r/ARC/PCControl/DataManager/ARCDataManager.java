@@ -28,18 +28,6 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 	
 	static final Logger logger = Logger.getLogger(ARCDataManager.class);
 	
-//	/**
-//	 * Constructor.
-//	 * A new {@link ARCDataParser] object is also created and assigned to the {@link DataManager#parser} field
-//	 * @see {@link DataManager} for contract details
-//	 * 
-//	 * @param connection the Bluetooth connection to use to get the I/O streams for the read and write methods
-//	 */
-//	public BluetoothDataManager(BluetoothConnection connection) {
-//		super(connection);
-//		parser = new BluetoothDataParser();
-//	}
-	
 	/**
 	 * Constructor.
 	 * A new {@link ARCDataParser} object is also created and assigned to the {@link DataManager#parser} field

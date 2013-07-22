@@ -8,7 +8,9 @@
     <property name="docs.dir" location="docs" />
     <property name="ARC.jar" value="ARC.jar" />
     <property name="ARC.exe" value="ARC.exe" />
-    <property name="launch4j.dir" location="..\opt\launch4j" />
+    
+    <!-- Hardcoded path to the launch4j directory -->
+    <property name="launch4j.dir" location="C:\Users\Johnathan\workspace\opt\launch4j" />
     
     <!-- define the launch4j task -->
    	<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask"
