@@ -33,6 +33,9 @@ public class CameraSensor extends GenericDeviceSensor {
 		this.pictureCount = startTime = markedTime = 0;
 		this.frequency = duration = maxPictureAmount = Constants.Args.ARG_NONE;
 		this.camera = camera;
+		
+		// TODO: find display orientation before setting it
+		this.camera.setDisplayOrientation(90);
 		this.holder = holder;
 		this.holder.addCallback(surface);
 	}

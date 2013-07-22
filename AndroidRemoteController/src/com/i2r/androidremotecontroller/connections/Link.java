@@ -7,7 +7,9 @@ import java.util.List;
  * devices, which have similar means for communicating (i.e.,
  * Bluetooth, WifiDirect, USB, etc...). This should be used
  * to define how two devices can find and establish a connection
- * to each other.
+ * to each other. The generics should be an object representation
+ * of a remote device to connect to, i.e. WifiP2pDevice,
+ * BluetoothDevice, etc.
  * @author Josh Noel
  */
 public interface Link<E> {
@@ -62,14 +64,14 @@ public interface Link<E> {
 	/**
 	 * Query about the listening state of this Link
 	 */
-	public boolean isListeningForConnections();
+	public boolean isServerLink();
 	
 	
 	
 	/**
 	 * Query about the searching state of this Link
 	 */
-	public boolean isSearchingForConnections();
+	public boolean isClientLink();
 	
 	
 }

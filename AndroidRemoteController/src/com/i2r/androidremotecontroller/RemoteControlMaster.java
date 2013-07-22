@@ -12,7 +12,7 @@ import android.util.Log;
 
 import com.i2r.androidremotecontroller.connections.BluetoothLink;
 import com.i2r.androidremotecontroller.connections.ConnectionManager;
-import com.i2r.androidremotecontroller.exceptions.NoBluetoothAdapterFoundException;
+import com.i2r.androidremotecontroller.exceptions.NoAdapterFoundException;
 import com.i2r.androidremotecontroller.sensors.SensorController;
 
 /**
@@ -57,7 +57,7 @@ public class RemoteControlMaster {
 			Log.d(TAG, "connection manager created");
 			
 			// bluetooth is not supported on this device
-		} catch (NoBluetoothAdapterFoundException e) {
+		} catch (NoAdapterFoundException e) {
 			connectionManager = null;
 			Log.e(TAG, "connection manager creation failed");
 			e.printStackTrace();

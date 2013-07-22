@@ -49,7 +49,7 @@ public class ConnectionManager {
 	
 	public void startDataTransfer(){
 		
-		if(linker.isListeningForConnections()){
+		if(linker.isServerLink()){
 			Log.d(TAG, "stopping connection discovery");
 			linker.haltConnectionDiscovery();
 			finder = null;
@@ -70,7 +70,7 @@ public class ConnectionManager {
 	public void cancel(){
 		
 		Log.d(TAG, "all connections canceled");
-		if(linker.isListeningForConnections()){
+		if(linker.isServerLink()){
 			linker.haltConnectionDiscovery();
 		}
 		

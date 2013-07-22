@@ -37,10 +37,12 @@ public class RemoteControlActivity extends Activity {
 	public static final String ACTION_UPDATE_MASTER = "i2r_bluetooth_respond_intent";
 	public static final String ACTION_CONNECTOR_RESPONDED = "i2r_action_connection_created";
 	public static final String ACTION_CONNECTION_READ = "i2r_action_connection_read";
+	
 	public static final String EXTRA_CONNECTION_STATUS = "i2r_extra_connection_status";
 	public static final String EXTRA_TASK_ID = "i2r_extra_task_id";
 	public static final String EXTRA_COMMAND = "i2r_extra_command";
 	public static final String EXTRA_REMOTE_CONNECTION = "i2r_parcelable_extra_remote_connection";
+	
 	private static final int BT_REQUEST_CODE = 1;
 
 	private BroadcastReceiver receiver;
@@ -84,7 +86,6 @@ public class RemoteControlActivity extends Activity {
 					Log.d(TAG, "update broadcast from connection recieved");
 					action.setText("pasring command");
 					master.updateByRemoteControl(intent.getStringExtra(EXTRA_COMMAND));
-					
 					
 					// if the source of the intent was a new connection
 				} else if(intent.getAction().equals(ACTION_CONNECTOR_RESPONDED)){
@@ -134,8 +135,6 @@ public class RemoteControlActivity extends Activity {
 		filter.addAction(ACTION_CONNECTOR_RESPONDED);
 		filter.addAction(ACTION_CONNECTION_READ);
 		registerReceiver(receiver, filter);
-		
-
 		
 		BluetoothAdapter a = BluetoothAdapter.getDefaultAdapter();
 		if(a != null && a.isEnabled()){
