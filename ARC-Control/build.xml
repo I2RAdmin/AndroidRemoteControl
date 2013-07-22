@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="ARC-Control" default="main" basedir=".">
+    <!-- Set the build properties -->
+    <property name="src.dir" location="src" />
+    <property name="build.dir" location="bin" />
+    <property name="dist.dir" location="dist" />
+    <property name="lib.dir" location="lib" />
+    <property name="docs.dir" location="docs" />
+    <property name="ARC.jar" value="ARC.jar" />
+    <property name="ARC.exe" value="ARC.exe" />
+    <property name="launch4j.dir" location="..\opt\launch4j" />
+    
+    <!-- define the launch4j task -->
+   	<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask"
+        classpath="${launch4j.dir}\launch4j.jar
+        	:${launch4j.dir}\lib\xstream.jar" />
+    
+    <!--  
+    	Creates a classpath container for the directory that contains the external libraries used
+     -->
+    <path id="build.classpath">
+        <pathelement location="${build.dir}" />
+        <fileset dir="${lib.dir}">
+            <include name="**/*.jar" />
+        </fileset>
+    </path>
+    
+    <!-- Creates a manifest classpath from the lib classpath container -->
+    <target name="manifest">
+        <manifestclasspath property="manifest.classpath" jarfile="${ARC.jar}">
+            <classpath refid="build.classpath" />
+        </manifestclasspath>
+    </target>
+    
+    <!-- This task deletes the exsisting build, docs and dist directories -->
+    <target name="clean">
+        <description>This task deletes the exsisting build, docs and dist directories</description>
+        <delete dir="${build.dir}" />
+        <delete dir="${docs.dir}" />
+        <delete dir="${dist.dir}" />
+    </target>
+    
+    <!-- Creates the build, docs and dist directories -->
+    <target name="makedir">
+        <description>Creates the directories used for building the project</description>
+        <mkdir dir="${build.dir}" />
+        <mkdir dir="${docs.dir}" />
+        <mkdir dir="${dist.dir}" />
+    </target>
+    
+    <!-- Compiles the java code -->
+    <target name="compile" depends="makedir">
+        <description>Compiles the java code</description>
+        <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="build.classpath" />
+    </target>
+    
+    <!-- Create Javadocs -->
+    <target name="docs" depends="compile">
+        <description>Creates the Javadocs for the compiled code</description>
+        <javadoc packagenames="src" sourcepath="${src.dir}" destdir="${docs.dir}">
+            <!-- defines which files / directories get included for javadoc creation, I'm including all of them -->
+            <fileset dir="${src.dir}">
+                <include name="**" />
+            </fileset>
+        </javadoc>
+    </target>
+    
+    <!-- Create a deployable jar file -->
+    <target name="jar" depends="compile, manifest">
+        <description>Creates a deployable jar file</description>
+        <jar jarfile="${dist.dir}\${ARC.jar}" basedir="${build.dir}">
+            <manifest>
+                <attribute name="Class-Path" value="${manifest.classpath}" />
+                <attribute name="Main-Class" value="com.i2r.ARC.PCControl.Main" />
+            </manifest>
+            <fileset dir="." includes="**\*.properties" />
+        </jar>
+        <!-- Copy the files in the lib directory to the dest diectory so that the jar can run -->
+        <mkdir dir="${dist.dir}/lib" />
+        <copy todir="${dist.dir}/lib">
+            <fileset dir="${lib.dir}" />
+        </copy>
+    </target>
+    
+    <!-- Create a lightweight executable around the dist folder for running on other machines -->
+   <target name="exe" depends="jar">
+		<echo message="Classpath = ${launch4j.dir}" />
+        <description>Creates a lightweight executable to run the code on other machines</description>
+        <launch4j configFile="./l4j.xml" jar="${dist.dir}/${ARC.jar}"
+            outfile="${dist.dir}/${ARC.exe}"/>
+    </target>
+    
+    <target name="main" depends="clean, compile, jar, exe, docs">
+        <description>The Main Build Target</description>
+    </target>
+</project>
