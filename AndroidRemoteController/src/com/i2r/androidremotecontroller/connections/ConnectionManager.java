@@ -146,7 +146,9 @@ public class ConnectionManager {
 			}
 			
 			// notify main Activity that connection search has finished
-			activity.sendBroadcast(new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED));
+			Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
+			intent.putExtra(RemoteControlActivity.EXTRA_CONNECTION_STATUS, true);
+			activity.sendBroadcast(intent);
 		}
 	}
 	

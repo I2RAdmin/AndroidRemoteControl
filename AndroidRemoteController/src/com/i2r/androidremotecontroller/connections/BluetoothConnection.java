@@ -124,6 +124,9 @@ public class BluetoothConnection implements RemoteConnection {
 			} catch(IOException e){
 				connected = false;
 				Log.d(TAG, "socket was closed by the remote device");
+				Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
+				intent.putExtra(RemoteControlActivity.EXTRA_CONNECTION_STATUS, false);
+				activity.sendBroadcast(intent);
 			}
 		}
 	}

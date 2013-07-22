@@ -55,8 +55,7 @@ public class CameraSensor extends GenericDeviceSensor {
 
 	@Override
 	public void killTask() {
-		Log.d(TAG, "killing task : task ID - " + getTaskID());
-		setTaskID(Constants.Args.ARG_NONE);
+		Log.d(TAG, "killing task : " + getTaskID());
 		this.forceClose = true;
 	}
 
@@ -114,9 +113,11 @@ public class CameraSensor extends GenericDeviceSensor {
 		} 
 
 		if (!waitingOnPicture && taskCompleted()) {
+			Intent intent = new Intent(RemoteControlActivity.ACTION_UPDATE_MASTER);
+			intent.putExtra(RemoteControlActivity.EXTRA_TASK_ID, getTaskID());
 			killTask();
+			getContext().sendBroadcast(intent);
 			// notifyRemoteDevice later maybe
-			getContext().sendBroadcast(new Intent(RemoteControlActivity.ACTION_UPDATE_MASTER));
 		}
 	}
 	
