@@ -18,6 +18,7 @@ import com.i2r.ARC.PCControl.link.RemoteLink;
 import com.i2r.ARC.PCControl.link.BluetoothLink.BluetoothConnection;
 import com.i2r.ARC.PCControl.link.BluetoothLink.BluetoothLink;
 import com.i2r.ARC.PCControl.link.lineLink.CommandLineLink;
+import com.i2r.ARC.PCControl.link.wifiLink.WifiLink;
 
 /**
  * The brains of the program, runs all the things
@@ -243,6 +244,12 @@ public class Controller{
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+	}
+	
+	public void runSendOnlyWithWifi(){
+		link = new WifiLink();
+		connect("AndroidRemoteControl");
 		
 	}
 }
