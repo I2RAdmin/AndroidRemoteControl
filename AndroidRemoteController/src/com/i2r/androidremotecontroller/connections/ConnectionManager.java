@@ -14,14 +14,14 @@ import com.i2r.androidremotecontroller.RemoteControlActivity;
  * so that this object can be queried for it later.
  * @author Josh Noel
  */
-public class ConnectionManager {
+public class ConnectionManager<E> {
 
 	public static final boolean CONNECTION_TYPE_SERVER = true;
 	public static final boolean CONNECTION_TYPE_CLIENT = false;
 	
 	private static final String TAG = "ConnectionManager";
 	
-	private Link<?> linker;
+	private Link<E> linker;
 	private boolean isServer;
 	private Activity activity;
 	private RemoteConnection connection;
@@ -29,7 +29,7 @@ public class ConnectionManager {
 	private ConnectionFinder finder;
 	
 	// Constructor
-	public ConnectionManager(Link<?> linker, boolean isServer, Activity activity){
+	public ConnectionManager(Link<E> linker, boolean isServer, Activity activity){
 		this.linker = linker;
 		this.isServer = isServer;
 		this.activity = activity;
@@ -132,11 +132,19 @@ public class ConnectionManager {
 		public void run() {
 			connection = null;
 			if (isServer) {
+				
 				Log.d(TAG, "listening for a connection...");
 				connection = linker.listenForRemoteConnection();
+				
 			} else {
+				
 				Log.d(TAG, "attempting to connect...");
 				linker.searchForLinks();
+				
+				// wait for linker to find a fresh list of peers
+				while(linker.isSearchingForLinks()){}
+				
+				// TODO: make this a list or something
 				connection = linker.connectTo(linker.getLinks().get(0));
 			}
 			
@@ -147,7 +155,7 @@ public class ConnectionManager {
 			
 			// notify main Activity that connection search has finished
 			Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
-			intent.putExtra(RemoteControlActivity.EXTRA_CONNECTION_STATUS, true);
+			intent.putExtra(RemoteControlActivity.EXTRA_CONNECTION_STATUS, connection != null);
 			activity.sendBroadcast(intent);
 		}
 	}

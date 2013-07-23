@@ -1,31 +1,31 @@
 package com.i2r.androidremotecontroller.exceptions;
 
-public class NoAdapterFoundException extends Exception {
+public class ServiceNotFoundException extends Exception {
 
 
 	private static final long serialVersionUID = 1L;
 
 	private int type;
 
-	public NoAdapterFoundException(){
+	public ServiceNotFoundException(){
 		super();
 		this.type = 0;
 	}
 	
 	
-	public NoAdapterFoundException(String message){
+	public ServiceNotFoundException(String message){
 		super(message);
 		this.type = 0;
 	}
 	
 	
-	public NoAdapterFoundException(int type){
+	public ServiceNotFoundException(int type){
 		super();
 		this.type = type;
 	}
 	
 	
-	public NoAdapterFoundException(String message, int type){
+	public ServiceNotFoundException(String message, int type){
 		super(message);
 		this.type = type;
 	}

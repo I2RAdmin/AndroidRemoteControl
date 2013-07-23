@@ -1,11 +1,13 @@
 package com.i2r.androidremotecontroller.connections;
 
+
 /**
  * This interface models an active connection to another device.
  * This connection should be obtained via a Link object. This
  * interface extends Runnable so that any ongoing connections
  * can run in a worker thread.
  * @author Josh Noel
+ * @param <T>
  */
 public interface RemoteConnection extends Runnable {
 	

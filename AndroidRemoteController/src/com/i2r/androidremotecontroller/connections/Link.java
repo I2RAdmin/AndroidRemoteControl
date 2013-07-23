@@ -33,7 +33,7 @@ public interface Link<E> {
 	 * @return a RemoteConnection object if the connection
 	 * attempt was successful.
 	 */
-	public RemoteConnection connectTo(Object remote);
+	public RemoteConnection connectTo(E remote);
 
 	
 	/**
@@ -43,6 +43,13 @@ public interface Link<E> {
 	 * @ensures all available connections to this device will be found
 	 */
 	public void searchForLinks();
+	
+	
+	/**
+	 * Query for this link's searching state
+	 * @return true if this link is currently in the discovery process, false otherwise
+	 */
+	public boolean isSearchingForLinks();
 	
 	
 	/**

@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.Camera;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.SurfaceView;
@@ -17,6 +18,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 import com.i2r.androidremotecontroller.sensors.SensorController;
 
 /**
@@ -46,6 +48,7 @@ public class RemoteControlActivity extends Activity {
 	private static final int BT_REQUEST_CODE = 1;
 
 	private BroadcastReceiver receiver;
+	private LocalBroadcastManager manager;
 	private RemoteControlMaster master;
 	private SensorController sensorController;
 	private TextView action;
@@ -71,11 +74,8 @@ public class RemoteControlActivity extends Activity {
 		// booleans to query about the state of this activity during the
 		// first steps of creation
 		this.started = false;
-		
-		// creates a new master to control remote command flow, and a new responder
-		// to mediate between the master and the device sensors
-		
 		this.action = (TextView) findViewById(R.id.current_action_text_view);
+		this.manager = LocalBroadcastManager.getInstance(this);
 		
 		// create a receiver for the BluetoothConnectionManager to send to
 		this.receiver = new BroadcastReceiver(){
@@ -112,17 +112,17 @@ public class RemoteControlActivity extends Activity {
 				stopMaster();
 			}
 		});
+		
 	}
 	
 	
-	
-	// default
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
+	
 	
 	
 	@Override
@@ -134,15 +134,25 @@ public class RemoteControlActivity extends Activity {
 		filter.addAction(ACTION_UPDATE_MASTER);
 		filter.addAction(ACTION_CONNECTOR_RESPONDED);
 		filter.addAction(ACTION_CONNECTION_READ);
-		registerReceiver(receiver, filter);
+		manager.registerReceiver(receiver, filter);
+		
 		
 		BluetoothAdapter a = BluetoothAdapter.getDefaultAdapter();
+		
+		// if bluetooth is enabled, start main execution
 		if(a != null && a.isEnabled()){
 			startMain();
+			
+			// if bluetooth is not enabled, request to enable it
 		} else if(a != null && !a.isEnabled()){
-			startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), BT_REQUEST_CODE);
+			startActivityForResult(new Intent(
+					BluetoothAdapter.ACTION_REQUEST_ENABLE), BT_REQUEST_CODE);
+			
+			// this device does not have bluetooth, so program cannot run
 		} else {
-			Toast.makeText(this, "no bluetooth found on this device", Toast.LENGTH_SHORT).show();
+			Toast.makeText(this, 
+					"no bluetooth found on this device", 
+					Toast.LENGTH_SHORT).show();
 			finish();
 		}
 	}
@@ -153,11 +163,11 @@ public class RemoteControlActivity extends Activity {
 		super.onPause();
 		
 		// stop remote control and free resources
-		unregisterReceiver(receiver);
+		manager.unregisterReceiver(receiver);
 		sensorController.setSurfaceHolderForCamera(null);
 		master.stop();
 	}
-	
+		
 	
 	
 	@Override
@@ -176,11 +186,18 @@ public class RemoteControlActivity extends Activity {
 	
 	private void startMain(){
 		Log.d(TAG, "Setting current SurfaceHolder to SensorController");
+		
+		// creates a new master to control remote command flow, and a new responder
+		// to mediate between the master and the device sensors
 		this.camera = Camera.open();
 		SurfaceView view = (SurfaceView) findViewById(R.id.preview);
 		this.sensorController = new SensorController(this, camera, view.getHolder());
-		this.master = new RemoteControlMaster(sensorController);
-		startMaster();
+		try{
+			this.master = new RemoteControlMaster(sensorController);
+			startMaster();
+		} catch(ServiceNotFoundException e){
+			finish();
+		}
 	}
 	
 	
