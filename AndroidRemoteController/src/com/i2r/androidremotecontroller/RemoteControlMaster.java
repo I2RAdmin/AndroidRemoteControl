@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.UUID;
 
 import ARC.Constants;
-import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
@@ -48,16 +47,16 @@ public class RemoteControlMaster {
 		this.sensorController = sensors;
 		this.started = false;
 
-		WifiP2pManager manager = (WifiP2pManager) 
-				sensors.getRelativeActivity().getSystemService(Activity.WIFI_P2P_SERVICE);
+		//WifiP2pManager manager = (WifiP2pManager) 
+		//		sensors.getRelativeActivity().getSystemService(Activity.WIFI_P2P_SERVICE);
 		
-		if(!createWifiDirectRemoteConnection(manager)){
+		//if(!createWifiDirectRemoteConnection(manager)){
 			if(!createBluetoothRemoteConnection(BluetoothAdapter.getDefaultAdapter())){
 				Toast.makeText(sensors.getRelativeActivity(), 
 						"this device does not have bluetooth or wifi-direct",  Toast.LENGTH_SHORT).show();
 				throw new ServiceNotFoundException("device does not support bluetooth or wifi-direct");
 			}	
-		}
+		//}
 	}
 	
 	
@@ -65,9 +64,9 @@ public class RemoteControlMaster {
 	 * Creates a remote connection using this device's Wifi P2P service if it is available.
 	 * @param manager - the WifiP2pManager to create a connection with
 	 * @return true if connection succeeded, false if wifi-direct is not available or
-	 * connection to wifi-direct failed
+	 * connection to wifi-direct failed TODO: change to private
 	 */
-	private boolean createWifiDirectRemoteConnection(WifiP2pManager manager){
+	public boolean createWifiDirectRemoteConnection(WifiP2pManager manager){
 		boolean result;
 			try {
 				

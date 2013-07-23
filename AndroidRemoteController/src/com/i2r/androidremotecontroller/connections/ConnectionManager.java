@@ -144,7 +144,7 @@ public class ConnectionManager<E> {
 				// wait for linker to find a fresh list of peers
 				while(linker.isSearchingForLinks()){}
 				
-				// TODO: make this a list or something
+				// TODO: make this a list to choose from, if needed
 				connection = linker.connectTo(linker.getLinks().get(0));
 			}
 			

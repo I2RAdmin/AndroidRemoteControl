@@ -24,10 +24,12 @@ public class CommandPacket {
 	public static final int MAX_ALLOWED_SIZE = 10240;
 	public static final String TAG = "CommandPacket";
 	
-	private int header, taskID;
+	private static final int PARTIAL = 0;
+	private static final int FULL = 1;
+	
+	private int header, taskID, packetStatus;
 	private int[] parameters;
 	private byte[] partialPacket;
-	private boolean isCompleteCommand;
 
 	/**
 	 * Constructor #3
@@ -49,11 +51,11 @@ public class CommandPacket {
 
 		this.taskID = packet[Constants.Commands.TASK_ID_INDEX];
 		this.header = packet[Constants.Commands.HEADER_INDEX];
-		this.isCompleteCommand = true;
+		this.packetStatus = packet[packet.length - 1];
 		this.parameters = null;
 
 		int pointer = Constants.Commands.PARAM_START_INDEX;
-		int paramLength = packet.length - pointer;
+		int paramLength = packet.length - pointer - 1;
 
 		if (paramLength > 0) {
 			this.parameters = new int[paramLength];
@@ -135,7 +137,7 @@ public class CommandPacket {
 	 * false if this is a partial packet
 	 */
 	public boolean isCompleteCommand() {
-		return isCompleteCommand;
+		return packetStatus == FULL;
 	}
 	
 	/**
@@ -190,11 +192,14 @@ public class CommandPacket {
 			}
 		}
 		
-		result = new int[commands.size()];
+		
+		result = new int[commands.size() + 1];
 		for(int i = 0; i < commands.size(); i++){
 			result[i] = commands.get(i).intValue();
 		}
 		
+		// TODO: fix
+		result[commands.size()] = Constants.PACKET_END; //result[commands.size() - 1] == Constants.PACKET_END ? FULL : PARTIAL;
 		
 		return result;
 	}
@@ -240,7 +245,7 @@ public class CommandPacket {
 		}
 		builder.append("}\n");
 		builder.append("complete (un-partial) task: ");
-		builder.append(isCompleteCommand);
+		builder.append(isCompleteCommand());
 		return builder.toString();
 	}
 }

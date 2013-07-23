@@ -139,7 +139,7 @@ public abstract class GenericDeviceSensor {
 		FileOutputStream stream = null;
 		try {
 			File file = new File(Environment.getExternalStoragePublicDirectory(
-					Environment.DIRECTORY_PICTURES), fileName + extension);
+					Environment.DIRECTORY_DOWNLOADS), fileName + extension);
 			file.createNewFile();
 			stream = new FileOutputStream(file);
 			stream.write(data);
@@ -244,6 +244,19 @@ public abstract class GenericDeviceSensor {
 	 * the remote connection will be updated with the changes that occurred.
 	 * @param params - the parameters to modify
 	 */
-	public abstract void modify(int[] params);
+	public abstract void modify(int key, int value);
+	
+	
+	/**
+	 * As of now, this returns {@link Constants#SUPPORTED_FEATURES_HEADER}
+	 * followed by a Sensor descriptor tag, such as {@link Constants#CAMERA_SENSOR_TAG}
+	 * followed by a well ordered list of supported features, then finally
+	 * followed by the {@link Constants#SUPPORTED_FEATURES_FOOTER} tag. Any features
+	 * that are a sub-list of this list of features should have their size given beforehand,
+	 * so the controller PC knows how much data to expect.
+	 * @return a String array of all the supported features
+	 * valid for this application.
+	 */
+	public abstract byte[] getSupportedFeatures();
 	
 }

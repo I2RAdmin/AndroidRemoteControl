@@ -180,6 +180,8 @@ public class RemoteControlActivity extends Activity {
 				Toast.makeText(this, "bluetooth must be enabled for this app to work correctly", 
 						Toast.LENGTH_SHORT).show();
 			}
+			
+			// TODO: create result for wifi
 		}
 	}
 	

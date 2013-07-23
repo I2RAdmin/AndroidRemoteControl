@@ -79,6 +79,19 @@ public class SensorController {
 			imageCapture.startNewTask(packet.getTaskID(), packet.getParameters());
 			break;
 			 
+			
+			// modify a currently running task
+		case Constants.Commands.MODIFY:
+			
+			GenericDeviceSensor sensor = getSensor(packet.getTaskID());
+			if(sensor != null){
+				for(int i = 0; i < packet.getParameters().length; i += 2){
+					imageCapture.modify(packet.getParameters()[i], packet.getParameters()[i + 1]);
+				}
+			}
+			
+			break;
+			
 		// command to kill a process by task ID
 		case Constants.Commands.KILL:
 			if(imageCapture != null && imageCapture.getTaskID() == packet.getTaskID()){
@@ -86,6 +99,7 @@ public class SensorController {
 			}
 			// add more sensor processes to stop by task ID here
 			break;
+			
 			
 		// command to stop all processes
 		case Constants.Commands.KILL_EVERYTHING:
@@ -132,6 +146,15 @@ public class SensorController {
 	public static boolean sensorIsAvailable(GenericDeviceSensor capture, int taskID){
 		return (capture == null || taskID != capture.getTaskID() ||
 				(taskID == capture.getTaskID() && capture.taskCompleted()));
+	}
+	
+	
+	public GenericDeviceSensor getSensor(int taskID){
+		GenericDeviceSensor sensor = null;
+		if(imageCapture != null && imageCapture.getTaskID() == taskID){
+			sensor = imageCapture;
+		}
+		return sensor;
 	}
 	
 	
