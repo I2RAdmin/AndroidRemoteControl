@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -347,10 +348,25 @@ public class Controller{
 		if(UIIn == TYPE_STANDARD_IN){
 			in = new BufferedInputStream(System.in);
 		}else{
+			File inFile = new File(UIIn);
+			
 			try {
+				
+				//TODO: test hack
+				if(!inFile.exists()){
+					inFile.createNewFile();
+					FileWriter hackWriter = new FileWriter(inFile);
+					hackWriter.write("1");
+					hackWriter.flush();
+					hackWriter.close();
+				}
+				
 				in = new FileInputStream(UIIn);
 			} catch (FileNotFoundException e) {
 				logger.error(e.getMessage(), e);
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
