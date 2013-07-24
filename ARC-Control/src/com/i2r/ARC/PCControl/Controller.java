@@ -3,8 +3,17 @@
  */
 package com.i2r.ARC.PCControl;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -13,6 +22,7 @@ import org.apache.log4j.Logger;
 import com.i2r.ARC.PCControl.DataManager.ARCDataManager;
 import com.i2r.ARC.PCControl.DataManager.DataManager;
 import com.i2r.ARC.PCControl.UI.FileUI;
+import com.i2r.ARC.PCControl.UI.StreamUI;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 import com.i2r.ARC.PCControl.link.RemoteLink;
 import com.i2r.ARC.PCControl.link.BluetoothLink.BluetoothConnection;
@@ -31,6 +41,7 @@ public class Controller{
 	RemoteConnection<byte[]> conn;
 	RemoteLink<byte[]> link;
 	DataManager<Task, byte[]> dataManager;
+	StreamUI ui;
 	
 	private static Controller instance = new Controller();
 	
@@ -38,6 +49,36 @@ public class Controller{
 	DataResponse response;
 	
 	AtomicBoolean startLock;
+	
+	Properties prop;
+	
+	String UIOut;
+	String RemoteOut;
+	String UIIn;
+	String RemoteIn;
+	String connType;
+	
+	private static final String TYPE_BLUETOOTH = "BLUETOOTH";
+	private static final String TYPE_LOCAL = "LOCAL";
+	private static final String TYPE_STANDARD_IN = "STANDARD_IN";
+	private static final String TYPE_STANDARD_OUT = "STANDARD_OUT";
+	private static final String TYPE_CLOSED = "CLOSED";
+	private static final String TYPE_OPEN = "OPEN";
+	
+	private static final String UI_OUT_PROPERTY = "UI_OUT";
+	private static final String UI_IN_PROPERTY = "UI_IN";
+	private static final String REMOTE_OUT_PROPERTY = "REMOTE_OUT";
+	private static final String REMOTE_IN_PROPERTY = "REMOTE_IN";
+	private static final String CONN_TYPE_PROPERTY = "CONN_TYPE";
+	
+	
+	private static final String UI_OUT_DEFAULT = TYPE_STANDARD_OUT;
+	private static final String UI_IN_DEFAULT = TYPE_STANDARD_IN;
+	
+	private static final String REMOTE_OUT_DEFAULT = TYPE_OPEN;
+	private static final String REMOTE_IN_DEFAULT = TYPE_OPEN;
+	
+	private static final String CONN_TYPE_DEFAULT = TYPE_BLUETOOTH;
 	
 	static final Logger logger = Logger.getLogger(Controller.class);
 	
@@ -50,11 +91,38 @@ public class Controller{
 	
 	public void initalize(){
 		logger.debug("creating data objects");
-		
 		tasks = new TaskStack();
 		startLock = new AtomicBoolean(false);
-		
+		prop = new Properties();
 		logger.debug("Created intial objects");
+		logger.debug("loading properties");
+		File propertyFile = new File("config.properties");
+		if(propertyFile.exists()){
+			try {
+				prop.load(new FileInputStream(propertyFile));
+			} catch (FileNotFoundException e) {
+				logger.error(e.getMessage(), e);
+				e.printStackTrace();
+			} catch (IOException e) {
+				logger.error(e.getMessage(), e);
+				e.printStackTrace();
+			}
+			
+			logger.debug("Loaded configuration, setting streams & connection");
+			UIOut = (prop.getProperty(UI_OUT_PROPERTY) == null) ? UI_OUT_DEFAULT : prop.getProperty(UI_OUT_PROPERTY);
+			UIIn = (prop.getProperty(UI_IN_PROPERTY) == null) ? UI_IN_DEFAULT : prop.getProperty(UI_IN_PROPERTY);
+			RemoteOut = (prop.getProperty(REMOTE_OUT_PROPERTY) == null) ? UI_OUT_DEFAULT : prop.getProperty(REMOTE_OUT_PROPERTY);
+			RemoteIn = (prop.getProperty(REMOTE_IN_PROPERTY) == null) ? UI_IN_DEFAULT : prop.getProperty(REMOTE_IN_PROPERTY);
+			connType = (prop.getProperty(CONN_TYPE_PROPERTY) == null) ? CONN_TYPE_DEFAULT : prop.getProperty(CONN_TYPE_PROPERTY);
+			
+		}else{
+			logger.debug("Configuration file not found, loading defaults.");
+			UIOut = UI_OUT_DEFAULT;
+			RemoteOut = REMOTE_OUT_DEFAULT;
+			UIIn = UI_IN_DEFAULT;
+			RemoteIn = REMOTE_IN_DEFAULT;
+			connType = CONN_TYPE_DEFAULT;
+		}
 	}
 	
 	public void searchForConnections(){
@@ -250,6 +318,94 @@ public class Controller{
 	public void runSendOnlyWithWifi(){
 		link = new WifiLink();
 		connect("AndroidRemoteControl");
+	}
+	
+	public void genericRun(){
+		//establish the requested link
+		if(connType == TYPE_BLUETOOTH){
+			//establish bluetooth connection
+		}else if(connType == TYPE_LOCAL){
+			//establish a local I/O stream connection
+			link = new CommandLineLink();
+			
+			connect("");
+			
+			dataManager = new ARCDataManager(conn);
+		}
 		
+		//establish the requested conn type
+		if(RemoteIn == TYPE_OPEN){
+			//only open the stream if this is set
+			dataManager.read();
+		}
+		//TODO: ditto for standard out
+		
+		//establish the UI
+		InputStream in = null;
+		OutputStream out = null;
+		if(UIIn == TYPE_STANDARD_IN){
+			in = new BufferedInputStream(System.in);
+		}else{
+			try {
+				in = new FileInputStream(UIIn);
+			} catch (FileNotFoundException e) {
+				logger.error(e.getMessage(), e);
+				e.printStackTrace();
+			}
+		}
+		
+		if(UIOut == TYPE_STANDARD_OUT){
+			out = new BufferedOutputStream(System.out);
+		}else{
+			File outFile = new File(UIOut);
+			try {
+				if(!outFile.exists()){
+					outFile.createNewFile();
+				}
+				out = new FileOutputStream(UIOut);
+			} catch (FileNotFoundException e) {
+				logger.error(e.getMessage(), e);
+				e.printStackTrace();
+			} catch (IOException e) {
+				logger.error(e.getMessage(), e);
+				e.printStackTrace();
+			}
+		}
+		
+		if(in == null || out == null){
+			logger.error("could not set in/out ui streams");
+		}
+		
+		ui = new StreamUI<OutputStream, InputStream, byte[]>(in, out, this);
+		ui.read();
+		
+		while(startLock.compareAndSet(true, false)){
+			//wait a second before asking again
+			try {
+				this.wait(1000);
+			} catch (InterruptedException e) {
+				logger.error(e.getMessage(), e);
+				e.printStackTrace();
+			}
+		}
+		
+		try {
+			while(tasks.tasksRemaining() && ui.source.available() != -1){
+				try {
+					if(tasks.tasksRemaining() && dataManager.dataIn.available() != -1){
+						this.wait(1000);
+					}
+				} catch (IOException e) {
+					logger.error(e.getMessage(), e);
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					logger.error(e.getMessage(), e);
+					e.printStackTrace();
+				}
+			}
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+			e.printStackTrace();
+		}
 	}
 }

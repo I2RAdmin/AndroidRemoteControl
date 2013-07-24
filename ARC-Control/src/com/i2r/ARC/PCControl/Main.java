@@ -29,7 +29,8 @@ public class Main {
 		
 		//cntrl.runWithFileUI(args[0]);
 		//cntrl.trialRun();
-		cntrl.runSendOnly();
+		//cntrl.runSendOnly();
+		cntrl.genericRun();
 	}
 
 }

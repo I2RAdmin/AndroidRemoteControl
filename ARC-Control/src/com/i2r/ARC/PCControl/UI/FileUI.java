@@ -15,7 +15,7 @@ import com.i2r.ARC.PCControl.ARCCommand;
 import com.i2r.ARC.PCControl.Controller;
 
 /**
- * This is the most basic form of UI, takes ARC commands from a file and sends them to the phone.
+ * This is the most basic form of GenericUI, takes ARC commands from a file and sends them to the phone.
  * ARCCommand files are text files that use whitespace in place of the typical ARC command delimiter, with a newline
  * delimiting a new command.
  * 
