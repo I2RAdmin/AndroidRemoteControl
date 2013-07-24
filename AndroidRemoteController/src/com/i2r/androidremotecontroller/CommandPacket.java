@@ -141,18 +141,21 @@ public class CommandPacket {
 
 
 	/**
-	 * Parses a {@link CommandPacket} object from the given StringBuilder.
-	 * This invocation assumes that the given StringBuilder contains
-	 * a complete command packet. Giving a partial command packet will
-	 * result in the returned object being garbage.
-	 * @param buffer - the buffer to parse a complete CommandPacket from
-	 * @return a new CommandPacket with the parameters found in the
-	 * given StringBuilder
+	 * Parses an array of {@link CommandPacket} objects from the given
+	 * String buffer. This invocation assumes that the given String
+	 * contains at least one complete command packet.
+	 * @param buffer - the buffer to parse at least one complete CommandPacket from
+	 * @return all complete commands found (if any) in the form of a CommandPacket array,
+	 * with a partial as the last packet if no ending identifier is found in it.
+	 * If no completed commands are found returns either an array of size 1 which
+	 * contains 1 partial command, or null if no command could be parsed from the given
+	 * buffer, due to a NumberFormatException thrown by {@link #decode(String)}
 	 */
 	public static CommandPacket[] parsePackets(String buffer) {
 		CommandPacket[] packets = null;
 		try{
-			ArrayList<ArrayList<Integer>> decodedPackets = decode(buffer);
+			ArrayList<ArrayList<Integer>> decodedPackets = decode(buffer, 
+							Constants.PACKET_DELIMITER, Constants.PACKET_END);
 			packets = new CommandPacket[decodedPackets.size()];
 			for(int i = 0; i < packets.length; i++){
 				packets[i] = new CommandPacket(decodedPackets.get(i));
@@ -164,6 +167,16 @@ public class CommandPacket {
 	}
 
 	
+	/**
+	 * Stitches two packets together assuming that at least one of these packets
+	 * has a completion identifier at its end.
+	 * @param first - the first CommandPacket to stitch
+	 * @param second - the second CommandPacket to stitch
+	 * @return a new command packet which is the composite of the two given, with
+	 * the order correlated to which one has the completion identifier being on the
+	 * second latter half of the newly formed packet. As a result, the "stitch" of these
+	 * two packets will be where the partial one ends and the complete one begins.
+	 */
 	public static CommandPacket stitchPackets(CommandPacket first, CommandPacket second){
 		CommandPacket packet = null;
 		ArrayList<Integer> temp = new ArrayList<Integer>();
@@ -185,17 +198,25 @@ public class CommandPacket {
 	
 	/**
 	 * This static method parses the commands given in a byte array that is
-	 * retrieved from reading data on the open bluetooth socket for this
+	 * retrieved from reading data on a {@link RemoteConnection} for this
 	 * application. The data is parsed based on the command
-	 * {@link Constants#TERMINATOR}, which indicates a command's end point. The
-	 * resulting commands are returned in a String array in the order that they
-	 * were parsed.
+	 * {@link Constants#TERMINATOR}, which indicates a command's end point.
+	 * If at any point a {@link Constants#PACKET_END} is found, the command packet
+	 * is deemed complete. This process is repeated until the buffer's end is reached.
 	 * 
-	 * @param buffer
-	 *            - the byte array to parse commands from
-	 * @return a string array of the successfully parsed commands
+	 * @param buffer - the String to parse commands from
+	 * @param delimiter - the delimiter to look for while parsing out sections of the string
+	 * @param fullPacketIdentifier - the string to look for which indicates a packet's end.
+	 * It implied that if the buffer's end has not been reached here, another packet's beginning
+	 * immediately follows the previous one's ending. NOTE: these identifiers also need to be
+	 * delimited by the given delimiter (the delimiter needs to immediately follow this) or
+	 * they will not be interpreted correctly and will be skipped - this will most likely cause
+	 * parsing errors.
+	 * @return an ArrayList of ArrayLists of Integers. The latter ArrayList can be seen
+	 * as an individual CommandPacket, while the former ArrayList is a container of packets.
 	 */
-	public static ArrayList<ArrayList<Integer>> decode(String buffer) throws NumberFormatException {
+	public static ArrayList<ArrayList<Integer>> decode(String buffer, char delimiter,
+								String fullPacketIdentifier) throws NumberFormatException {
 		
 		ArrayList<ArrayList<Integer>> packetList = new ArrayList<ArrayList<Integer>>();
 		ArrayList<Integer> subPacket = new ArrayList<Integer>();
