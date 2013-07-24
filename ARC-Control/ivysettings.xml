@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivsettings>
+    <settings defaultResolver="snapshot-chain" />
+    <resolvers>
+        <chain name="snapshot-chain">
+            <ibiblio name="ibiblio-maven2" m2compatible="true" />
+            <ibiblio name="pyx4j-web-snapshot" url="http://repository.pyx4j.com/maven2-snapshot" m2compatible="true"/>
+        </chain>
+    </resolvers>
+    <modules>
+        <module organization="net.sf.bluecove" resolver="pyx4j-web-snapshot" />
+    </modules>
+</ivsettings>
