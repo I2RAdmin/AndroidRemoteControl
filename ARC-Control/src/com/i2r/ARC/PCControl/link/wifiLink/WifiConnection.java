@@ -11,7 +11,6 @@ import java.net.UnknownHostException;
 
 import org.apache.log4j.Logger;
 
-import com.i2r.ARC.PCControl.UI.FileUI;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 
 /**

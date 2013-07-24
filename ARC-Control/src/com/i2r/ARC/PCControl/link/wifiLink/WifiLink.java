@@ -3,16 +3,10 @@
  */
 package com.i2r.ARC.PCControl.link.wifiLink;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.util.Collections;
-import java.util.Enumeration;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.i2r.ARC.PCControl.DataManager.ARCDataManager;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 import com.i2r.ARC.PCControl.link.RemoteLink;
 
