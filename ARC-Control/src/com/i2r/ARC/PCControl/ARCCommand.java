@@ -3,8 +3,10 @@
  */
 package com.i2r.ARC.PCControl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
 
 /**
  * Class encapsulates an ARC Command.  ARC commands consist of an <code>int</code> header and a <code>List</code> of <code>String</code> 
@@ -13,7 +15,6 @@ import java.util.List;
  * The ARCCommand class also keeps track of various constants to use for defaults, the constant indexes of various argument parameters
  * and default argument strings for various commands.
  * 
- * TODO: use Java Enumerations to cut some of this down to size and make it less scary.
  * @author Johnathan Pagnutti
  *
  */
@@ -40,11 +41,12 @@ public class ARCCommand {
 	private static final String IMAGE_TYPE_JPEG = "jpeg";
 	
 	private static final String[] DEFAULT_NO_COMMAND_ARGUMENTS = {NO_ARGUMENT, NO_ARGUMENT, NO_ARGUMENT, NO_ARGUMENT};
-	private static final String[] DEFAULT_KILL_COMMAND_ARGUMENTS = {NO_ARGUMENT, NO_ARGUMENT, NO_ARGUMENT, NO_ARGUMENT, NO_ARGUMENT};
+	private static final String[] DEFAULT_KILL_COMMAND_ARGUMENTS = {NO_ARGUMENT};
 	private static final String[] DEFAULT_TAKE_PICTURE_ARGUMENTS = {PICTURE_FREQUENCY_DEFAULT, NO_ARGUMENT, PICTURE_AMMOUNT_DEFAULT, IMAGE_TYPE_JPEG};
 	
 	//the header to a command.  Usually something for the camera to do, but can also be a notifier about a sent task
 	private int header;
+	
 	//the arguments to go with that command
 	private List<String> arguments;
 	
@@ -265,7 +267,18 @@ public class ARCCommand {
 	 * @return the correct list of arguments for the kill command
 	 */
 	private List<String> checkKillCommandArgs(List<String> arguments) {
-		return defaultArguments(KILL);
+		//kill just has one argument
+		if(arguments.isEmpty()){
+			return defaultArguments(KILL);
+		}else{
+			int task = Integer.parseInt(arguments.get(0));
+			
+			if(task < 0){
+				return defaultArguments(KILL);
+			}else{
+				return arguments;
+			}
+		}
 	}
 
 	/**
@@ -278,6 +291,36 @@ public class ARCCommand {
 	 */
 	private List<String> checkNoCommandArgs(List<String> arguments) {
 		return defaultArguments(NO_COMMAND);
+	}
+
+	/**
+	 * Return a new ARC command given a string
+	 * @param line the string to create a new ARCCommand out of
+	 * @return
+	 */
+	public static ARCCommand fromString(String line) {
+		Scanner lineScan = new Scanner(line);
+		int header;
+		
+		if(lineScan.hasNextInt()){
+			header = lineScan.nextInt();
+		}else{
+			return new ARCCommand();
+		}
+		
+		if(header != NO_COMMAND || header != KILL || header != TAKE_PICTURES){
+			return new ARCCommand();
+		}
+		
+		if(lineScan.hasNext()){
+			List<String> lineArgs = new ArrayList<String>();
+			while(lineScan.hasNext()){
+				lineArgs.add(lineScan.next());
+			}
+			return new ARCCommand(header, lineArgs);
+		}else{
+			return new ARCCommand(header);
+		}
 	}
 
 }

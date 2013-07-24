@@ -14,7 +14,7 @@
   <manifest></manifest>
   <icon></icon>
   <jre>
-    <path>C:\Program Files\Java\jdk1.7.0_21</path>
+    <path>C:\Program Files\Java\jdk1.7.0_21\jre</path>
     <minVersion></minVersion>
     <maxVersion></maxVersion>
     <jdkPreference>preferJre</jdkPreference>

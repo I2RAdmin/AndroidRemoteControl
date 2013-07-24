@@ -148,7 +148,7 @@ public class BluetoothLink implements Runnable, RemoteLink<byte[]>{
 			agent = local.getDiscoveryAgent();
 		
 			//check to see if the local cache has any Bluetooth devices
-			RemoteDevice[] cachedDevices = null; //agent.retrieveDevices(DiscoveryAgent.CACHED);
+			RemoteDevice[] cachedDevices = agent.retrieveDevices(DiscoveryAgent.CACHED);
 			if(cachedDevices != null){
 				logger.debug("Retrieved " + cachedDevices.length + " devices from the cache.");
 			}else{
