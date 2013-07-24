@@ -86,6 +86,7 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 		public void run() {
 			//implementation of the read method
 			while(true){
+				while(!readScan.hasNextLine());
 				String line = readScan.nextLine();
 				logger.debug("Read in: " + line);
 

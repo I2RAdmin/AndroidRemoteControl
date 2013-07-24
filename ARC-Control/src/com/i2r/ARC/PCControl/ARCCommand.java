@@ -8,6 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
+import org.apache.log4j.Logger;
+
 /**
  * Class encapsulates an ARC Command.  ARC commands consist of an <code>int</code> header and a <code>List</code> of <code>String</code> 
  * elements as arguments.
@@ -19,6 +21,8 @@ import java.util.Scanner;
  *
  */
 public class ARCCommand {
+	static final Logger logger = Logger.getLogger(ARCCommand.class);
+	
 	public static final int NO_COMMAND = -1;
 	public static final int KILL = 0;
 	public static final int TAKE_PICTURES = 1;
@@ -143,7 +147,7 @@ public class ARCCommand {
 			//set the header to the provided header
 			this.header = header;
 			//check the provided argument list
-			arguments = checkArguments(header, arguments);
+			this.arguments = checkArguments(header, arguments);
 			break;
 		default:
 			//otherwise, return the default ARCCommand
@@ -193,7 +197,7 @@ public class ARCCommand {
 		//value holder
 		int num;
 		//for each arg in the argument list...
-		for(i = 0; i < ARG_LIST_SIZE; i++){
+		for(i = 0; i < arguments.size(); i++){
 			//get the value of the argument
 			String value = arguments.get(i);
 			
@@ -299,16 +303,19 @@ public class ARCCommand {
 	 * @return
 	 */
 	public static ARCCommand fromString(String line) {
+		logger.debug("Line :" + line);
 		Scanner lineScan = new Scanner(line);
 		int header;
 		
 		if(lineScan.hasNextInt()){
 			header = lineScan.nextInt();
+			logger.debug("header :" + header);
 		}else{
 			return new ARCCommand();
 		}
 		
-		if(header != NO_COMMAND || header != KILL || header != TAKE_PICTURES){
+		if(header != NO_COMMAND && header != KILL && header != TAKE_PICTURES){
+			logger.debug("Header not valid, using default.");
 			return new ARCCommand();
 		}
 		

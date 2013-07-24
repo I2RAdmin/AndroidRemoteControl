@@ -112,8 +112,8 @@ public class Controller{
 			logger.debug("Loaded configuration, setting streams & connection");
 			UIOut = (prop.getProperty(UI_OUT_PROPERTY) == null) ? UI_OUT_DEFAULT : prop.getProperty(UI_OUT_PROPERTY);
 			UIIn = (prop.getProperty(UI_IN_PROPERTY) == null) ? UI_IN_DEFAULT : prop.getProperty(UI_IN_PROPERTY);
-			RemoteOut = (prop.getProperty(REMOTE_OUT_PROPERTY) == null) ? UI_OUT_DEFAULT : prop.getProperty(REMOTE_OUT_PROPERTY);
-			RemoteIn = (prop.getProperty(REMOTE_IN_PROPERTY) == null) ? UI_IN_DEFAULT : prop.getProperty(REMOTE_IN_PROPERTY);
+			RemoteOut = (prop.getProperty(REMOTE_OUT_PROPERTY) == null) ? REMOTE_OUT_DEFAULT : prop.getProperty(REMOTE_OUT_PROPERTY);
+			RemoteIn = (prop.getProperty(REMOTE_IN_PROPERTY) == null) ? REMOTE_IN_DEFAULT : prop.getProperty(REMOTE_IN_PROPERTY);
 			connType = (prop.getProperty(CONN_TYPE_PROPERTY) == null) ? CONN_TYPE_DEFAULT : prop.getProperty(CONN_TYPE_PROPERTY);
 			
 		}else{
@@ -323,9 +323,40 @@ public class Controller{
 	
 	public void genericRun(){
 		//establish the requested link
-		if(connType == TYPE_BLUETOOTH){
-			//establish bluetooth connection
-		}else if(connType == TYPE_LOCAL){
+		if(connType.equals(TYPE_BLUETOOTH)){
+			link = new BluetoothLink();
+			List<String> connectionURLs;
+			searchForConnections();
+			boolean foundConnections = false;
+			
+			System.out.println("Searching for Bluetooth connection...");
+			while(!foundConnections){
+				connectionURLs = aquiredConnections();
+				if(connectionURLs != null && !connectionURLs.isEmpty()){
+					if(!connectionURLs.get(0).equals("STILL_SEARCHING")){
+						logger.debug("Found " + connectionURLs.get(0));
+						connect(connectionURLs.get(0));
+						logger.debug("Connected to " + connectionURLs.get(0));
+						foundConnections = true;
+					}else{
+						//logger.debug("Still searching for service");
+					}
+				}else if(connectionURLs == null){
+					logger.debug("No valid connections could be found.");
+					break;
+				}
+			}
+			
+			//if the connection object is null...
+			if(conn == null){
+				logger.error("A bluetooth connection could not be found... exiting");
+				return;
+			}
+			
+			dataManager = new ARCDataManager((BluetoothConnection) conn);
+			
+		}else if(connType.equals(TYPE_LOCAL)){
+			logger.debug("creating local connection");
 			//establish a local I/O stream connection
 			link = new CommandLineLink();
 			
@@ -333,11 +364,12 @@ public class Controller{
 			
 			dataManager = new ARCDataManager(conn);
 		}
-		
+
 		//establish the requested conn type
-		if(RemoteIn == TYPE_OPEN){
+		if(RemoteIn.equals(TYPE_OPEN)){
 			//only open the stream if this is set
 			dataManager.read();
+			logger.debug("Started data reading...");
 		}
 		//TODO: ditto for standard out
 		
@@ -345,33 +377,20 @@ public class Controller{
 		InputStream in = null;
 		OutputStream out = null;
 		
-		if(UIIn == TYPE_STANDARD_IN){
+		if(UIIn.equals(TYPE_STANDARD_IN)){
 			in = new BufferedInputStream(System.in);
 		}else{
 			File inFile = new File(UIIn);
 			
 			try {
-				
-				//TODO: test hack
-				if(!inFile.exists()){
-					inFile.createNewFile();
-					FileWriter hackWriter = new FileWriter(inFile);
-					hackWriter.write("1");
-					hackWriter.flush();
-					hackWriter.close();
-				}
-				
-				in = new FileInputStream(UIIn);
+				in = new FileInputStream(inFile);
 			} catch (FileNotFoundException e) {
 				logger.error(e.getMessage(), e);
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 		
-		if(UIOut == TYPE_STANDARD_OUT){
+		if(UIOut.equals(TYPE_STANDARD_OUT)){
 			out = new BufferedOutputStream(System.out);
 		}else{
 			File outFile = new File(UIOut);
@@ -379,7 +398,7 @@ public class Controller{
 				if(!outFile.exists()){
 					outFile.createNewFile();
 				}
-				out = new FileOutputStream(UIOut);
+				out = new FileOutputStream(outFile);
 			} catch (FileNotFoundException e) {
 				logger.error(e.getMessage(), e);
 				e.printStackTrace();
