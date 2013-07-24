@@ -1,6 +1,5 @@
 package com.i2r.androidremotecontroller.sensors;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -12,6 +11,7 @@ import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
 
+import com.i2r.androidremotecontroller.ResponsePacket;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
 
 /**
@@ -80,51 +80,22 @@ public abstract class GenericDeviceSensor {
 
 	
 	/**
-	 * Writes the result data that this object sensor has accumulated to this
+	 * Writes the result data that this sensor has accumulated to this
 	 * manager's client socket, if it is open.
-	 * @param data - the data to write to this manager's client socket if the
-	 * socket is available
+	 * @param data - the data to write to this RemoteConnection, if the
+	 * connection is available
 	 */
 	protected void sendDataAcrossConnection(byte[] data, int dataType) { // TODO: make sequence task id, datatype, data size, data
 
 		Log.d(TAG, "attempting to send data to across remote connection...");
 		if (connection.isConnected()) {
-
-			ByteArrayOutputStream stream = new ByteArrayOutputStream();
-
-			// write the data to the socket, along with information about it and delimiters
-			try {
-				stream.write(Integer.toString(taskID).getBytes());
-				stream.write(Constants.PACKET_DELIMITER);
-				stream.write(Integer.toString(data.length).getBytes());
-				stream.write(Constants.PACKET_DELIMITER);
-				stream.write(data);
-
-				byte[] result = stream.toByteArray();
-				connection.write(result);
-				Log.d(TAG, "bytes successfully written to socket - "
-						+ result.length + " : file size - " + data.length
-						+ " : task ID - " + taskID);
-
-				// error writing data results, abort
-			} catch (IOException e) {
-				Log.e(TAG,
-						"IOException while attempting to write to socket : taskID - "
-								+ taskID);
-				e.printStackTrace();
-				
-				// close stream if it was opened
-			} finally {
-				if (stream != null) {
-					try {
-						stream.flush();
-						stream.close();
-					} catch (IOException e) {
-						// do nothing.
-					}
-				}
+			ResponsePacket response = new ResponsePacket(taskID, dataType, data);
+			if(ResponsePacket.sendResponse(response, connection)) {
+				Log.e(TAG, "response sent successfully:\n" + response.toString());
+			} else {
+				Log.e(TAG, "error sending response across connection:\n" + response.toString());
 			}
-
+			
 			// connection given is not open, therefore no connection to write to
 		} else {
 			Log.e(TAG, Constants.ERROR_ON_DATA_TRANSFER + " - " + data.length
@@ -133,6 +104,15 @@ public abstract class GenericDeviceSensor {
 	}
 	
 	
+	/**
+	 * Saves the given data to the native SD card, then alerts the system through the
+	 * given Context to scan for new files on the SD card
+	 * @param data - the data to save to the SD card
+	 * @param fileName - the file name to save the data under
+	 * @param extension - the type of data being saved
+	 * @param context - the context in which to alert the system to scan for new files on
+	 * the SD card.
+	 */
 	public static void saveDataToSD(byte[] data, String fileName, String extension, Context context){
 		
 		Log.d(TAG, "attempting to save data...");
@@ -258,5 +238,6 @@ public abstract class GenericDeviceSensor {
 	 * valid for this application.
 	 */
 	public abstract byte[] getSupportedFeatures();
+
 	
 }

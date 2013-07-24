@@ -51,7 +51,7 @@ public class SensorController {
 	 * @see {@link CommandPacket#parsePacket(byte[])}
 	 */
 	private void filterCommand(final CommandPacket packet){
-		if(connection != null){
+		if(connection != null && packet != null){
 			Log.d(TAG, "filtering packet...");
 			filter(packet);
 		} else {
@@ -221,12 +221,16 @@ public class SensorController {
 	public void parseCommand(String read){
 		
 		// get a new CommandPacket object from the string read by bluetooth socket
-		CommandPacket packet = CommandPacket.parsePacket(read);
+		CommandPacket[] packets = CommandPacket.parsePackets(read);
 		
 		// if the packet is legitimate, add it to the queue
-		if(packet != null && packet.isCompleteCommand()){
-			commandQueue.add(packet);
-			Log.d(TAG, "new command received:\n" + packet.toString());
+		for(int i = 0; i < packets.length; i++){
+			if(packets[i] != null && packets[i].isCompleteCommand()){
+				commandQueue.add(packets[i]);
+				Log.d(TAG, "new command received:\n" + packets[i].toString());
+			} else if (packets[i] == null){
+				Log.e(TAG, "command " + i + " could not be parsed");
+			}
 		}
 	}
 
@@ -236,7 +240,6 @@ public class SensorController {
 	/**
 	 * Executes the next command in sequence.
 	 * If the command is for a process that is already running,
-	 * 
 	 */
 	public void executeNextCommand(){
 		

@@ -1,7 +1,6 @@
 package com.i2r.androidremotecontroller;
 
 import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -43,9 +42,8 @@ public class RemoteControlActivity extends Activity {
 	public static final String EXTRA_CONNECTION_STATUS = "i2r_extra_connection_status";
 	public static final String EXTRA_TASK_ID = "i2r_extra_task_id";
 	public static final String EXTRA_COMMAND = "i2r_extra_command";
-	public static final String EXTRA_REMOTE_CONNECTION = "i2r_parcelable_extra_remote_connection";
 	
-	private static final int BT_REQUEST_CODE = 1;
+
 
 	private BroadcastReceiver receiver;
 	private LocalBroadcastManager manager;
@@ -69,7 +67,7 @@ public class RemoteControlActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
+		setContentView(R.layout.activity_remote_control);
 		
 		// booleans to query about the state of this activity during the
 		// first steps of creation
@@ -78,29 +76,36 @@ public class RemoteControlActivity extends Activity {
 		this.manager = LocalBroadcastManager.getInstance(this);
 		
 		// create a receiver for the BluetoothConnectionManager to send to
-		this.receiver = new BroadcastReceiver(){
+		this.receiver = new BroadcastReceiver() {
 			public void onReceive(Context context, Intent intent){
 				
 				// if the source of the intent was a remote connection reading more commands
 				if(intent.getAction().equals(ACTION_CONNECTION_READ)){
+					
 					Log.d(TAG, "update broadcast from connection recieved");
 					action.setText("pasring command");
 					master.updateByRemoteControl(intent.getStringExtra(EXTRA_COMMAND));
 					
 					// if the source of the intent was a new connection
 				} else if(intent.getAction().equals(ACTION_CONNECTOR_RESPONDED)){
+					
 					Log.d(TAG, "initialization broadcast recieved");
+					
 					boolean connectionFound = intent.getBooleanExtra(EXTRA_CONNECTION_STATUS, false);
-					String result = connectionFound ? "" : 
+					String result = connectionFound ? "initializing connection..." : 
 						"connection terminated by remote device, listening for reconnect...";
 					action.setText(result);
 					master.initializeConnection();
 					
-					// sensor completed a task, do something about it
+					// if the source of the intent was a sensor saying it completed a task
 				} else if(intent.getAction().equals(ACTION_UPDATE_MASTER)){
+					
 					Log.d(TAG,"master update broadcast recieved from sensor");
 					action.setText("task completed: " + intent.getIntExtra(EXTRA_TASK_ID, -1));
-				}
+					if(sensorController.hasNewCommands()){
+						sensorController.executeNextCommand();
+					}
+				} 
 			}
 		};
 		
@@ -136,57 +141,26 @@ public class RemoteControlActivity extends Activity {
 		filter.addAction(ACTION_CONNECTION_READ);
 		manager.registerReceiver(receiver, filter);
 		
-		
-		BluetoothAdapter a = BluetoothAdapter.getDefaultAdapter();
-		
-		// if bluetooth is enabled, start main execution
-		if(a != null && a.isEnabled()){
-			startMain();
-			
-			// if bluetooth is not enabled, request to enable it
-		} else if(a != null && !a.isEnabled()){
-			startActivityForResult(new Intent(
-					BluetoothAdapter.ACTION_REQUEST_ENABLE), BT_REQUEST_CODE);
-			
-			// this device does not have bluetooth, so program cannot run
-		} else {
-			Toast.makeText(this, 
-					"no bluetooth found on this device", 
-					Toast.LENGTH_SHORT).show();
-			finish();
-		}
+		startMaster(getIntent().getStringExtra(
+				ConnectionTypeSelectionActivity.EXTRA_CONNECTION_TYPE));
 	}
 	
 	
 	@Override
 	protected void onPause(){
 		super.onPause();
-		
-		// stop remote control and free resources
-		manager.unregisterReceiver(receiver);
-		sensorController.setSurfaceHolderForCamera(null);
-		master.stop();
+		stopMaster();
 	}
 		
 	
 	
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		super.onActivityResult(requestCode, resultCode, data);
-		if(requestCode == BT_REQUEST_CODE){
-			if(resultCode == RESULT_OK){
-				startMain();
-			} else {
-				Toast.makeText(this, "bluetooth must be enabled for this app to work correctly", 
-						Toast.LENGTH_SHORT).show();
-			}
-			
-			// TODO: create result for wifi
-		}
-	}
-	
-	
-	private void startMain(){
+	/**
+	 * Begins main execution of this remote control app.
+	 * This creates a new RemoteControlMaster to control the phone
+	 * remotely by taking in commands across a connection, and it creates
+	 * a new SensorController for the Master's use 
+	 */
+	private void startMaster(String connectionType){
 		Log.d(TAG, "Setting current SurfaceHolder to SensorController");
 		
 		// creates a new master to control remote command flow, and a new responder
@@ -195,33 +169,42 @@ public class RemoteControlActivity extends Activity {
 		SurfaceView view = (SurfaceView) findViewById(R.id.preview);
 		this.sensorController = new SensorController(this, camera, view.getHolder());
 		try{
-			this.master = new RemoteControlMaster(sensorController);
-			startMaster();
+			this.master = new RemoteControlMaster(sensorController, connectionType);
+			if(!started){
+				started = true;
+				action.setText("remote control started, listening for connection...");
+				Log.d(TAG, "remote control started");
+				master.start();
+			}
 		} catch(ServiceNotFoundException e){
+			Toast.makeText(this, "connection service for remote control not found, shutting down app",  
+					Toast.LENGTH_SHORT).show();
 			finish();
 		}
 	}
 	
-	
-	
-	private void startMaster(){
-		// set the 'start' button to start remote control
-		if(!started){
-			started = true;
-			action.setText("remote control started, listening for connection...");
-			Log.d(TAG, "remote control started");
-			master.start();
-		}
-	}
+
 	
 	
 	private void stopMaster(){
 		// set the 'stop' button to stop remote control
 		started = false;
 		Log.d(TAG, "remote control stopped");
-		master.stop();
+		
+		// stop remote control and free resources
+		if(manager != null){
+			manager.unregisterReceiver(receiver);
+		}
+		
+		if(master != null){
+			master.stop();
+		}
+		
 		action.setText("remote control stopped, finishing...");
 		finish();
 	}
+	
+	
+	
 	
 }// end of SelectorActivity class

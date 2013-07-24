@@ -6,17 +6,15 @@ import java.util.ArrayList;
 
 import ARC.Constants;
 import ARC.Constants.Args;
+import android.util.Log;
 
 
 /**
  * This class models a container for the commands parsed
  * from this application's {@link BluetotohSocket} byte[] results.
  * A command cannot be created, but must be parsed with the
- * static methods defined in this class:<br>
- * {@link #parsePacket(Integer[])}<br>
- * {@link #parsePacket(StringBuilder)}<br>
- * {@link #parsePartialPacket(byte[])}<br>
- * {@link #parseFullPacket(byte[])}<br>
+ * static method defined in this class:<br>
+ * {@link #parsePacket(String)}<br>
  * @author Josh Noel
  */
 public class CommandPacket {
@@ -24,12 +22,11 @@ public class CommandPacket {
 	public static final int MAX_ALLOWED_SIZE = 10240;
 	public static final String TAG = "CommandPacket";
 	
-	private static final int PARTIAL = 0;
-	private static final int FULL = 1;
+	private static final int FULL_PACKET_IDENTIFIER = 9001;
 	
-	private int header, taskID, packetStatus;
+	private int header, taskID, packetEnd;
 	private int[] parameters;
-	private byte[] partialPacket;
+	private ArrayList<Integer> rawCommandPacket;
 
 	/**
 	 * Constructor #3
@@ -37,33 +34,25 @@ public class CommandPacket {
 	 * a full command packet, and decodes it
 	 * @param packet - the StringBuilder object to decode
 	 */
-	private CommandPacket(String packet) {
-		initialize(decode(packet));
-	}
-
-	
-	/**
-	 * Initializes all the attributes of this CommandPacket
-	 * object, based on the information in the given Integer array.
-	 * @param packet - the array to base this object's information on.
-	 */
-	private void initialize(int[] packet) {
-
-		this.taskID = packet[Constants.Commands.TASK_ID_INDEX];
-		this.header = packet[Constants.Commands.HEADER_INDEX];
-		this.packetStatus = packet[packet.length - 1];
+	private CommandPacket(ArrayList<Integer> packet) {
+		
+		this.rawCommandPacket = packet;
+		this.taskID = packet.get(Constants.Commands.TASK_ID_INDEX);
+		this.header = packet.get(Constants.Commands.HEADER_INDEX);
+		this.packetEnd = packet.get(packet.size() - 1);
 		this.parameters = null;
 
 		int pointer = Constants.Commands.PARAM_START_INDEX;
-		int paramLength = packet.length - pointer - 1;
+		int paramLength = packet.size() - pointer - 2;
 
 		if (paramLength > 0) {
 			this.parameters = new int[paramLength];
 			for (int i = 0; i < paramLength; i++) {
-				parameters[i] = packet[pointer++];
+				parameters[i] = packet.get(pointer++);
 			}
 		}
 	}
+
 
 
 	/**
@@ -131,22 +120,22 @@ public class CommandPacket {
 		return isKillByID() && this.taskID == id;
 	}
 
+	
+	
 	/**
 	 * Query for this command packet's type
 	 * @return true if this is a complete command packet,
 	 * false if this is a partial packet
 	 */
 	public boolean isCompleteCommand() {
-		return packetStatus == FULL;
+		return packetEnd == FULL_PACKET_IDENTIFIER;
 	}
 	
-	/**
-	 * Query for the buffer overflow of this partial packet
-	 * @return true if the packet has been stitched to a
-	 * size that exceeds {@link #MAX_ALLOWED_SIZE}, false otherwise
-	 */
-	public boolean maxBufferSizeReached(){
-		return partialPacket.length > MAX_ALLOWED_SIZE;
+	
+	public ArrayList<Integer> getRawPacket(){
+		ArrayList<Integer> temp = new ArrayList<Integer>();
+		temp.addAll(rawCommandPacket);
+		return temp;
 	}
 
 
@@ -160,12 +149,40 @@ public class CommandPacket {
 	 * @return a new CommandPacket with the parameters found in the
 	 * given StringBuilder
 	 */
-	public static CommandPacket parsePacket(String buffer) {
-		return new CommandPacket(buffer);
+	public static CommandPacket[] parsePackets(String buffer) {
+		CommandPacket[] packets = null;
+		try{
+			ArrayList<ArrayList<Integer>> decodedPackets = decode(buffer);
+			packets = new CommandPacket[decodedPackets.size()];
+			for(int i = 0; i < packets.length; i++){
+				packets[i] = new CommandPacket(decodedPackets.get(i));
+			}
+		} catch(NumberFormatException e){
+			Log.d(TAG, "packet could not be parsed due to incorrect argument : " + buffer);
+		}
+		return packets;
 	}
 
+	
+	public static CommandPacket stitchPackets(CommandPacket first, CommandPacket second){
+		CommandPacket packet = null;
+		ArrayList<Integer> temp = new ArrayList<Integer>();
+			if(!first.isCompleteCommand()){
+				temp.addAll(first.rawCommandPacket);
+				temp.addAll(second.rawCommandPacket);
+				packet = new CommandPacket(temp);
+			} else if (!second.isCompleteCommand()){
+				temp.addAll(second.rawCommandPacket);
+				temp.addAll(first.rawCommandPacket);
+				packet = new CommandPacket(temp);
+			}
+		return packet;
+	}
+	
 
 
+	
+	
 	/**
 	 * This static method parses the commands given in a byte array that is
 	 * retrieved from reading data on the open bluetooth socket for this
@@ -178,30 +195,33 @@ public class CommandPacket {
 	 *            - the byte array to parse commands from
 	 * @return a string array of the successfully parsed commands
 	 */
-	public static int[] decode(String buffer) {
+	public static ArrayList<ArrayList<Integer>> decode(String buffer) throws NumberFormatException {
 		
-		ArrayList<Integer> commands = new ArrayList<Integer>();
-		int[] result = null;
-		int start = 0;
+		ArrayList<ArrayList<Integer>> packetList = new ArrayList<ArrayList<Integer>>();
+		ArrayList<Integer> subPacket = new ArrayList<Integer>();
+		int subPacketPointer = 0;
 		
 		for (int i = 0; i < buffer.length(); i++) {
 			
 			if (buffer.charAt(i) == Constants.PACKET_DELIMITER) {
-				commands.add(Integer.parseInt(buffer.substring(start, i)));
-				start = i + 1;
+				
+				String temp = buffer.substring(subPacketPointer, i);
+				
+				if(temp.equals(Constants.PACKET_END)){
+					subPacket.add(Integer.valueOf(FULL_PACKET_IDENTIFIER));
+					packetList.add(subPacket);
+					subPacket.clear();
+					subPacket = new ArrayList<Integer>();
+				} else {
+					subPacket.add(Integer.parseInt(temp));
+				}
+				
+				subPacketPointer = i + 1;
 			}
+
 		}
 		
-		
-		result = new int[commands.size() + 1];
-		for(int i = 0; i < commands.size(); i++){
-			result[i] = commands.get(i).intValue();
-		}
-		
-		// TODO: fix
-		result[commands.size()] = Constants.PACKET_END; //result[commands.size() - 1] == Constants.PACKET_END ? FULL : PARTIAL;
-		
-		return result;
+		return packetList;
 	}
 
 	

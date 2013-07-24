@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.UUID;
 
 import ARC.Constants;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
@@ -12,7 +13,6 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Environment;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.i2r.androidremotecontroller.connections.BluetoothLink;
 import com.i2r.androidremotecontroller.connections.ConnectionManager;
@@ -42,21 +42,25 @@ public class RemoteControlMaster {
 	 * hierarchy will waterfall correctly.
 	 * @param holder - a holder to give to the command manager for image capturing
 	 */
-	public RemoteControlMaster(SensorController sensors) throws ServiceNotFoundException {
+	public RemoteControlMaster(SensorController sensors, String connectionType) throws ServiceNotFoundException {
 		
 		this.sensorController = sensors;
 		this.started = false;
-
-		//WifiP2pManager manager = (WifiP2pManager) 
-		//		sensors.getRelativeActivity().getSystemService(Activity.WIFI_P2P_SERVICE);
+	
 		
-		//if(!createWifiDirectRemoteConnection(manager)){
-			if(!createBluetoothRemoteConnection(BluetoothAdapter.getDefaultAdapter())){
-				Toast.makeText(sensors.getRelativeActivity(), 
-						"this device does not have bluetooth or wifi-direct",  Toast.LENGTH_SHORT).show();
-				throw new ServiceNotFoundException("device does not support bluetooth or wifi-direct");
-			}	
-		//}
+		if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_BLUETOOTH)){
+			
+			createBluetoothRemoteConnection(BluetoothAdapter.getDefaultAdapter());
+			
+		} else if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_WIFI)){
+			
+			createWifiDirectRemoteConnection((WifiP2pManager) 
+					sensors.getRelativeActivity().getSystemService(Activity.WIFI_P2P_SERVICE));
+			
+		} else if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_USB)){
+			
+			createUsbRemoteConnection();
+		}
 	}
 	
 	
@@ -66,28 +70,19 @@ public class RemoteControlMaster {
 	 * @return true if connection succeeded, false if wifi-direct is not available or
 	 * connection to wifi-direct failed TODO: change to private
 	 */
-	public boolean createWifiDirectRemoteConnection(WifiP2pManager manager){
-		boolean result;
-			try {
-				
-				// create a WifiDirectLink to pass to this ConnectionManager
-				WifiDirectLink linker = new WifiDirectLink(
+	private void createWifiDirectRemoteConnection(WifiP2pManager manager) throws ServiceNotFoundException {
+
+			// create a WifiDirectLink to pass to this ConnectionManager
+			WifiDirectLink linker = new WifiDirectLink(
 						sensorController.getRelativeActivity(),
 						ConnectionManager.CONNECTION_TYPE_SERVER, manager);
 				
-				// create a new ConnectionManager
-				this.connectionManager = new ConnectionManager<WifiP2pDevice>(linker,
+			// create a new ConnectionManager
+			this.connectionManager = new ConnectionManager<WifiP2pDevice>(linker,
 						ConnectionManager.CONNECTION_TYPE_SERVER, sensorController.getRelativeActivity());
 				
-				Log.d(TAG, "connection manager created");
-				result = true;
-				
-				// bluetooth is not supported on this device
-			} catch (ServiceNotFoundException e) {
-				Log.e(TAG, "connection manager creation with WifiDirect failed, trying bluetooth");
-				result = false;
-			}
-			return result;
+			Log.d(TAG, "connection manager created");
+
 	}
 	
 	
@@ -98,29 +93,24 @@ public class RemoteControlMaster {
 	 * @return true if connection creation succeeded, false if adapter is not available or
 	 * connection to bluetooth failed
 	 */
-	private boolean createBluetoothRemoteConnection(BluetoothAdapter adapter){
-		boolean result;
-		try {
+	private void createBluetoothRemoteConnection(BluetoothAdapter adapter) throws ServiceNotFoundException {
+	
+		// create a BluetoothLink to pass to this ConnectionManager
+		BluetoothLink linker = new BluetoothLink(adapter,
+				UUID.fromString(Constants.Info.UUID),
+				Constants.Info.SERVICE_NAME, sensorController.getRelativeActivity());
 			
-			// create a BluetoothLink to pass to this ConnectionManager
-			BluetoothLink linker = new BluetoothLink(adapter,
-					UUID.fromString(Constants.Info.UUID),
-					Constants.Info.SERVICE_NAME, sensorController.getRelativeActivity());
+		// create a new ConnectionManager
+		this.connectionManager = new ConnectionManager<BluetoothDevice>(linker,
+				ConnectionManager.CONNECTION_TYPE_SERVER, sensorController.getRelativeActivity());
 			
-			// create a new ConnectionManager
-			this.connectionManager = new ConnectionManager<BluetoothDevice>(linker,
-					ConnectionManager.CONNECTION_TYPE_SERVER, sensorController.getRelativeActivity());
-			
-			Log.d(TAG, "connection manager created");
-			result = true;
-			
-			// bluetooth is not supported on this device
-		} catch (ServiceNotFoundException e) {
-			connectionManager = null;
-			Log.e(TAG, "connection manager creation failed");
-			result = false;
-		}
-		return result;
+		Log.d(TAG, "connection manager created");
+	}
+	
+	
+	
+	private void createUsbRemoteConnection(){
+		// TODO: implement USB
 	}
 	
 	

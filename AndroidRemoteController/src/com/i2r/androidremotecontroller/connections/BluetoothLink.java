@@ -54,22 +54,6 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	//**********************************************************************|
 	
 	
-	@Override
-	public RemoteConnection connectTo(BluetoothDevice remote) {
-		GenericRemoteConnection connection = null;
-		try{
-			Log.d(TAG, "creating connection to device : " + remote.getName());
-			BluetoothSocket socket = remote.createInsecureRfcommSocketToServiceRecord(uuid);
-			socket.connect();
-			connection = new GenericRemoteConnection(activity, 
-					socket.getInputStream(), socket.getOutputStream());
-			Log.d(TAG, "successfully connected to  " + remote.getName());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return connection;
-	}
-
 	
 	@Override
 	public RemoteConnection listenForRemoteConnection() {
@@ -88,10 +72,30 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 				Log.e(TAG, "no connection found");
 			}
 			
+			listener.close();
+			
 		} catch(IOException e){
 			e.printStackTrace();
 		}
 		
+		return connection;
+	}
+	
+	
+	
+	@Override
+	public RemoteConnection connectTo(BluetoothDevice remote) {
+		GenericRemoteConnection connection = null;
+		try{
+			Log.d(TAG, "creating connection to device : " + remote.getName());
+			BluetoothSocket socket = remote.createInsecureRfcommSocketToServiceRecord(uuid);
+			socket.connect();
+			connection = new GenericRemoteConnection(activity, 
+					socket.getInputStream(), socket.getOutputStream());
+			Log.d(TAG, "successfully connected to  " + remote.getName());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		return connection;
 	}
 	

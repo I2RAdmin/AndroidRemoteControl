@@ -26,6 +26,7 @@ public class CameraSensor extends GenericDeviceSensor {
 	private static final int START_TIME_INDEX = PARAM_SIZE - 3;
 	private static final int MARKED_TIME_INDEX = PARAM_SIZE - 2;
 	private static final int IMAGE_COUNT_INDEX = PARAM_SIZE - 1;
+	private static final int MAX_QUALITY = 100;
 	
 	private SurfaceHolder holder;
 	private Camera camera;
@@ -126,6 +127,8 @@ public class CameraSensor extends GenericDeviceSensor {
 			p.setPictureFormat(parameters[Constants.Args.IMAGE_FORMAT_INDEX]);
 			p.setPictureSize(parameters[Constants.Args.IMAGE_SIZE_WIDTH_INDEX], 
 							 parameters[Constants.Args.IMAGE_SIZE_HEIGHT_INDEX]);
+			p.setJpegQuality(MAX_QUALITY);
+			
 			camera.setParameters(p);
 		} else {
 			Log.e(TAG, "error setting camera parameters, camera is null");
@@ -148,6 +151,7 @@ public class CameraSensor extends GenericDeviceSensor {
 
 			
 			char n = Constants.PACKET_DELIMITER;
+			
 			builder.append(Constants.SUPPORTED_FEATURES_HEADER);
 			builder.append(n);
 			builder.append(Constants.CAMERA_SENSOR_TAG);
@@ -156,20 +160,14 @@ public class CameraSensor extends GenericDeviceSensor {
 			builder.append(n);
 			builder.append(Integer.toString(params.getMaxExposureCompensation()));
 			builder.append(n);
-			builder.append((whiteBalance != null) ? Integer.toString(whiteBalance.size()) : Constants.Args.SIZE_ZERO);
-			builder.append(n);
-			builder.append((flash != null) ?Integer.toString(flash.size()) : Constants.Args.SIZE_ZERO);
-			builder.append(n);
-			builder.append((formats != null) ? Integer.toString(formats.size()) : Constants.Args.SIZE_ZERO);
-			builder.append(n);
-			builder.append((sizes != null) ? Integer.toString(sizes.size()) : Constants.Args.SIZE_ZERO);
-			builder.append(n);
 
 			
 			
 			if (flash != null) {
 				
-				builder.append(Constants.PACKET_LIST_SIZE_DELIMITER);
+				builder.append(Constants.PACKET_LIST_DELIMITER);
+				builder.append(n);
+				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_FLASH);
 				builder.append(n);
 				builder.append(Integer.toString(flash.size()));
 				builder.append(n);
@@ -183,7 +181,9 @@ public class CameraSensor extends GenericDeviceSensor {
 
 			if (focus != null) {
 				
-				builder.append(Constants.PACKET_LIST_SIZE_DELIMITER);
+				builder.append(Constants.PACKET_LIST_DELIMITER);
+				builder.append(n);
+				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_FOCUS);
 				builder.append(n);
 				builder.append(Integer.toString(focus.size()));
 				builder.append(n);
@@ -195,9 +195,10 @@ public class CameraSensor extends GenericDeviceSensor {
 			} 
 
 			
+			// TODO: turn off white balance and delete this
 			if (whiteBalance != null) {
 				
-				builder.append(Constants.PACKET_LIST_SIZE_DELIMITER);
+				builder.append(Constants.PACKET_LIST_DELIMITER);
 				builder.append(n);
 				builder.append(Integer.toString(whiteBalance.size()));
 				builder.append(n);
@@ -209,9 +210,12 @@ public class CameraSensor extends GenericDeviceSensor {
 			} 
 			
 
+			
 			if (formats != null) {
 				
-				builder.append(Constants.PACKET_LIST_SIZE_DELIMITER);
+				builder.append(Constants.PACKET_LIST_DELIMITER);
+				builder.append(n);
+				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_FORMAT);
 				builder.append(n);
 				builder.append(Integer.toString(formats.size()));
 				builder.append(n);
@@ -256,7 +260,9 @@ public class CameraSensor extends GenericDeviceSensor {
 
 			if (sizes != null) {
 				
-				builder.append(Constants.PACKET_LIST_SIZE_DELIMITER);
+				builder.append(Constants.PACKET_LIST_DELIMITER);
+				builder.append(n);
+				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_IMAGE_SIZE);
 				builder.append(n);
 				builder.append(Integer.toString(sizes.size()));
 				builder.append(n);
