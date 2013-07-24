@@ -90,12 +90,20 @@
                 <attribute name="Class-Path" value="${manifest.classpath}" />
                 <attribute name="Main-Class" value="com.i2r.ARC.PCControl.Main" />
             </manifest>
-            <fileset dir="." includes="**\*.properties" />
         </jar>
         <!-- Copy the files in the lib directory to the dest diectory so that the jar can run -->
         <mkdir dir="${dist.dir}/lib" />
         <copy todir="${dist.dir}/lib">
             <fileset dir="${lib.dir}" />
+        </copy>
+        
+        <!-- bundle the jre used -->
+        <mkdir dir="${dist.dir}/jre" />
+        <!-- do this manually for right now -->
+        
+        <!-- add all the propery files -->
+        <copy todir="${dist.dir}">
+            <fileset dir="." includes="**\*.properties" />
         </copy>
     </target>
     
