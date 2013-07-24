@@ -343,6 +343,7 @@ public class Controller{
 		//establish the UI
 		InputStream in = null;
 		OutputStream out = null;
+		
 		if(UIIn == TYPE_STANDARD_IN){
 			in = new BufferedInputStream(System.in);
 		}else{
