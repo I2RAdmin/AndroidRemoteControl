@@ -148,9 +148,12 @@ public class BluetoothLink implements Runnable, RemoteLink<byte[]>{
 			agent = local.getDiscoveryAgent();
 		
 			//check to see if the local cache has any Bluetooth devices
-			RemoteDevice[] cachedDevices = agent.retrieveDevices(DiscoveryAgent.CACHED);
-			logger.debug("Retrieved " + cachedDevices.length + " device from the cache.");
-			
+			RemoteDevice[] cachedDevices = null; //agent.retrieveDevices(DiscoveryAgent.CACHED);
+			if(cachedDevices != null){
+				logger.debug("Retrieved " + cachedDevices.length + " devices from the cache.");
+			}else{
+				logger.debug("Retrieved " + 0 + " devices from the cache.");
+			}
 			//if devices have been found...
 			if(cachedDevices != null){
 				//for each device found in the cache
@@ -170,15 +173,16 @@ public class BluetoothLink implements Runnable, RemoteLink<byte[]>{
 				//create a collection of the current devices in the list
 				//these are the devices we found in the cache that do not have the ARC service on them
 				Collection<RemoteDevice> foundDevices = devicesDiscovered.subList(0, devicesDiscovered.size());
-				//start a search for nearby bluetooth devices
-				//this call will block until the device search is done
-				searchForBluetoothDevices();
 				
 				//remove the cached devices from the device list
 				devicesDiscovered.removeAll(foundDevices);
 				
 				//resize the list
 				devicesDiscovered.trimToSize();
+				
+				//start a search for nearby bluetooth devices
+				//this call will block until the device search is done
+				searchForBluetoothDevices();
 				
 				//search for the ARC service on the devices in the device discovered list
 				searchForARCService(uuidList);
