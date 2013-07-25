@@ -5,10 +5,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import ARC.Constants;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Environment;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.i2r.androidremotecontroller.ResponsePacket;
@@ -27,13 +29,15 @@ public abstract class GenericDeviceSensor {
 	private static final String TAG = "GenericDeviceSensor";
 
 	private int taskID;
-	private Context context;
+	private LocalBroadcastManager manager;
+	private Activity activity;
 	private RemoteConnection connection;
 	
 	
 	// Constructor
-	public GenericDeviceSensor(Context context, RemoteConnection connection, int taskID) {
-		this.context = context;
+	public GenericDeviceSensor(Activity activity, RemoteConnection connection, int taskID) {
+		this.activity = activity;
+		this.manager = LocalBroadcastManager.getInstance(activity);
 		this.connection = connection;
 		this.taskID = taskID;
 	}
@@ -45,7 +49,17 @@ public abstract class GenericDeviceSensor {
 	 * @return the context given at the point of creation.
 	 */
 	public Context getContext() {
-		return context;
+		return activity;
+	}
+	
+	
+	/**
+	 * Query for the broadcast manager to send messages to the
+	 * main activity with
+	 * @return a LocalBroadcastManager relative to the main activity
+	 */
+	public LocalBroadcastManager getBroadcastManager() {
+		return manager;
 	}
 
 	
@@ -78,30 +92,6 @@ public abstract class GenericDeviceSensor {
 		this.taskID = id;
 	}
 
-	
-	/**
-	 * Writes the result data that this sensor has accumulated to this
-	 * manager's client socket, if it is open.
-	 * @param data - the data to write to this RemoteConnection, if the
-	 * connection is available
-	 */
-	protected void sendDataAcrossConnection(byte[] data, int dataType) { // TODO: make sequence task id, datatype, data size, data
-
-		Log.d(TAG, "attempting to send data to across remote connection...");
-		if (connection.isConnected()) {
-			ResponsePacket response = new ResponsePacket(taskID, dataType, data);
-			if(ResponsePacket.sendResponse(response, connection)) {
-				Log.e(TAG, "response sent successfully:\n" + response.toString());
-			} else {
-				Log.e(TAG, "error sending response across connection:\n" + response.toString());
-			}
-			
-			// connection given is not open, therefore no connection to write to
-		} else {
-			Log.e(TAG, Constants.ERROR_ON_DATA_TRANSFER + " - " + data.length
-					+ " : task ID - " + taskID);
-		}
-	}
 	
 	
 	/**
@@ -141,7 +131,7 @@ public abstract class GenericDeviceSensor {
 	 * Use char Constants in {@link Constants} for this to notify remote PC of state changes
 	 */
 	protected void notifyRemoteDevice(char notification) {
-		notifyRemoteDevice(notification + "");
+		notifyRemoteDevice(Character.toString(notification));
 	}
 	
 	
@@ -149,7 +139,8 @@ public abstract class GenericDeviceSensor {
 	 * Use String Constants in {@link Constants} for this to notify remote PC of state changes
 	 */
 	protected void notifyRemoteDevice(String notification){
-		sendDataAcrossConnection(notification.getBytes(), Constants.DataTypes.NOTIFY);
+		ResponsePacket.sendResponse(new ResponsePacket(taskID, 
+				Constants.DataTypes.NOTIFY, notification.getBytes()), connection);
 	}
 	
 	

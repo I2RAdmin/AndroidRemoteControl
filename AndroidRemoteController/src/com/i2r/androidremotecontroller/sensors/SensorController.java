@@ -18,7 +18,7 @@ import com.i2r.androidremotecontroller.connections.RemoteConnection;
  * @author Josh Noel
  */
 public class SensorController {
-
+	
 	private static final String TAG = "SensorController";
 	private static final int MAX_COMMAND_CAPACITY = 10;
 	
@@ -142,13 +142,26 @@ public class SensorController {
 	}
 	
 	
-	// segmentation of available service query for the image sensor
+	/**
+	 * Query of a sensor's availability
+	 * @param capture - the sensor to test
+	 * @param taskID - the task ID to test against the sensor for
+	 * @return true if the sensor is null, the given task ID does not
+	 * match the sensor's current task ID, or the ID's do match and
+	 * the sensor's current task has been completed. False otherwise.
+	 */
 	public static boolean sensorIsAvailable(GenericDeviceSensor capture, int taskID){
 		return (capture == null || taskID != capture.getTaskID() ||
 				(taskID == capture.getTaskID() && capture.taskCompleted()));
 	}
 	
 	
+	/**
+	 * @param taskID - the task ID to check against all this controllers
+	 * current sensors.
+	 * @return the sensor which has a matching task ID to the one
+	 * given, or null if no sensor with the given task ID was found
+	 */
 	public GenericDeviceSensor getSensor(int taskID){
 		GenericDeviceSensor sensor = null;
 		if(imageCapture != null && imageCapture.getTaskID() == taskID){
@@ -177,6 +190,11 @@ public class SensorController {
 	}
 	
 	
+	/**
+	 * Sets this sensorController's SurfaceHolder to give to
+	 * a camera sensor
+	 * @param holder - the holder to obtain a reference of
+	 */
 	public void setSurfaceHolderForCamera(SurfaceHolder holder){
 		this.holder = holder;
 	}
@@ -202,12 +220,22 @@ public class SensorController {
 	}
 	
 	
-	
+	/**
+	 * Query for the availability of the sensor that the
+	 * next command in line intends to use
+	 * @return true if the next command in line's required
+	 * sensor is available, false otherwise.
+	 */
 	public boolean sensorForNextCommandIsAvailable(){
 		return isAvailableService(commandQueue.peek().getTaskID());
 	}
 	
 	
+	/**
+	 * @return a composite of {@link #hasNewCommands()}
+	 * and {@link #sensorForNextCommandIsAvailable()}. Returns true
+	 * only if both of these return true.
+	 */
 	public boolean canExecuteNextCommand(){
 		return hasNewCommands() && sensorForNextCommandIsAvailable();
 	}

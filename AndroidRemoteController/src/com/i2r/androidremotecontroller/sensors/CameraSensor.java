@@ -4,16 +4,16 @@ import java.io.IOException;
 import java.util.List;
 
 import ARC.Constants;
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
-import android.hardware.Camera.Size;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.i2r.androidremotecontroller.RemoteControlActivity;
+import com.i2r.androidremotecontroller.ResponsePacket;
 
 /**
  * This class models an android camera that responds to commands.
@@ -26,6 +26,8 @@ public class CameraSensor extends GenericDeviceSensor {
 	private static final int START_TIME_INDEX = PARAM_SIZE - 3;
 	private static final int MARKED_TIME_INDEX = PARAM_SIZE - 2;
 	private static final int IMAGE_COUNT_INDEX = PARAM_SIZE - 1;
+	
+	@SuppressWarnings("unused")
 	private static final int MAX_QUALITY = 100;
 	private static final String JPEG = "jpeg";
 	
@@ -40,17 +42,19 @@ public class CameraSensor extends GenericDeviceSensor {
 	private boolean started, waitingOnPicture, forceClose;
 	private int[] parameters;
 	
-	public CameraSensor(Context context, Camera camera, SurfaceHolder holder) {
-		super(context, null, Constants.Args.ARG_NONE);
+	public CameraSensor(Activity activity, Camera camera, SurfaceHolder holder) {
+		super(activity, null, Constants.Args.ARG_NONE);
 		
 		Log.d(TAG, "creating camera sensor");
 		this.surface = new Surface();
 		this.jpeg = new GenericPictureCallback(JPEG, SEND_TO_REMOTE);
 		this.waitingOnPicture = forceClose = started = false;
+		
 		this.parameters = new int[PARAM_SIZE];
-		this.parameters[START_TIME_INDEX] = 0;
-		this.parameters[MARKED_TIME_INDEX] = 0;
-		this.parameters[IMAGE_COUNT_INDEX] = 0;
+		for(int i = 0; i < PARAM_SIZE; i++){
+			parameters[i] = Constants.Args.ARG_NONE;
+		}
+		
 		this.camera = camera;
 		
 		// TODO: find display orientation before setting it
@@ -98,14 +102,13 @@ public class CameraSensor extends GenericDeviceSensor {
 			parameters[i] = params[i];
 		}
 		updateCamera();
-		camera.startPreview();
 		capture();
 	}
 
 	
 	@Override
 	public boolean taskCompleted() {
-		return forceClose || done();
+		return !waitingOnPicture && (forceClose || done());
 	}
 
 	@Override
@@ -126,15 +129,16 @@ public class CameraSensor extends GenericDeviceSensor {
 	
 	private void updateCamera(){
 		if(camera != null){
-			Log.i(TAG, "updating camera parameters");
-			Camera.Parameters p = camera.getParameters();
-			p.setExposureCompensation(parameters[Constants.Args.IMAGE_EXPOSURE_COMP_INDEX]);
-			p.setPictureFormat(parameters[Constants.Args.IMAGE_FORMAT_INDEX]);
-			p.setPictureSize(parameters[Constants.Args.IMAGE_SIZE_WIDTH_INDEX], 
-							 parameters[Constants.Args.IMAGE_SIZE_HEIGHT_INDEX]);
-			p.setJpegQuality(MAX_QUALITY);
-			
-			camera.setParameters(p);
+			Log.d(TAG, "updating camera parameters");
+//			Camera.Parameters p = camera.getParameters();
+//			p.setExposureCompensation(parameters[Constants.Args.IMAGE_EXPOSURE_COMP_INDEX]);
+//			p.setPictureFormat(parameters[Constants.Args.IMAGE_FORMAT_INDEX]);
+//			p.setPictureSize(parameters[Constants.Args.IMAGE_SIZE_WIDTH_INDEX], 
+//							 parameters[Constants.Args.IMAGE_SIZE_HEIGHT_INDEX]);
+//			p.setJpegQuality(MAX_QUALITY);
+//			
+//			
+//			camera.setParameters(p);
 		} else {
 			Log.e(TAG, "error setting camera parameters, camera is null");
 		}
@@ -154,7 +158,7 @@ public class CameraSensor extends GenericDeviceSensor {
 			List<String> focus = params.getSupportedFocusModes();
 			List<String> whiteBalance = params.getSupportedWhiteBalance();
 			List<Integer> formats = params.getSupportedPictureFormats();
-			List<Size> sizes = params.getSupportedPictureSizes();
+			List<String> scenes = params.getSupportedSceneModes();
 
 			
 			char n = Constants.PACKET_DELIMITER;
@@ -264,24 +268,25 @@ public class CameraSensor extends GenericDeviceSensor {
 					builder.append(n);
 				}
 			}
-
-			if (sizes != null) {
+			
+			
+			
+			if(scenes != null){
 				
 				builder.append(Constants.PACKET_LIST_DELIMITER);
 				builder.append(n);
-				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_IMAGE_SIZE);
+				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_SCENES);
 				builder.append(n);
-				builder.append(Integer.toString(sizes.size()));
+				builder.append(Integer.toString(scenes.size()));
 				builder.append(n);
 				
-				for (int i = 0; i < sizes.size(); i++) {
-					Size size = sizes.get(i);
-					builder.append(size.width);
-					builder.append(n);
-					builder.append(size.height);
+				for (int i = 0; i < scenes.size(); i++) {
+					builder.append(scenes.get(i));
 					builder.append(n);
 				}
 			}
+			
+			
 			
 			builder.append(Constants.SUPPORTED_FEATURES_FOOTER);
 			builder.append(n);
@@ -327,19 +332,37 @@ public class CameraSensor extends GenericDeviceSensor {
 	
 	
 	private void capture(){
+		
+		// wait for specified frequency
+		Log.d(TAG, "waiting for appropriate frequency...");
+		while(!validFrequency()){
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		} 
+		
+		Log.d(TAG, "at capture call:\nwaiting on picture callback: " 
+				+ Boolean.toString(waitingOnPicture) 
+				+ "\nvalid to duration: " + Boolean.toString(validDuration()) 
+				+ "\nvalid picture count: "  + Boolean.toString(validPictureCount()));
+		
 		if (!waitingOnPicture && validToSave()) {
 			camera.takePicture(null, null, jpeg);
 			parameters[IMAGE_COUNT_INDEX] = parameters[IMAGE_COUNT_INDEX] + 1;
 			this.parameters[MARKED_TIME_INDEX] = (int) System.currentTimeMillis();
+			waitingOnPicture = true;
 			Log.d(TAG, "picture taken, waiting on callback");
 		} 
 
+		
 		if (!waitingOnPicture && taskCompleted()) {
-			Intent intent = new Intent(RemoteControlActivity.ACTION_UPDATE_MASTER);
+			Intent intent = new Intent(RemoteControlActivity.ACTION_SENSOR_COMPLETED_TASK);
 			intent.putExtra(RemoteControlActivity.EXTRA_TASK_ID, getTaskID());
+			notifyRemoteDevice(Constants.TASK_COMPLETE);
 			killTask();
-			getContext().sendBroadcast(intent);
-			// notifyRemoteDevice later maybe
+			getBroadcastManager().sendBroadcast(intent);
 		}
 	}
 	
@@ -366,7 +389,6 @@ public class CameraSensor extends GenericDeviceSensor {
 			if(camera != null){ 
 				try{
 					camera.setPreviewDisplay(holder);
-					//camera.setPreviewCallback(preview);
 					camera.startPreview();
 					Log.d(TAG, "set display success");
 				} catch (IOException e){
@@ -413,9 +435,11 @@ public class CameraSensor extends GenericDeviceSensor {
 				if(saveToSD){
 					saveDataToSD(data, Long.toString(System.currentTimeMillis()), ".jpg", getContext());
 				} else {
-					sendDataAcrossConnection(data, Constants.DataTypes.JPEG);
+					ResponsePacket packet = new ResponsePacket(getTaskID(), Constants.DataTypes.JPEG, data);
+					ResponsePacket.sendResponse(packet, getConnection());
 				}
 			}
+			
 			if(name.equals(JPEG)){
 				Log.d(TAG, "retarting preview...");
 				camera.startPreview();

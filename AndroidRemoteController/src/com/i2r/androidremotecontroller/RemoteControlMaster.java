@@ -16,6 +16,7 @@ import android.util.Log;
 
 import com.i2r.androidremotecontroller.connections.BluetoothLink;
 import com.i2r.androidremotecontroller.connections.ConnectionManager;
+import com.i2r.androidremotecontroller.connections.RemoteConnection;
 import com.i2r.androidremotecontroller.connections.WifiDirectLink;
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 import com.i2r.androidremotecontroller.sensors.SensorController;
@@ -108,7 +109,12 @@ public class RemoteControlMaster {
 	}
 	
 	
-	
+	/**
+	 * Attempts to create a USB connection to a remote device.
+	 * If no USB is connected, this master's connectionManager
+	 * should block until either this application is stopped or
+	 * a USB is connected.
+	 */
 	private void createUsbRemoteConnection(){
 		// TODO: implement USB
 	}
@@ -181,15 +187,13 @@ public class RemoteControlMaster {
 	 */
 	public synchronized void updateByRemoteControl(String command){	
 
-		Log.d(TAG, "starting update loop");
+		Log.d(TAG, "starting update by remote control sequence");
 		// if a remote connection has been established, continue with update
 		if (connectionManager.hasConnection() && started) {
 			
-			Log.d(TAG, "parsing new command...");
 			sensorController.parseCommand(command);
 
 			if(sensorController.canExecuteNextCommand()){
-				Log.d(TAG, "executing next command...");
 				sensorController.executeNextCommand();
 			}
 			
@@ -198,6 +202,7 @@ public class RemoteControlMaster {
 			Log.d(TAG, "connection lost, restarting connection manager.");
 			connectionManager.findConnection();
 			
+			// connection has been stopped locally, perform cleanup
 		} else {
 			
 			// alert the System to scan for new files are on the SD card
@@ -209,6 +214,32 @@ public class RemoteControlMaster {
 		}
 	}
 	
+	
+	/**
+	 * Updates this master's {@link SensorController} by trying
+	 * to execute the next command in its command queue. This
+	 * method is meant to be called when a sensor sends a broadcast
+	 * back to main to notify that it has completed its task.
+	 */
+	public synchronized void updateSensors(){
+		if (sensorController.canExecuteNextCommand()){
+			sensorController.executeNextCommand();
+		}
+	}
+	
+	
+	/**
+	 * @return the connection currently held by this master's
+	 * {@link ConnectionManager}, or null if either the manager is
+	 * null or the manager does not currently have an active connection.
+	 */
+	public RemoteConnection getConnection(){
+		RemoteConnection connection = null;
+		if(connectionManager != null){
+			connection = connectionManager.getConnection();
+		}
+		return connection;
+	}
 	
 	
 } // end on RemoteControlMaster class

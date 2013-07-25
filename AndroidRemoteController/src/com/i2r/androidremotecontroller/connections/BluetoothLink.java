@@ -102,6 +102,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	
 	@Override
 	public void searchForLinks() {
+		Log.d(TAG, "searching for bluetooth links");
 		if(!adapter.isEnabled()){
 			activity.startActivity(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
 		} else {
@@ -122,6 +123,9 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	
 	@Override
 	public void haltConnectionDiscovery() {
+		
+		Log.d(TAG, "halting connection discovery for bluetooth");
+		
 		try {
 			listener.close();
 		} catch (IOException e) {

@@ -2,6 +2,7 @@ package com.i2r.androidremotecontroller.connections;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.i2r.androidremotecontroller.RemoteControlActivity;
@@ -23,7 +24,7 @@ public class ConnectionManager<E> {
 	
 	private Link<E> linker;
 	private boolean isServer;
-	private Activity activity;
+	private LocalBroadcastManager manager;
 	private RemoteConnection connection;
 	private Thread runningConnection;
 	private ConnectionFinder finder;
@@ -32,7 +33,7 @@ public class ConnectionManager<E> {
 	public ConnectionManager(Link<E> linker, boolean isServer, Activity activity){
 		this.linker = linker;
 		this.isServer = isServer;
-		this.activity = activity;
+		this.manager = LocalBroadcastManager.getInstance(activity);
 		this.runningConnection = null;
 		this.finder = null;
 	}
@@ -52,6 +53,7 @@ public class ConnectionManager<E> {
 		if(linker.isServerLink()){
 			Log.d(TAG, "stopping connection discovery");
 			linker.haltConnectionDiscovery();
+			
 			finder = null;
 		}
 		
@@ -156,7 +158,7 @@ public class ConnectionManager<E> {
 			// notify main Activity that connection search has finished
 			Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
 			intent.putExtra(RemoteControlActivity.EXTRA_CONNECTION_STATUS, connection != null);
-			activity.sendBroadcast(intent);
+			manager.sendBroadcast(intent);
 		}
 	}
 	

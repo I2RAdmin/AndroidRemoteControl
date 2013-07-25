@@ -39,11 +39,11 @@ public class CommandPacket {
 		this.rawCommandPacket = packet;
 		this.taskID = packet.get(Constants.Commands.TASK_ID_INDEX);
 		this.header = packet.get(Constants.Commands.HEADER_INDEX);
-		this.packetEnd = packet.get(packet.size() - 1);
+		this.packetEnd = packet.get(packet.size() - 1); // one over error
 		this.parameters = null;
 
 		int pointer = Constants.Commands.PARAM_START_INDEX;
-		int paramLength = packet.size() - pointer - 2;
+		int paramLength = packet.size() - pointer - 1; // one over error
 
 		if (paramLength > 0) {
 			this.parameters = new int[paramLength];
@@ -156,12 +156,23 @@ public class CommandPacket {
 		try{
 			ArrayList<ArrayList<Integer>> decodedPackets = decode(buffer, 
 							Constants.PACKET_DELIMITER, Constants.PACKET_END);
-			packets = new CommandPacket[decodedPackets.size()];
-			for(int i = 0; i < packets.length; i++){
-				packets[i] = new CommandPacket(decodedPackets.get(i));
+
+			if(!decodedPackets.isEmpty()){
+				packets = new CommandPacket[decodedPackets.size()];
+				for(int i = 0; i < packets.length; i++){
+					ArrayList<Integer> sub = decodedPackets.get(i);
+					if(!sub.isEmpty()){
+						packets[i] = new CommandPacket(sub);
+					} else {
+						Log.e(TAG, "sub packet is empty");
+					}
+				}
+			} else {
+				Log.e(TAG, "packet list is empty");
 			}
+			
 		} catch(NumberFormatException e){
-			Log.d(TAG, "packet could not be parsed due to incorrect argument : " + buffer);
+			Log.d(TAG, "packets could not be parsed due to incorrect argument : " + buffer);
 		}
 		return packets;
 	}
@@ -231,7 +242,6 @@ public class CommandPacket {
 				if(temp.equals(Constants.PACKET_END)){
 					subPacket.add(Integer.valueOf(FULL_PACKET_IDENTIFIER));
 					packetList.add(subPacket);
-					subPacket.clear();
 					subPacket = new ArrayList<Integer>();
 				} else {
 					subPacket.add(Integer.parseInt(temp));
