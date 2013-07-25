@@ -19,6 +19,9 @@ import org.apache.log4j.Logger;
  * @author Johnathan Pagnutti
  */
 public class DataResponse {
+	public static final int DATA_TYPE_NOTIFY = 0;
+	public static final int DATA_TYPE_JPEG = 1;
+	public static final int DATA_TYPE_YUV = 2;
 	
 	public static final String REMOVE_TASK_ARGUMENT = "#";
 	public static int REMOVE_TASK = 0;
@@ -34,6 +37,8 @@ public class DataResponse {
 	 * otherwise it remains -1
 	 */
 	int fileSize = -1;
+	
+	int argType = -1;
 	
 	/**
 	 * Response Type.  This sets the type of this response, which is how methods that actually act on the response figure out
@@ -66,13 +71,14 @@ public class DataResponse {
 	 * @requires fileSize == data.length
 	 */
 	static final Logger logger = Logger.getLogger(DataResponse.class);
-	public DataResponse(int taskID, byte[] data){
+	
+	public DataResponse(int taskID, int dataType, byte[] data){
 		//taskID will always be set.
 		this.taskID = taskID;
+		this.type = dataType;
 		
 		//default set for the arg list
 		otherArgs = new ArrayList<String>();
-		otherArgs.add(" ");
 		
 		//figure out what was in the passed block
 		interpet(data);
@@ -83,15 +89,21 @@ public class DataResponse {
 	 * @param data
 	 */
 	private void interpet(byte[] data) {
-		//create a string from the data
-		String tempDataString = new String(data);
 		
-		//TODO: talk with Josh about having arguments be all broken up.
 		
-		if(tempDataString.equals(REMOVE_TASK_ARGUMENT)){
-			//remove the task from the task stack
-			this.type = REMOVE_TASK;
-			this.otherArgs.add(tempDataString);
+		if(type == DATA_TYPE_NOTIFY){
+			//create a string from the data
+			String tempDataString = new String(data);
+			
+			if(tempDataString.equals(REMOVE_TASK_ARGUMENT)){
+				//remove the task from the task stack
+				this.type = REMOVE_TASK;
+				this.otherArgs.add(tempDataString);
+			}else{
+				logger.debug("Could not interpet response packet: ");
+				logger.debug(tempDataString);
+			}
+		
 		}else{
 			//Save it as a file
 			this.type = SAVE_FILE;

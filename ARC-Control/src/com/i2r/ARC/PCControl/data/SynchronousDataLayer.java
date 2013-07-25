@@ -13,7 +13,7 @@ import org.apache.log4j.Logger;
  * Implementation of a Data Layer that uses sychronized methods to ensure that its input and output stacks are thread safe
  * It also contains an input and output stack
  * @author Johnathan
- *
+ * @deprecated
  */
 public class SynchronousDataLayer<T> extends Observable implements DataLayer<T>{
 	static final Logger logger = Logger.getLogger(SynchronousDataLayer.class);

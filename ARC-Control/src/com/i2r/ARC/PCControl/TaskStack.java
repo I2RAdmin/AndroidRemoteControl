@@ -80,10 +80,10 @@ public class TaskStack {
 	}
 	
 	//private internal method to log the current state of the task stack
-	private synchronized void logStackState(){
+	public synchronized String logStackState(){
 		logger.debug("Task Stack State");
+		StringBuilder sb = new StringBuilder();
 		for(Task t : taskList){
-			StringBuilder sb = new StringBuilder();
 			sb.append(t.getId());
 			sb.append(" ");
 			sb.append(t.getCommand().getHeader());
@@ -92,7 +92,10 @@ public class TaskStack {
 				sb.append(arg);
 				sb.append(" ");
 			}
-			logger.debug(sb.toString());
+			
+			sb.append("\n");
 		}
+		logger.debug(sb.toString());
+		return sb.toString();
 	}
 }

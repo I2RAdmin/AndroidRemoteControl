@@ -9,6 +9,7 @@ package com.i2r.ARC.PCControl.data;
  * It is important to note that the contract does not extend to the constants.  If the data layer either doesn't have enough data objects
  * to handle all the stacks, or chooses not to, it is up to the data layer to interpt how to handle IDs
  * @author Johnathan
+ * @depreciated
  */
 public interface DataLayer<T> {
 	

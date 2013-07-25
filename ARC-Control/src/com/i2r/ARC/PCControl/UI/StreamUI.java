@@ -3,9 +3,11 @@
  */
 package com.i2r.ARC.PCControl.UI;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.Scanner;
 
 import org.apache.log4j.Logger;
@@ -28,6 +30,7 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 
 	public InputStream source;
 	public OutputStream dest;
+	public boolean inClosed = false;
 	
 	Controller cntrl;
 	
@@ -47,6 +50,15 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 		readThread = new Thread(new StreamUIReadRunnable(source));
 	}
 	
+	
+	public void close() {
+		try {
+			source.close();
+			dest.close();
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+		}
+	}
 	/**
 	 * Read a line of data off the input stream, through the use of an input parser of some sort, to prevent bad lines.
 	 * 
@@ -58,12 +70,10 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 	/**
 	 * Write to the output stream that a thing happened.
 	 * 
-	 * note: the <code> toString() </code> method is called on the dataElement for writing out output
 	 */
 	public void write(V dataElement){
 		try {
-			//TODO: we might want to use some instanceof() spaghetti here to allow for more creative writes
-			dest.write(dataElement.toString().getBytes());
+			dest.write((dataElement.toString() + "\n").getBytes());
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			e.printStackTrace();
@@ -78,7 +88,7 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 		
 		private Scanner readScan;
 		
-		private StreamUIReadRunnable(InputStream inStream){
+		private StreamUIReadRunnable(T inStream){
 			readScan = new Scanner(inStream);
 		}
 		
@@ -91,6 +101,7 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 				logger.debug("Read in: " + line);
 
 				if(line.equals(END_READING_FLAG)){
+					inClosed = true;
 					break;
 				}
 

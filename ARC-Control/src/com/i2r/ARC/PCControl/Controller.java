@@ -12,6 +12,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -38,7 +39,8 @@ public class Controller{
 	RemoteConnection<byte[]> conn;
 	RemoteLink<byte[]> link;
 	DataManager<Task, byte[]> dataManager;
-	StreamUI ui;
+	
+	StreamUI<OutputStream, InputStream, String> ui;
 	
 	private static Controller instance = new Controller();
 	
@@ -158,69 +160,22 @@ public class Controller{
 		startLock.compareAndSet(false, true);
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	public void runSendOnlyWithWifi(){
 		link = new WifiLink();
 		connect("AndroidRemoteControl");
 	}
 	
+	
 	public void genericRun(){
-		//establish the requested link
-		if(connType.equals(TYPE_BLUETOOTH)){
-			link = new BluetoothLink();
-			List<String> connectionURLs;
-			searchForConnections();
-			boolean foundConnections = false;
-			
-			System.out.println("Searching for Bluetooth connection...");
-			while(!foundConnections){
-				connectionURLs = aquiredConnections();
-				if(connectionURLs != null && !connectionURLs.isEmpty()){
-					if(!connectionURLs.get(0).equals("STILL_SEARCHING")){
-						logger.debug("Found " + connectionURLs.get(0));
-						connect(connectionURLs.get(0));
-						logger.debug("Connected to " + connectionURLs.get(0));
-						foundConnections = true;
-					}else{
-						//logger.debug("Still searching for service");
-					}
-				}else if(connectionURLs == null){
-					logger.debug("No valid connections could be found.");
-					break;
-				}
-			}
-			
-			//if the connection object is null...
-			if(conn == null){
-				logger.error("A bluetooth connection could not be found... exiting");
-				return;
-			}
-			
-			dataManager = new ARCDataManager(conn);
-			
-		}else if(connType.equals(TYPE_LOCAL)){
-			logger.debug("creating local connection");
-			//establish a local I/O stream connection
-			link = new CommandLineLink();
-			
-			connect("");
-			
-			dataManager = new ARCDataManager(conn);
-		}
-
-		//establish the requested conn type
-		if(RemoteIn.equals(TYPE_OPEN)){
-			//only open the stream if this is set
-			dataManager.read();
-			logger.debug("Started data reading...");
-		}
-		//TODO: ditto for standard out
-		
 		//establish the UI
-		InputStream in = null;
 		OutputStream out = null;
+		InputStream in = null;
 		
 		if(UIIn.equals(TYPE_STANDARD_IN)){
-			in = new BufferedInputStream(System.in);
+			in = System.in;
 		}else{
 			File inFile = new File(UIIn);
 			
@@ -233,7 +188,7 @@ public class Controller{
 		}
 		
 		if(UIOut.equals(TYPE_STANDARD_OUT)){
-			out = new BufferedOutputStream(System.out);
+			out = System.out;
 		}else{
 			File outFile = new File(UIOut);
 			try {
@@ -252,38 +207,81 @@ public class Controller{
 		
 		if(in == null || out == null){
 			logger.error("could not set in/out ui streams");
+			
 		}
 		
-		ui = new StreamUI<OutputStream, InputStream, byte[]>(in, out, this);
-		ui.read();
+		ui = new StreamUI<OutputStream, InputStream, String>(in, out, this);
+		ui.write("Starting the Android Remote Controller!");
 		
-		while(startLock.compareAndSet(true, false)){
-			//wait a second before asking again
-			try {
-				this.wait(1000);
-			} catch (InterruptedException e) {
-				logger.error(e.getMessage(), e);
-				e.printStackTrace();
-			}
-		}
-		
-		try {
-			while(tasks.tasksRemaining() && ui.source.available() != -1){
-				try {
-					if(tasks.tasksRemaining() && dataManager.dataIn.available() != -1){
-						this.wait(1000);
+		//establish the requested link
+		if(connType.equals(TYPE_BLUETOOTH)){
+			link = new BluetoothLink();
+			List<String> connectionURLs;
+			searchForConnections();
+			boolean foundConnections = false;
+			
+			ui.write("Searching for Bluetooth connection...");
+			while(!foundConnections){
+				connectionURLs = aquiredConnections();
+				if(connectionURLs != null && !connectionURLs.isEmpty()){
+					if(!connectionURLs.get(0).equals("STILL_SEARCHING")){
+						ui.write("Found " + connectionURLs.get(0));
+						logger.debug("Found and using " + connectionURLs.get(0));
+						
+						connect(connectionURLs.get(0));
+						ui.write("Connected to " + connectionURLs.get(0));
+						logger.debug("Connected to " + connectionURLs.get(0));
+						foundConnections = true;
+					}else{
 					}
-				} catch (IOException e) {
-					logger.error(e.getMessage(), e);
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					logger.error(e.getMessage(), e);
-					e.printStackTrace();
+				}else if(connectionURLs == null){
+					ui.write("No Valid Connections were found.");
+					logger.debug("No valid connections could be found.");
+					break;
 				}
 			}
-		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
-			e.printStackTrace();
+			
+			//if the connection object is null...
+			if(conn == null){
+				ui.write("Could not create a valid bluetooth connection.  Shutting down");
+				logger.error("A bluetooth connection could not be found... exiting");
+				ui.close();
+				return;
+			}
+			
+			dataManager = new ARCDataManager(conn);
+			
+		}else if(connType.equals(TYPE_LOCAL)){
+			ui.write("Creating a Local Connection");
+			ui.write("This is a debuging configuration, if you see this message in prod, close the program and check the config file");
+			logger.debug("creating local connection");
+			//establish a local I/O stream connection
+			link = new CommandLineLink();
+			
+			connect("");
+			
+			dataManager = new ARCDataManager(conn);
 		}
+		
+		//establish the requested conn type
+		//if we want to not open the side for reading, then the RemoteIn parameter is set to closed.
+		//this pretty much just never calls the dataManager.read() method.
+		if(RemoteIn.equals(TYPE_OPEN)){
+			//only open the stream if this is set
+			dataManager.read();
+			logger.debug("Started data reading...");
+		}
+		
+		//establish the in side of the UI (from user)
+		//we don't need to use the generic streams anymore, I have them this way for convience, really.
+		ui.read();
+		
+		while(!startLock.compareAndSet(true, false));
+		
+		while(tasks.tasksRemaining() && !ui.inClosed);
+		
+		ui.write("Shutting Down.  PEACE");
+		//close down resources.  we're done with them.
+		conn.close();
 	}
 }

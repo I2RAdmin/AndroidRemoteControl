@@ -18,4 +18,13 @@ public abstract class RemoteConnection<T> {
 
 	public InputStream dataIn;
 	public OutputStream dataOut;
+	
+	/**
+	 * Close this connection, which closes both tied input and output streams
+	 * Note- the actual details of connection closing are left to the extenders of this class, and due to the amount
+	 * of possibilities for what a connection is, there is no higher general reference to one.
+	 * 
+	 * So, if you implement this method, close the connection.  Don't be that guy.  No one likes him.
+	 */
+	public abstract void close();
 }

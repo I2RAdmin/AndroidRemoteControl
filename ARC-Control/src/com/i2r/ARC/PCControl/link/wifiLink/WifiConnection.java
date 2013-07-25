@@ -18,7 +18,7 @@ import com.i2r.ARC.PCControl.link.RemoteConnection;
  * correctly, I can treat like a wireless AP), the only actual work to do is to connect directly to the agreed upon IP address.
  * 
  * @author Johnathan Pagnutti
- *
+ * @deprecated
  */
 public class WifiConnection extends RemoteConnection<byte[]> {
 	Socket TCPSocket;
@@ -46,5 +46,11 @@ public class WifiConnection extends RemoteConnection<byte[]> {
 			logger.error(e.getMessage(), e);
 			e.printStackTrace();
 		}
+	}
+
+	@Override
+	public void close() {
+		// TODO Auto-generated method stub
+		
 	}
 }

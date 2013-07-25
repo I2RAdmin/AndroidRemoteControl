@@ -9,7 +9,7 @@ import java.util.Observer;
 /**
  * Class that handles new things being in the I/O queues
  * @author Johnathan
- *
+ * @deprecated
  */
 public class DataReader<T> implements Observer{
 	DataLayer<T> ioBuffer;

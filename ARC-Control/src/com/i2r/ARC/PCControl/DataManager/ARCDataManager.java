@@ -100,6 +100,7 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 		}
 		sb.append("PACKET_COMPLETE");
 		sb.append(SEND_PACKET_DELIMITER);
+		
 		return sb.toString().getBytes();
 	}
 	

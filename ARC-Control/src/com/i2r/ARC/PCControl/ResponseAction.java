@@ -20,10 +20,11 @@ import org.apache.log4j.Logger;
  * 
  * @author Johnathan Pagnutti
  *
- *	TODO: instead of guessing what to do based on the format of a response action, keep a list of constant commands, and have each data
- *			response also keep track of what command it is tethered to
  */
 public class ResponseAction {
+	
+	private static final int RESPONSE_JPEG = 1;
+	
 	public static final String TASK_COMPLETE = "#";
 	
 	static final Logger logger = Logger.getLogger(ResponseAction.class);
@@ -80,7 +81,10 @@ public class ResponseAction {
 		referencedTask = cntrl.tasks.getTask(response.taskID);
 		
 		if(referencedTask != null){
+			cntrl.ui.write("Removing task " + response.taskID + " from the stack.");
 			cntrl.tasks.removeTask(referencedTask.getId());
+			cntrl.ui.write("Current Task Stack state:");
+			cntrl.ui.write(cntrl.tasks.logStackState());
 		}else{
 			logger.error("Arrempted to remove a task with a reference to a task that was not on the stack");
 		}
@@ -110,17 +114,35 @@ public class ResponseAction {
 			
 			if(ref == null){
 				//bad news bears
-				logger.error("Arrempted to save a file with a reference to a task that was not on the stack");
+				logger.error("Arrempted to save a file with a reference to a task that was not on the stack.");
 				return;
 			}
 			
-			File newFile = new File(ref.getId() + "_" + ++ref.pos + "." + ref.getCommand().getArguments().get(ARCCommand.PICTURE_FILETYPE_INDEX)); 
+			cntrl.ui.write("Saving a data file recived from the remote connection.");
+			
+			String fileType;
+			switch(response.type){
+			case (RESPONSE_JPEG):
+				fileType = "jpeg"; break;
+			default:
+					fileType = "jpeg"; break;
+			}
+			
+			//logger.debug("Expected filetype: " + ref.);
+			cntrl.ui.write("File Info: ");
+			cntrl.ui.write("	From task ID: " + ref.getId());
+			cntrl.ui.write("	#: " + ref.pos);
+			cntrl.ui.write("	As a: " + fileType);
+			
+			File newFile = new File(ref.getId() + "_" + ++ref.pos + "." + fileType); 
 			
 			logger.debug("File name: " + newFile.getName());
+			
 			try {
 				FileOutputStream fileSave = new FileOutputStream(newFile);
 				fileSave.write(saveResponse.fileData);
 				fileSave.close();	
+				cntrl.ui.write("File Saved.");
 				logger.debug("File saved.");
 			} catch (FileNotFoundException e) {
 				logger.debug(e.getMessage(), e);

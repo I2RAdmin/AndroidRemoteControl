@@ -25,6 +25,7 @@ public class BluetoothConnection extends RemoteConnection<byte[]>{
 	//you better believe its a logger
 	static final Logger logger = Logger.getLogger(BluetoothConnection.class);
 	
+	StreamConnection conn;
 	/**
 	 * Implementation of the {@link RemoteConnection#RemoteConnection()}
 	 * Constructor to create a new Bluetooth Connection
@@ -37,7 +38,7 @@ public class BluetoothConnection extends RemoteConnection<byte[]>{
 		//attempt to get a connection...
 		try {
 			//open connection
-			StreamConnection conn = (StreamConnection)Connector.open(connURL, Connector.READ_WRITE);
+			this.conn = (StreamConnection)Connector.open(connURL, Connector.READ_WRITE);
 			
 			//open the input stream
 			dataIn = conn.openDataInputStream();
@@ -49,6 +50,22 @@ public class BluetoothConnection extends RemoteConnection<byte[]>{
 		} catch (IOException e) {
 			//something went wrong, cry
 			logger.debug(e.getMessage(), e);
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Closes the connection.  This directly closes the {@link StreamConnection} field {@link BluetoothConnection#conn}, so the underlying
+	 * streams will also be closed.
+	 * 
+	 * Does not ensure that the streams are empty before it does this.
+	 */
+	@Override
+	public void close() {
+		try {
+			conn.close();
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
 			e.printStackTrace();
 		}
 	}

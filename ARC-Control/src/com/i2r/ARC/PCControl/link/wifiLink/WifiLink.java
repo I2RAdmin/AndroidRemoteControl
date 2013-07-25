@@ -18,7 +18,7 @@ import com.i2r.ARC.PCControl.link.RemoteLink;
  * The other option is to attempt to broadcast a request for IPs, and then see what replies.  But who does that.
  * @see {@link RemoteLink}
  * @author Johnathan Pagnutti
- *
+ * @deprecated
  */
 public class WifiLink implements RemoteLink<byte[]> {
 

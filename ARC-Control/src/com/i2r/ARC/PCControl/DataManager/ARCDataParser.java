@@ -41,15 +41,18 @@ public class ARCDataParser implements DataParser<byte []> {
 	 */
 	public static final int READ_TASK_ID = 1;
 	
+	
+	private static final int READ_ARGUMENT_TYPE = 2;
+	
 	/**
 	 * Constant to define that the parser has parsed a new File Size
 	 */
-	public static final int READ_FILE_SIZE = 2;
+	public static final int READ_FILE_SIZE = 3;
 	
 	/**
 	 * Constant to define the packet delimiter.
 	 */
-	public static final Byte RESPONSE_PACKET_DELIMITER = new Byte((byte)' ');
+	public static final Byte RESPONSE_PACKET_DELIMITER = new Byte((byte)'\n');
 	
 	/**
 	 * Constant to define the max size of the argument list
@@ -79,6 +82,8 @@ public class ARCDataParser implements DataParser<byte []> {
 	
 	//the file size associated with whatever the parser is parsing
 	private int argumentSize = -1;
+	
+	private int argumentType = -1;
 	
 	//the amount of file bytes the parser has seen
 	private int readCounter = 0;
@@ -170,7 +175,8 @@ public class ARCDataParser implements DataParser<byte []> {
 	 */
 	 private class ParseRunnable implements Runnable{
 
-		 /**
+
+		/**
 		  * A list created from the raw data passed in to parse
 		  */
 		 private List<Byte> rawData;
@@ -228,11 +234,15 @@ public class ARCDataParser implements DataParser<byte []> {
 
 					//if the parser has just read a task ID
 					}else if(state == READ_TASK_ID){
+						logger.debug("Parsing Argument Type...");
+						
+						parseArgumentType();
+						
+					}else if(state == READ_ARGUMENT_TYPE){
 						logger.debug("Parsing Argument Size...");
 						
 						//the second element is the size of the third element (argument)
 						parseArgumentSize();
-						
 					//if the parser has just read the argument size	
 					}else if(state == READ_FILE_SIZE){
 						logger.debug("Parsing Argument Data...");
@@ -249,11 +259,105 @@ public class ARCDataParser implements DataParser<byte []> {
 			logger.debug("Released Outer Lock");
 		}
 
+		private void parseArgumentType() {
+			//see if the packet delimiter is in the provided raw data
+			if(!rawData.contains(RESPONSE_PACKET_DELIMITER)){
+				logger.debug("A delimiter could not be found, adding data block to the partial data list.");
+				//we did not see a delimiter, appending the data from this block to the partial list to use
+				//append to the next block we scan.
+				
+				//check to make sure the data we're going to append could interpeted as a number, so that the
+				//partial data block does not get corrupted.
+				int partialCheck = interpetAsInt(rawData);
+				
+				if(partialCheck != -1){
+					//if it could be considered as an ASCII number, append it to the patial list
+					partialSection.addAll(rawData);
+					logger.debug("Partial data list has " + partialSection.size() + " bytes.");	
+				}
+				
+				//clear the block
+				rawData.clear();
+				hasData = false;
+			}else{
+				//we do have the packet delimiter, so we can parse a task ID from the partial data we have received and the
+				//raw data block provided
+				
+				//get the index of the delimiter
+				int rawPacketDelimiterIndex = rawData.indexOf(RESPONSE_PACKET_DELIMITER);
+				
+				List<Byte> argumentTypeBytes = new ArrayList<Byte>();
+				argumentTypeBytes.addAll(partialSection);
+				
+				argumentTypeBytes.addAll(rawData.subList(0, rawPacketDelimiterIndex));
+				
+				logger.debug("Parsing " + argumentTypeBytes.size() + " bytes.");
+				
+				//clear the partial section data
+				partialSection.clear();
+				
+				//logging loop.  I'm MAYHUD
+				logger.debug("Argument Type bytes: ");
+				//log loop
+				StringBuilder sb = new StringBuilder();
+				for(Byte b : argumentTypeBytes){
+					sb.append(b);
+					sb.append(" ");
+				}
+				logger.debug(sb.toString());
+				
+				//intepet the chunk as an integer
+				argumentType = interpetAsInt(argumentTypeBytes);
+				
+				// if the task ID is still its default value...
+				if(argumentType == -1){
+					logger.error("Could not enterpet this segment as a argument type.");
+					logger.error("Clearing current data to parse and resetting parser.");
+					//wipe the current block
+					argumentTypeBytes.clear();
+					rawData.clear();
+					hasData = false;
+					
+					//TODO: tell the remote device that the stream is dead
+					//TODO: set the parser to wait for the stream clear packet
+					
+					//reset the parser
+					parserReset();
+				}else{
+					//change the state of the parser to say that we have parsed a task ID
+					state = READ_ARGUMENT_TYPE;
+					logger.debug("Argument Type " + argumentType);
+			
+					//remove this sublist from the buffer, as we don't need it any more
+					logger.debug("Pulling " + (rawPacketDelimiterIndex + 1) + " bytes as already read.");
+					
+					int i;
+					for(i = 0; i < rawPacketDelimiterIndex; i++){
+						//removal is performed byte by byte
+						rawData.remove(0);
+					}
+					
+					//remove the actual delimiter
+					rawData.remove(0);					
+					logger.debug("Amount in raw data after removal of " + (i + 1) + " bytes: " + rawData.size());
+
+					//if there is nothing left in the data list, flag that we no longer have data to parse
+					if(rawData.isEmpty()){
+						logger.debug("Setting has data to false");
+						hasData = false;
+					}
+				}
+			}
+			
+		}
+
 		private void parserReset() {
 			logger.debug("Reset Parser");
 			
 			//reset the taskID
 			taskID = -1;
+			
+			argumentType = -1;
 			
 			//reset the file size
 			argumentSize = -1;
@@ -269,7 +373,7 @@ public class ARCDataParser implements DataParser<byte []> {
 		}
 
 		private void respondWithParsedData() {
-			ResponseAction performResponse = new ResponseAction(new DataResponse(taskID, fileBytes));
+			ResponseAction performResponse = new ResponseAction(new DataResponse(taskID, argumentType, fileBytes));
 			performResponse.performAction();
 			
 		}
