@@ -10,5 +10,9 @@
     <string name="current_action">Inactive</string>
     <string name="stop_capture_sequence">Stop Capture Sequence</string>
     <string name="start_capture_sequence">Start Capture Sequence</string>
+    <string name="wifi_button_text">Control Remotely with Wifi</string>
+    <string name="bluetooth_button_text">Control Remotely with Bluetooth</string>
+    <string name="usb_button_text">Control via USB Connection</string>
+    <string name="exit_button_text">EXIT</string>
 
 </resources>
