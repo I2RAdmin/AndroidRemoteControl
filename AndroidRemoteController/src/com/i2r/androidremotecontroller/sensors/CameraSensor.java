@@ -27,6 +27,11 @@ public class CameraSensor extends GenericDeviceSensor {
 	private static final int MARKED_TIME_INDEX = PARAM_SIZE - 2;
 	private static final int IMAGE_COUNT_INDEX = PARAM_SIZE - 1;
 	private static final int MAX_QUALITY = 100;
+	private static final String JPEG = "jpeg";
+	
+	@SuppressWarnings("unused")
+	private static final boolean SAVE_TO_SD = true;
+	private static final boolean SEND_TO_REMOTE = false;
 	
 	private SurfaceHolder holder;
 	private Camera camera;
@@ -40,7 +45,7 @@ public class CameraSensor extends GenericDeviceSensor {
 		
 		Log.d(TAG, "creating camera sensor");
 		this.surface = new Surface();
-		this.jpeg = new GenericPictureCallback(GenericPictureCallback.JPEG, GenericPictureCallback.SAVE_TO_SD);
+		this.jpeg = new GenericPictureCallback(JPEG, SEND_TO_REMOTE);
 		this.waitingOnPicture = forceClose = started = false;
 		this.parameters = new int[PARAM_SIZE];
 		this.parameters[START_TIME_INDEX] = 0;
@@ -135,6 +140,8 @@ public class CameraSensor extends GenericDeviceSensor {
 		}
 	}
 
+	
+	// TODO: may delete this
 	@Override
 	public byte[] getSupportedFeatures() {
 
@@ -388,10 +395,7 @@ public class CameraSensor extends GenericDeviceSensor {
 	 */
 	private class GenericPictureCallback implements PictureCallback {
 
-		private static final String JPEG = "jpeg";
-		private static final boolean SAVE_TO_SD = true;
-		@SuppressWarnings("unused")
-		private static final boolean SEND_TO_REMOTE = false;
+
 		private String name;
 		private boolean saveToSD;
 		
