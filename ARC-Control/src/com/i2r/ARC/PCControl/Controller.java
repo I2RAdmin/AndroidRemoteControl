@@ -276,6 +276,7 @@ public class Controller{
 		//we don't need to use the generic streams anymore, I have them this way for convience, really.
 		ui.read();
 		
+		
 		ui.write("Enter Commands: ");
 		while(!startLock.compareAndSet(true, false));
 		
