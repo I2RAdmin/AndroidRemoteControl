@@ -243,7 +243,7 @@ public class Controller{
 			
 			//if the connection object is null...
 			if(conn == null){
-				ui.write("Could not create a valid bluetooth connection.  Shutting down");
+				ui.write("Could not create a valid bluetooth connection.  Shutting down.");
 				logger.error("A bluetooth connection could not be found... exiting");
 				ui.close();
 				return;
@@ -276,9 +276,10 @@ public class Controller{
 		//we don't need to use the generic streams anymore, I have them this way for convience, really.
 		ui.read();
 		
+		ui.write("Enter Commands: ");
 		while(!startLock.compareAndSet(true, false));
 		
-		while(tasks.tasksRemaining() && !ui.inClosed);
+		while(!ui.inClosed);
 		
 		ui.write("Shutting Down.  PEACE");
 		//close down resources.  we're done with them.
