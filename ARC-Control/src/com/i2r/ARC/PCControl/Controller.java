@@ -277,6 +277,7 @@ public class Controller{
 		ui.read();
 		
 		
+		
 		ui.write("Enter Commands: ");
 		while(!startLock.compareAndSet(true, false));
 		
