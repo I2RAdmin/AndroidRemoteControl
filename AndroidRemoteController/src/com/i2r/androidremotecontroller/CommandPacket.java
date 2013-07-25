@@ -24,7 +24,7 @@ public class CommandPacket {
 	
 	private static final int FULL_PACKET_IDENTIFIER = 9001;
 	
-	private int header, taskID, packetEnd;
+	private int command, taskID, packetEnd;
 	private int[] parameters;
 	private ArrayList<Integer> rawCommandPacket;
 
@@ -38,7 +38,7 @@ public class CommandPacket {
 		
 		this.rawCommandPacket = packet;
 		this.taskID = packet.get(Constants.Commands.TASK_ID_INDEX);
-		this.header = packet.get(Constants.Commands.HEADER_INDEX);
+		this.command = packet.get(Constants.Commands.HEADER_INDEX);
 		this.packetEnd = packet.get(packet.size() - 1); // one over error
 		this.parameters = null;
 
@@ -62,7 +62,7 @@ public class CommandPacket {
 	 * or {@link Args#ARG_NONE} if this is a partial packet.
 	 */
 	public int getCommand() {
-		return header;
+		return command;
 	}
 
 	/**
@@ -98,7 +98,7 @@ public class CommandPacket {
 	 * false otherwise
 	 */
 	public boolean isKillByID() {
-		return header == Constants.Commands.KILL;
+		return command == Constants.Commands.KILL;
 	}
 
 	/**
@@ -107,7 +107,7 @@ public class CommandPacket {
 	 * false otherwise
 	 */
 	public boolean isKillAll() {
-		return header == Constants.Commands.KILL_EVERYTHING;
+		return command == Constants.Commands.KILL_EVERYTHING;
 	}
 
 	/**
@@ -130,6 +130,15 @@ public class CommandPacket {
 	public boolean isCompleteCommand() {
 		return packetEnd == FULL_PACKET_IDENTIFIER;
 	}
+	
+	
+	
+	public boolean hasHighPriority(){
+		return command == Constants.Commands.KILL ||
+				command == Constants.Commands.MODIFY ||
+				command == Constants.Commands.KILL_EVERYTHING;
+	}
+	
 	
 	
 	public ArrayList<Integer> getRawPacket(){
@@ -283,8 +292,8 @@ public class CommandPacket {
 		builder.append("task ID: ");
 		builder.append(taskID);
 		builder.append('\n');
-		builder.append("header: ");
-		builder.append(header);
+		builder.append("command: ");
+		builder.append(command);
 		builder.append('\n');
 		builder.append("parameters: {");
 		if(parameters != null){

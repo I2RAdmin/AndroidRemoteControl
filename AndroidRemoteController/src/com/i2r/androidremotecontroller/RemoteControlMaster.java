@@ -222,8 +222,18 @@ public class RemoteControlMaster {
 	 * back to main to notify that it has completed its task.
 	 */
 	public synchronized void updateSensors(){
-		if (sensorController.canExecuteNextCommand()){
-			sensorController.executeNextCommand();
+		
+		if(connectionManager.hasConnection()){
+			
+			// execute next command after previous task was completed
+			if (sensorController.canExecuteNextCommand()){
+				sensorController.executeNextCommand();
+			}
+			
+			// start saving data to SD if connection has been lost and
+			// there are still commands to execute
+		} else {
+			// TODO: switch to SD writing here
 		}
 	}
 	

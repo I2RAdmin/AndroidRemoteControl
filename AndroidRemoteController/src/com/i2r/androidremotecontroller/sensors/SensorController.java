@@ -1,6 +1,7 @@
 package com.i2r.androidremotecontroller.sensors;
 
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Iterator;
+import java.util.LinkedList;
 
 import ARC.Constants;
 import android.app.Activity;
@@ -27,7 +28,7 @@ public class SensorController {
 	private CameraSensor imageCapture;
 	private SurfaceHolder holder;
 	private Camera camera;
-	private LinkedBlockingQueue<CommandPacket> commandQueue;
+	private LinkedList<CommandPacket> commandQueue;
 	
 	
 	// Constructor
@@ -36,7 +37,7 @@ public class SensorController {
 		this.holder = holder;
 		this.camera = camera;
 		this.imageCapture = new CameraSensor(activity, camera, holder);
-		this.commandQueue = new LinkedBlockingQueue<CommandPacket>();
+		this.commandQueue = new LinkedList<CommandPacket>();
 		this.connection = null;
 	}
 	
@@ -50,7 +51,7 @@ public class SensorController {
 	 * @param packet - the CommandPacket object to use for filtering
 	 * @see {@link CommandPacket#parsePacket(byte[])}
 	 */
-	private void filterCommand(final CommandPacket packet){
+	private void execute(final CommandPacket packet){
 		if(connection != null && packet != null){
 			Log.d(TAG, "filtering packet...");
 			filter(packet);
@@ -84,9 +85,14 @@ public class SensorController {
 		case Constants.Commands.MODIFY:
 			
 			GenericDeviceSensor sensor = getSensor(packet.getTaskID());
+			
 			if(sensor != null){
+				Log.d(TAG, "modifying task: " + packet.getTaskID());
+				
+				// key : value modifications
 				for(int i = 0; i < packet.getParameters().length; i += 2){
-					imageCapture.modify(packet.getParameters()[i], packet.getParameters()[i + 1]);
+					imageCapture.modify(packet.getParameters()[i], 
+							packet.getParameters()[i + 1]);
 				}
 			}
 			
@@ -94,16 +100,45 @@ public class SensorController {
 			
 		// command to kill a process by task ID
 		case Constants.Commands.KILL:
-			if(imageCapture != null && imageCapture.getTaskID() == packet.getTaskID()){
+			
+			int taskToKill = packet.getParameters()[0];
+			
+			if(imageCapture != null && imageCapture.getTaskID() == taskToKill){
+				Log.d(TAG, "killing current camera task");
 				imageCapture.killTask();
+				
+				// TODO: add more sensor processes to stop by task ID here
+				
+				// if its not currently running, look for it in the commandQueue
+			} else {
+				
+				boolean found = false;
+				Iterator<CommandPacket> iter = commandQueue.iterator();
+				
+				Log.d(TAG, "searching for task to remove from queue: " + taskToKill);
+				while(iter.hasNext() && !found){
+					
+					CommandPacket temp = iter.next();
+					
+					if(temp.getTaskID() == taskToKill){
+						Log.d(TAG, "removing task from queue: " + taskToKill);
+						iter.remove();
+						found = true;
+					}
+				}
 			}
-			// add more sensor processes to stop by task ID here
+			
 			break;
 			
 			
 		// command to stop all processes
 		case Constants.Commands.KILL_EVERYTHING:
-			if(imageCapture != null){ imageCapture.killTask(); imageCapture.releaseSensor(); imageCapture = null;}
+			if(imageCapture != null){ 
+				imageCapture.killTask();
+				imageCapture.releaseSensor(); 
+				imageCapture = null;
+			}
+			
 			// add all other sensor processes to stop here...
 			break;
 			
@@ -119,7 +154,11 @@ public class SensorController {
 	 * Cancel any currently running tasks
 	 */
 	public void cancel(){
-		if(imageCapture != null){ imageCapture.killTask(); imageCapture.releaseSensor(); imageCapture = null;}
+		if(imageCapture != null){ 
+			imageCapture.killTask();
+			imageCapture.releaseSensor(); 
+			imageCapture = null;
+		}
 		commandQueue.clear();
 	}
 	
@@ -136,24 +175,34 @@ public class SensorController {
 	 * @return true if the task ID is unique among running processes or it has
 	 * not yet been initialized, false if it matches the ID of an existing process.
 	 */
-	public boolean isAvailableService(int taskID){
-		return sensorIsAvailable(imageCapture, taskID);
-		// || or-ed with other sensors that will be added
+	public boolean isAvailableService(int service){
+		boolean result = false;
+		switch(service){
+		case Constants.Commands.PICTURE:
+			result = isServiceAvailable(imageCapture);
+			break;
+		case Constants.Commands.MODIFY:
+			result = true;
+			break;
+		case Constants.Commands.KILL:
+			result = true;
+			break;
+		case Constants.Commands.KILL_EVERYTHING:
+			result = true;
+			break;
+			// add cases for each new sensor implemented
+		}
+		return result;
+		
 	}
+
 	
 	
-	/**
-	 * Query of a sensor's availability
-	 * @param capture - the sensor to test
-	 * @param taskID - the task ID to test against the sensor for
-	 * @return true if the sensor is null, the given task ID does not
-	 * match the sensor's current task ID, or the ID's do match and
-	 * the sensor's current task has been completed. False otherwise.
-	 */
-	public static boolean sensorIsAvailable(GenericDeviceSensor capture, int taskID){
-		return (capture == null || taskID != capture.getTaskID() ||
-				(taskID == capture.getTaskID() && capture.taskCompleted()));
+	private static boolean isServiceAvailable(GenericDeviceSensor sensor){
+		return sensor != null && (sensor.taskCompleted() || 
+				sensor.getTaskID() == Constants.Args.ARG_NONE);
 	}
+	
 	
 	
 	/**
@@ -227,7 +276,7 @@ public class SensorController {
 	 * sensor is available, false otherwise.
 	 */
 	public boolean sensorForNextCommandIsAvailable(){
-		return isAvailableService(commandQueue.peek().getTaskID());
+		return isAvailableService(commandQueue.get(0).getCommand());
 	}
 	
 	
@@ -254,8 +303,16 @@ public class SensorController {
 		// if the packet is legitimate, add it to the queue
 		for(int i = 0; i < packets.length; i++){
 			if(packets[i] != null && packets[i].isCompleteCommand()){
-				commandQueue.add(packets[i]);
-				Log.d(TAG, "new command received:\n" + packets[i].toString());
+				
+				if(packets[i].hasHighPriority()){
+					Log.d(TAG, "executing high priority command:\n" + packets[i].toString());
+					execute(packets[i]);
+				} else {
+					Log.d(TAG, "queueing command:\n" + packets[i].toString());
+					commandQueue.add(packets[i]);
+				}
+				
+				
 			} else if (packets[i] == null){
 				Log.e(TAG, "command " + i + " could not be parsed");
 			}
@@ -275,15 +332,16 @@ public class SensorController {
 		if (!commandQueue.isEmpty()) {
 			
 			// check task ID to make sure that sensor isn't already being used
-			int taskID = commandQueue.peek().getTaskID();
-			if (isAvailableService(taskID)) {
+			int taskID = commandQueue.get(0).getTaskID();
+			if (isAvailableService(commandQueue.get(0).getCommand())) {
 				
 				// notify UI and log that a new task is starting
 				String result = "executing command - taskID:" + taskID;
 				Log.d(TAG, result);
 				
 				// start the new task by filtering what kind of task it is
-				filterCommand(commandQueue.poll());
+				execute(commandQueue.get(0));
+				commandQueue.remove(0);
 				
 			} else {
 				Log.d(TAG, "service not available. TASK ID - " + taskID);
