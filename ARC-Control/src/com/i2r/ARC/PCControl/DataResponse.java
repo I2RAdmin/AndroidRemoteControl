@@ -23,9 +23,14 @@ public class DataResponse {
 	public static final int DATA_TYPE_JPEG = 1;
 	public static final int DATA_TYPE_YUV = 2;
 	
+	public static final int DATA_TYPE_CAMERA_ARGS = 4;
+	
 	public static final String REMOVE_TASK_ARGUMENT = "#";
+	
 	public static int REMOVE_TASK = 0;
 	public static int SAVE_FILE = 1;
+	public static int CAMERA_ARGS = 4;
+	
 	/**
 	 * The taskID.  This marks which task the response should be associated with.
 	 * This value should never be -1 when we actually want to process a response
@@ -73,9 +78,10 @@ public class DataResponse {
 	static final Logger logger = Logger.getLogger(DataResponse.class);
 	
 	public DataResponse(int taskID, int dataType, byte[] data){
+		logger.debug("Creating a Response for task " + taskID);
 		//taskID will always be set.
 		this.taskID = taskID;
-		this.type = dataType;
+		this.argType = dataType;
 		
 		//default set for the arg list
 		otherArgs = new ArrayList<String>();
@@ -89,14 +95,13 @@ public class DataResponse {
 	 * @param data
 	 */
 	private void interpet(byte[] data) {
-		
-		
-		if(type == DATA_TYPE_NOTIFY){
+		if(argType == DATA_TYPE_NOTIFY){
 			//create a string from the data
 			String tempDataString = new String(data);
 			
 			if(tempDataString.equals(REMOVE_TASK_ARGUMENT)){
 				//remove the task from the task stack
+				logger.debug("Remove Task Response created.");
 				this.type = REMOVE_TASK;
 				this.otherArgs.add(tempDataString);
 			}else{
@@ -104,8 +109,16 @@ public class DataResponse {
 				logger.debug(tempDataString);
 			}
 		
+		}else if(argType == DATA_TYPE_CAMERA_ARGS){
+			logger.debug("Set Camera Parameters task created.");			
+			this.type = CAMERA_ARGS;
+			String[] camArgs = new String(data).split("#");
+			for(String argLine : camArgs){
+				otherArgs.add(argLine);
+			}
 		}else{
 			//Save it as a file
+			logger.debug("Save file task created.");
 			this.type = SAVE_FILE;
 			this.fileSize = data.length;
 			this.fileData = data;

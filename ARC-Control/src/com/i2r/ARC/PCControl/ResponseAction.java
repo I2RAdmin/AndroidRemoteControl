@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -34,6 +36,8 @@ public class ResponseAction {
 	 */
 	Controller cntrl;
 	
+	RemoteDevice dev;
+	
 	/**
 	 * The {@link DataResponse} object that this action is going to use to attempt to do something
 	 */
@@ -56,6 +60,12 @@ public class ResponseAction {
 		cntrl = Controller.getInstance();
 	}
 	
+	public ResponseAction(DataResponse dataResponse, RemoteDevice dev) {
+		this.response = dataResponse;
+		cntrl = Controller.getInstance();
+		this.dev = dev;
+	}
+
 	/**
 	 * Performs the action set in {@link ResponseAction#response}'s {@link DataResponse#type} with the data provided in the other fields of the 
 	 * {@link ResponseAction#response} through a private method call in this {@link ResponseAction}.
@@ -66,11 +76,45 @@ public class ResponseAction {
 			saveFile();
 		}else if (response.type == DataResponse.REMOVE_TASK){
 			removeTask();
+		}else if (response.type == DataResponse.CAMERA_ARGS){
+			setCameraArgs();
 		}else{
 			logger.error("The type " + response.type + " is invalid.");
 		}
 	}
 	
+	private void setCameraArgs() {
+		logger.debug("Setting Camera Feature Parameter Limits");
+		cntrl.ui.write("Setting valid parameters for the camera.");
+		for(String line : response.otherArgs){
+			String[] lineElements = line.split("\n");
+			String featureName = lineElements[0];
+			DataType type = DataType.get(Integer.parseInt(lineElements[1]));
+			Limiter limit = Limiter.get(Integer.parseInt(lineElements[2]));
+			int size = Integer.parseInt(lineElements[3]);
+			
+			List<String> args = new ArrayList<String>();
+			int i = 0;
+			while(i < size){
+				args.add(lineElements[i + 3]);
+			}
+			
+			cntrl.ui.write(featureName);
+			cntrl.ui.write(type.getType().toString());
+			
+			StringBuilder sb = new StringBuilder();
+			sb.append(limit.getType());
+			sb.append(" ");
+			for(String arg : args){
+				sb.append(arg);
+				sb.append(" ");
+			}
+			cntrl.ui.write(sb.toString());
+			
+			dev.setSensorParams(Sensor.CAMERA, featureName, type, limit, args);
+		}
+	}
+
 	/**
 	 * The action that removes a task from the stack.  This action should be called when {@link ResponseAction#response} follows the form
 	 * of a {@link DataResponse} that would call for task removal.
@@ -78,13 +122,31 @@ public class ResponseAction {
 	private void removeTask(){
 		logger.debug("Removing a task with ID " + response.taskID + " from the stack.");
 		
-		referencedTask = cntrl.tasks.getTask(response.taskID);
+		referencedTask = dev.deviceTasks.getTask(response.taskID);
 		
 		if(referencedTask != null){
 			cntrl.ui.write("Removing task " + response.taskID + " from the stack.");
-			cntrl.tasks.removeTask(referencedTask.getId());
-			cntrl.ui.write("Current Task Stack state:");
-			cntrl.ui.write(cntrl.tasks.logStackState());
+			if(dev != null){
+				dev.deviceTasks.removeTask(referencedTask.getId());
+			}else{
+				dev.deviceTasks.removeTask(referencedTask.getId());
+			}
+			
+			cntrl.ui.write("Pending tasks:");
+			
+			if(dev != null){
+				if(dev.deviceTasks.tasksRemaining()){
+					cntrl.ui.write(dev.deviceTasks.logStackState());
+				}else{
+					cntrl.ui.write("none");
+				}
+			}else{
+				if(dev.deviceTasks.tasksRemaining()){
+					cntrl.ui.write(dev.deviceTasks.logStackState());
+				}else{
+					cntrl.ui.write("none");
+				}
+			}
 		}else{
 			logger.error("Arrempted to remove a task with a reference to a task that was not on the stack");
 		}
@@ -110,7 +172,8 @@ public class ResponseAction {
 		@Override
 		public void run() {
 			logger.debug("Saving file...");
-			Task ref = cntrl.tasks.getTask(saveResponse.taskID);
+			Task ref = dev.deviceTasks.getTask(saveResponse.taskID);
+		
 			
 			if(ref == null){
 				//bad news bears
@@ -125,7 +188,7 @@ public class ResponseAction {
 			case (RESPONSE_JPEG):
 				fileType = "jpeg"; break;
 			default:
-					fileType = "jpeg"; break;
+				fileType = "jpeg"; break;
 			}
 			
 			//logger.debug("Expected filetype: " + ref.);

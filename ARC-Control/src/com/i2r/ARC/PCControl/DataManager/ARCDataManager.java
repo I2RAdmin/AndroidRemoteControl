@@ -8,6 +8,7 @@ import java.io.InputStream;
 
 import org.apache.log4j.Logger;
 
+import com.i2r.ARC.PCControl.RemoteDevice;
 import com.i2r.ARC.PCControl.Task;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 
@@ -40,6 +41,12 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 		super(conn);
 		
 		parser = new ARCDataParser();
+	}
+	
+	public ARCDataManager(RemoteConnection<byte[]> conn, RemoteDevice dev){
+		super(conn, dev);
+		
+		parser = new ARCDataParser(dev);
 	}
 
 	/**
@@ -91,10 +98,6 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 		sb.append(dataElement.getCommand().getHeader());
 		sb.append(SEND_PACKET_DELIMITER);
 		for(String arg : dataElement.getCommand().getArguments()){
-			//for testing purposes, don't send the last argument
-			if(arg.equals("jpeg")){
-				continue;
-			}
 			sb.append(arg);
 			sb.append(SEND_PACKET_DELIMITER);
 		}
@@ -164,7 +167,7 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 						logger.debug("Read " + cleanArray.length + " bytes from the connection.");
 					
 						//pass the trimmed to the parser to parse it
-						threadParser.parse(cleanArray);
+						threadParser.parseData(cleanArray);
 					}else if(bytesRead == -1){
 						threadIn.close();
 						break;
@@ -175,8 +178,6 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 				logger.error(e.getMessage(), e);
 				e.printStackTrace();
 			}
-			
 		}
 	}
-
 }

@@ -3,8 +3,6 @@
  */
 package com.i2r.ARC.PCControl;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -12,7 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -21,6 +19,7 @@ import org.apache.log4j.Logger;
 
 import com.i2r.ARC.PCControl.DataManager.ARCDataManager;
 import com.i2r.ARC.PCControl.DataManager.DataManager;
+import com.i2r.ARC.PCControl.Loadable.LoadableDataManager;
 import com.i2r.ARC.PCControl.UI.StreamUI;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 import com.i2r.ARC.PCControl.link.RemoteLink;
@@ -35,12 +34,10 @@ import com.i2r.ARC.PCControl.link.wifiLink.WifiLink;
  *
  */
 public class Controller{
-	TaskStack tasks;
-	RemoteConnection<byte[]> conn;
 	RemoteLink<byte[]> link;
-	DataManager<Task, byte[]> dataManager;
 	
 	StreamUI<OutputStream, InputStream, String> ui;
+	List<RemoteDevice> devices;
 	
 	private static Controller instance = new Controller();
 	
@@ -52,9 +49,9 @@ public class Controller{
 	Properties prop;
 	
 	String UIOut;
-	String RemoteOut;
+	String remoteOut;
 	String UIIn;
-	String RemoteIn;
+	String remoteIn;
 	String connType;
 	
 	private static final String TYPE_BLUETOOTH = "BLUETOOTH";
@@ -90,12 +87,14 @@ public class Controller{
 	
 	public void initalize(){
 		logger.debug("creating data objects");
-		tasks = new TaskStack();
+		devices = new ArrayList<RemoteDevice>();
+		
 		startLock = new AtomicBoolean(false);
 		prop = new Properties();
 		logger.debug("Created intial objects");
 		logger.debug("loading properties");
 		File propertyFile = new File("config.properties");
+		
 		if(propertyFile.exists()){
 			try {
 				prop.load(new FileInputStream(propertyFile));
@@ -110,16 +109,16 @@ public class Controller{
 			logger.debug("Loaded configuration, setting streams & connection");
 			UIOut = (prop.getProperty(UI_OUT_PROPERTY) == null) ? UI_OUT_DEFAULT : prop.getProperty(UI_OUT_PROPERTY);
 			UIIn = (prop.getProperty(UI_IN_PROPERTY) == null) ? UI_IN_DEFAULT : prop.getProperty(UI_IN_PROPERTY);
-			RemoteOut = (prop.getProperty(REMOTE_OUT_PROPERTY) == null) ? REMOTE_OUT_DEFAULT : prop.getProperty(REMOTE_OUT_PROPERTY);
-			RemoteIn = (prop.getProperty(REMOTE_IN_PROPERTY) == null) ? REMOTE_IN_DEFAULT : prop.getProperty(REMOTE_IN_PROPERTY);
+			remoteOut = (prop.getProperty(REMOTE_OUT_PROPERTY) == null) ? REMOTE_OUT_DEFAULT : prop.getProperty(REMOTE_OUT_PROPERTY);
+			remoteIn = (prop.getProperty(REMOTE_IN_PROPERTY) == null) ? REMOTE_IN_DEFAULT : prop.getProperty(REMOTE_IN_PROPERTY);
 			connType = (prop.getProperty(CONN_TYPE_PROPERTY) == null) ? CONN_TYPE_DEFAULT : prop.getProperty(CONN_TYPE_PROPERTY);
 			
 		}else{
 			logger.debug("Configuration file not found, loading defaults.");
 			UIOut = UI_OUT_DEFAULT;
-			RemoteOut = REMOTE_OUT_DEFAULT;
+			remoteOut = REMOTE_OUT_DEFAULT;
 			UIIn = UI_IN_DEFAULT;
-			RemoteIn = REMOTE_IN_DEFAULT;
+			remoteIn = REMOTE_IN_DEFAULT;
 			connType = CONN_TYPE_DEFAULT;
 		}
 	}
@@ -143,29 +142,6 @@ public class Controller{
 			logger.debug("Found " + validConns.size() + " valid connections.");
 			return validConns;
 		}
-	}
-	
-	public void connect(String URL){
-		logger.debug("Attempting to connect to " + URL);
-		conn = link.connect(URL);
-		
-		logger.debug("Connected with a " + conn.getClass());
-	}
-
-	
-	public void send(ARCCommand sendCommand) {
-		Task thisTask = tasks.createTask(sendCommand);
-		dataManager.write(thisTask);
-		
-		startLock.compareAndSet(false, true);
-	}
-	
-	/**
-	 * @deprecated
-	 */
-	public void runSendOnlyWithWifi(){
-		link = new WifiLink();
-		connect("AndroidRemoteControl");
 	}
 	
 	
@@ -228,7 +204,7 @@ public class Controller{
 						ui.write("Found " + connectionURLs.get(0));
 						logger.debug("Found and using " + connectionURLs.get(0));
 						
-						connect(connectionURLs.get(0));
+						devices.add(new RemoteDevice(link, connectionURLs.get(0)));
 						ui.write("Connected to " + connectionURLs.get(0));
 						logger.debug("Connected to " + connectionURLs.get(0));
 						foundConnections = true;
@@ -240,17 +216,6 @@ public class Controller{
 					break;
 				}
 			}
-			
-			//if the connection object is null...
-			if(conn == null){
-				ui.write("Could not create a valid bluetooth connection.  Shutting down.");
-				logger.error("A bluetooth connection could not be found... exiting");
-				ui.close();
-				return;
-			}
-			
-			dataManager = new ARCDataManager(conn);
-			
 		}else if(connType.equals(TYPE_LOCAL)){
 			ui.write("Creating a Local Connection");
 			ui.write("This is a debuging configuration, if you see this message in prod, close the program and check the config file");
@@ -258,17 +223,19 @@ public class Controller{
 			//establish a local I/O stream connection
 			link = new CommandLineLink();
 			
-			connect("");
-			
-			dataManager = new ARCDataManager(conn);
+			devices.add(new RemoteDevice(link, ""));
 		}
 		
+		RemoteDevice dev = devices.get(0);
+		
+		//connect to the first device in the list
+		dev.connectToDevice();
+		
 		//establish the requested conn type
-		//if we want to not open the side for reading, then the RemoteIn parameter is set to closed.
+		//if we want to not open the side for reading, then the remoteIn parameter is set to closed.
 		//this pretty much just never calls the dataManager.read() method.
-		if(RemoteIn.equals(TYPE_OPEN)){
-			//only open the stream if this is set
-			dataManager.read();
+		if(remoteIn.equals(TYPE_OPEN)){
+			dev.dataManager.read();
 			logger.debug("Started data reading...");
 		}
 		
@@ -281,10 +248,20 @@ public class Controller{
 		ui.write("Enter Commands: ");
 		while(!startLock.compareAndSet(true, false));
 		
-		while(!ui.inClosed);
+		while(!ui.inClosed.compareAndSet(true, true));
+		ui.write("Shut down read side of UI... there may tasks still pending...");
+		logger.debug("UI has stopped reading.");
 		
-		ui.write("Shutting Down.  PEACE");
+		while(dev.deviceTasks.tasksRemaining());
+		logger.debug("All tasks have been finished.");
+		
+		ui.write("Shutting Down.  PEACE.");
 		//close down resources.  we're done with them.
-		conn.close();
+		dev.conn.close();
+		ui.close();
+	}
+
+	public void send(String dev, ARCCommand newCommand) {
+		devices.get(Integer.parseInt(dev)).sendTask(newCommand);
 	}
 }

@@ -7,6 +7,7 @@ import java.io.DataInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import com.i2r.ARC.PCControl.RemoteDevice;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 
 /**
@@ -43,6 +44,7 @@ public abstract class DataManager<T, U> {
 	 */
 	public DataParser<U> parser;
 	
+	public RemoteDevice dev;
 	/**
 	 * Constructor.
 	 * 
@@ -55,12 +57,18 @@ public abstract class DataManager<T, U> {
 		
 	}
 	
+	public DataManager(RemoteConnection<U> source, RemoteDevice dev){
+		this.dataIn = source.dataIn;
+		this.dataOut = source.dataOut;
+		this.dev = dev;
+	}
+	
 	/**
 	 * Read method.
 	 * Under many implementations, this method will block, although it is not specified by the contract
 	 * to do so.  This is the generic attempt to read data in and do something with that data.
 	 * 
-	 * It is not under contract, but the idea is that a {@link DataParser#parse(Object)} method will be called to parse
+	 * It is not under contract, but the idea is that a {@link DataParser#parseData(Object)} method will be called to parse
 	 * objects received from the stream and then tell some other object to do something about it
 	 * 
 	 * @requires that there is a valid input stream to read from (the dataIn class variable != null)

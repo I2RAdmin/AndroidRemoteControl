@@ -15,6 +15,7 @@ import com.i2r.ARC.PCControl.DataResponse;
  *
  */
 public interface DataParser<T>{	
+	
 	/**
 	 * Parse method.  Takes the data received and attempts to make sense of it.
 	 * Data is parsed by blocks, so for each block of data passed to the parser (via this method), an attempt is made to fit
@@ -33,6 +34,6 @@ public interface DataParser<T>{
 	 *
 	 * 			In short, expect a velociraptor to come attack you whenever this method is called.
 	 */
-	public void parse(T dataToParse);
+	public void parseData(T dataToParse);
 	
 }

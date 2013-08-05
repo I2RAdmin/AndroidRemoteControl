@@ -4,6 +4,8 @@
 package com.i2r.ARC.PCControl;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -17,9 +19,11 @@ public class TaskStack {
 	
 	static final Logger logger = Logger.getLogger(TaskStack.class);
 	
+	private HashMap<Integer, Task> taskMap;
 	private ArrayList<Task> taskList;
 	
 	public TaskStack(){
+		taskMap = new HashMap<Integer, Task>();
 		taskList = new ArrayList<Task>();
 	}
 	
@@ -31,11 +35,21 @@ public class TaskStack {
 	 * @return the task created
 	 */
 	public synchronized Task createTask(ARCCommand newCommand){
-		//create a new task
-		Task task = new Task(taskList.size(), newCommand);
+		//Look at the current set of tasks in the map
+		Set<Integer> taskIDSet = taskMap.keySet();
+		int newId = 0;
 		
-		//add the new task to the task stack
-		taskList.add(task);
+		//while we already have a task mapped to a particular id
+		while(taskIDSet.contains(Integer.valueOf(newId))){
+			//check a new id
+			newId++;
+		}
+		
+		//create a new task with the unique id
+		Task task = new Task(Integer.valueOf(newId), newCommand);
+		
+		//add it to the task map
+		taskMap.put(Integer.valueOf(newId), task);
 		
 		//debuuuuug
 		logStackState();
@@ -52,7 +66,7 @@ public class TaskStack {
 	 */
 	public synchronized void removeTask(int taskID){
 		logger.debug("Attempting to remove task " + taskID);
-		taskList.remove(taskID);
+		taskMap.remove(Integer.valueOf(taskID));
 		logStackState();
 	}
 
@@ -62,7 +76,7 @@ public class TaskStack {
 	 * @return if there are tasks left.
 	 */
 	public synchronized boolean tasksRemaining() {
-		return !taskList.isEmpty();
+		return !taskMap.isEmpty();
 	}
 
 	/**
@@ -72,18 +86,14 @@ public class TaskStack {
 	 */
 	public synchronized Task getTask(int taskID) {
 		logStackState();
-		if(taskID > taskList.size()){
-			return null;
-		}else{
-			return taskList.get(taskID); 
-		}
+		return taskMap.get(Integer.valueOf(taskID));
 	}
 	
 	//private internal method to log the current state of the task stack
 	public synchronized String logStackState(){
 		logger.debug("Task Stack State");
 		StringBuilder sb = new StringBuilder();
-		for(Task t : taskList){
+		for(Task t : taskMap.values()){
 			sb.append(t.getId());
 			sb.append(" ");
 			sb.append(t.getCommand().getHeader());

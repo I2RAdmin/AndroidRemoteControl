@@ -12,6 +12,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
 
 import com.i2r.ARC.PCControl.DataResponse;
+import com.i2r.ARC.PCControl.RemoteDevice;
 import com.i2r.ARC.PCControl.ResponseAction;
 import com.i2r.ARC.PCControl.link.RemoteLink;
 
@@ -27,7 +28,7 @@ public class ARCDataParser implements DataParser<byte []> {
 
 	//PACKET STRUCTURE:
 	// ID
-	// TYPE (unused)
+	// TYPE
 	// ARG SIZE
 	// ARG
 	
@@ -53,7 +54,6 @@ public class ARCDataParser implements DataParser<byte []> {
 	 * Constant to define the packet delimiter.
 	 */
 	public static final Byte RESPONSE_PACKET_DELIMITER = new Byte((byte)'\n');
-	
 	/**
 	 * Constant to define the max size of the argument list
 	 */
@@ -104,6 +104,8 @@ public class ARCDataParser implements DataParser<byte []> {
 	//A list of the current data parsed.  Used for when we get incomplete segments of data and are waiting for the next block
 	//to come in to finish them.
 	private List<Byte> partialSection;
+
+	public RemoteDevice dev;
 	
 	/**
 	 * Constructor
@@ -122,6 +124,22 @@ public class ARCDataParser implements DataParser<byte []> {
 		lockAquired = new AtomicBoolean(false);
 	}
 	
+	public ARCDataParser(RemoteDevice dev){
+		//set the state of the parser to the default
+		state = NEW_RESPONSE;
+		
+		//create the partial section list
+		partialSection = new ArrayList<Byte>();
+		
+		//create the parsed argument list
+		args = new ArrayList<String>();
+		
+		//set the lock as open
+		lockAquired = new AtomicBoolean(false);
+		
+		this.dev = dev;
+	}
+	
 	/**
 	 * Implemented from {@link DataParser}
 	 * @see {@link DataParser} for contract information.
@@ -136,7 +154,7 @@ public class ARCDataParser implements DataParser<byte []> {
 	 * previous block of data
 	 */
 	@Override
-	public void parse(byte[] dataToParse) {
+	public void parseData(byte[] dataToParse) {
 		//wait for the outer lock to open
 		while(!lockAquired.compareAndSet(false, true)){}
 		
@@ -373,8 +391,13 @@ public class ARCDataParser implements DataParser<byte []> {
 		}
 
 		private void respondWithParsedData() {
-			ResponseAction performResponse = new ResponseAction(new DataResponse(taskID, argumentType, fileBytes));
-			performResponse.performAction();
+			if(dev != null){
+				ResponseAction performResponse = new ResponseAction(new DataResponse(taskID, argumentType, fileBytes), dev);
+				performResponse.performAction();
+			}else{
+				ResponseAction performResponse = new ResponseAction(new DataResponse(taskID, argumentType, fileBytes));
+				performResponse.performAction();
+			}
 			
 		}
 

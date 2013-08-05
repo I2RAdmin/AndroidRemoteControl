@@ -3,17 +3,17 @@
  */
 package com.i2r.ARC.PCControl.UI;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 
 import com.i2r.ARC.PCControl.ARCCommand;
 import com.i2r.ARC.PCControl.Controller;
+import com.i2r.ARC.PCControl.UnsupportedValueException;
 
 /**
  * More Generic GenericUI setup.  Reads in things from a {@link InputStream} source, writes out things to a {@link OutputStream} destination.  The
@@ -28,9 +28,9 @@ import com.i2r.ARC.PCControl.Controller;
  */
 public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 
-	public InputStream source;
-	public OutputStream dest;
-	public boolean inClosed = false;
+	private InputStream source;
+	private OutputStream dest;
+	public AtomicBoolean inClosed;
 	
 	Controller cntrl;
 	
@@ -41,6 +41,7 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 	public static final String END_READING_FLAG = "stop";
 	
 	public StreamUI(T source, U dest, Controller creator){
+		inClosed = new AtomicBoolean(false);
 		
 		this.source = source;
 		this.dest = dest;
@@ -101,23 +102,31 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 				logger.debug("Read in: " + line);
 
 				if(line.equals(END_READING_FLAG)){
-					inClosed = true;
+					inClosed.set(true);
 					break;
 				}
 
-				ARCCommand newCommand = ARCCommand.fromString(line);
+				String dev = line.substring(0, line.indexOf(' '));
+				ARCCommand newCommand = null;
+				try {
+					newCommand = ARCCommand.fromString(line.substring(line.indexOf(' ')));
+					
+				} catch (UnsupportedValueException e) {
+					logger.error(e.getMessage(), e);
+					String uiMessage = "Invalid Command.\n";
+					
+					try {
+						dest.write(uiMessage.getBytes());
+					} catch (IOException e1) {
+						logger.error(e1.getMessage(), e1);
+					}
+				}
 				if(newCommand != null){
-					cntrl.send(newCommand);
+					cntrl.send(dev, newCommand);
 				}
 			}
-
-			//only reachable by breaking from the above loop
-			try {
-				source.close();
-			} catch (IOException e) {
-				logger.error(e.getMessage(), e);
-				e.printStackTrace();
-			}
+			
+			logger.debug("Stopping UI Read Thread.");
 		}
 	}
 }

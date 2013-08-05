@@ -22,7 +22,7 @@ import com.i2r.ARC.PCControl.Controller;
  * TODO: add a Java enumeration that allows for some strings to be typed out, rather than raw values
  * 
  * @author Johnathan
- *
+ * @depreciated
  */
 public class FileUI {
 	

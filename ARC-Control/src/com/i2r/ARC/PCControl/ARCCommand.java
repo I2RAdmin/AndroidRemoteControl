@@ -26,33 +26,47 @@ public class ARCCommand {
 	public static final int NO_COMMAND = -1;
 	public static final int KILL = 0;
 	public static final int TAKE_PICTURES = 1;
+	public static final int MODIFY_SENSOR = 2;
+	public static final int SUPPORTED_FEATURES = 3;
 	
 	public static final int TAKE_PICTURE_FREQUENCY_INDEX = 0;
 	public static final int TAKE_PICTURE_TIMEFRAME_INDEX = 1;
 	public static final int TAKE_PICTURE_AMMOUNT_INDEX = 2;
-	public static final int PICTURE_FILETYPE_INDEX = 3;
+
+	public static final int CAMERA_FEATURE_INDEX = 0;
 	
-	public static final int ARG_LIST_SIZE = 4;
+	public static final int TAKE_PICTURE_ARG_LIST_SIZE = 3;
+	public static final int SUPPORTED_FEATURES_ARG_LIST_SIZE = 1;
 	
 	private static final int MINIMUM_TAKE_PICTURE_FREQUENCY_VALUE = 500;
 	private static final int MINIMUM_TAKE_PICTURE_TIMEFRAME = MINIMUM_TAKE_PICTURE_FREQUENCY_VALUE;
 	private static final int MINIMUM_TAKE_PICTURE_AMMOUNT = 1;
 	
+	private static final int CAMERA_ID = 4;
+	
 	private static final String PICTURE_FREQUENCY_DEFAULT = "3000";
 	private static final String PICTURE_AMMOUNT_DEFAULT = "1";
 	private static final String NO_ARGUMENT = "-1";
 	private static final String PICTURE_TIMEFRAME_DEFAULT = "30";
+	
 	private static final String IMAGE_TYPE_JPEG = "jpeg";
 	
-	private static final String[] DEFAULT_NO_COMMAND_ARGUMENTS = {NO_ARGUMENT, NO_ARGUMENT, NO_ARGUMENT, NO_ARGUMENT};
+	private static final String CAMERA_ID_DEFAULT = "4";
+	
+	private static final String[] DEFAULT_NO_COMMAND_ARGUMENTS = {};
 	private static final String[] DEFAULT_KILL_COMMAND_ARGUMENTS = {NO_ARGUMENT};
-	private static final String[] DEFAULT_TAKE_PICTURE_ARGUMENTS = {PICTURE_FREQUENCY_DEFAULT, NO_ARGUMENT, PICTURE_AMMOUNT_DEFAULT, IMAGE_TYPE_JPEG};
+	private static final String[] DEFAULT_TAKE_PICTURE_ARGUMENTS = {PICTURE_FREQUENCY_DEFAULT, NO_ARGUMENT, PICTURE_AMMOUNT_DEFAULT};
+	private static final String[] DEFAULT_SUPPORTED_FEATURES = {NO_ARGUMENT};
+	private static final String[] DEFAULT_MODIFY_SENSOR_ARGUMENTS = {NO_ARGUMENT};
 	
 	//the header to a command.  Usually something for the camera to do, but can also be a notifier about a sent task
 	private int header;
 	
 	//the arguments to go with that command
 	private List<String> arguments;
+	
+	//the remote device this command is paired with
+	private RemoteDevice dev;
 	
 	/**
 	 * Default Constuctor
@@ -74,6 +88,8 @@ public class ARCCommand {
 		case NO_COMMAND:
 		case KILL:
 		case TAKE_PICTURES:
+		case SUPPORTED_FEATURES:
+		case MODIFY_SENSOR:
 			//if the header was the no command header, the kill header, or the take pictures header
 			//set the class header to the supplied header
 			this.header = header;
@@ -109,12 +125,20 @@ public class ARCCommand {
 		case TAKE_PICTURES:
 			//return the default take pictures list
 			return Arrays.asList(DEFAULT_TAKE_PICTURE_ARGUMENTS);
+		case SUPPORTED_FEATURES:
+			return Arrays.asList(DEFAULT_SUPPORTED_FEATURES);
+		case MODIFY_SENSOR:
+			return Arrays.asList(DEFAULT_MODIFY_SENSOR_ARGUMENTS);
 		default:
 			//the passed header was undefined, return null
 			return null;
 		}
 	}
 
+	public void setRemoteDevice(RemoteDevice dev){
+		this.dev = dev;
+	}
+	
 	/**
 	 * @return the header
 	 */
@@ -137,17 +161,25 @@ public class ARCCommand {
 	 * 
 	 * @param header the header for the ARCCommand
 	 * @param arguments the list of arguments to use for a specified header
+	 * @throws UnsupportedValueException if an argument in arguments is invalid for the given header
 	 */
-	public ARCCommand(int header, List<String> arguments){
+	public ARCCommand(int header, List<String> arguments) throws UnsupportedValueException{
 		//for the defined headers...
 		switch(header){
 		case NO_COMMAND:
 		case KILL:
 		case TAKE_PICTURES:
+		case SUPPORTED_FEATURES:
+		case MODIFY_SENSOR:
 			//set the header to the provided header
 			this.header = header;
-			//check the provided argument list
-			this.arguments = checkArguments(header, arguments);
+			
+			if(dev != null){
+				this.arguments = checkAgainstDevice(header, arguments);
+			}else{
+				//check the provided argument list
+				this.arguments = checkArguments(header, arguments);
+			}
 			break;
 		default:
 			//otherwise, return the default ARCCommand
@@ -156,6 +188,51 @@ public class ARCCommand {
 		}
 		
 		
+	}
+
+	private List<String> checkAgainstDevice(int header, List<String> arguments) throws UnsupportedValueException {
+		switch (header){
+		case NO_COMMAND:
+			return checkNoCommandArgs(arguments);
+		case KILL:
+			return checkKillCommandArgs(arguments);
+		case SUPPORTED_FEATURES:
+			return checkSupportedFeaturesCommandArgs(arguments);
+		case TAKE_PICTURES:
+			return checkTakePicturesCommandArgs(arguments);
+		case MODIFY_SENSOR:
+			return checkDeviceModifySensorParams(arguments);
+		}
+		return null;
+	}
+
+	
+	private List<String> checkDeviceModifySensorParams(List<String> arguments) throws UnsupportedValueException {
+		
+		String sensor = arguments.get(0);
+		List<String> subArgs = arguments.subList(1, arguments.size());
+		
+		switch(sensor){
+		case (CAMERA_ID_DEFAULT):
+			int i = 0;
+			while(i < arguments.size()){
+				String key = subArgs.get(i);
+				i++;
+				String value = subArgs.get(i);
+				i++;
+				
+				String arg = dev.checkSingleArg(Sensor.CAMERA, key, value);
+				
+				if(arg == null){
+					//TODO: throw some kind of error
+					return null;
+				}
+				
+				arguments.set(i, arg);
+			}
+		}
+		
+		return arguments;
 	}
 
 	/**
@@ -178,16 +255,47 @@ public class ARCCommand {
 			return checkKillCommandArgs(arguments);
 		case TAKE_PICTURES:
 			return checkTakePicturesCommandArgs(arguments);
+			
+		case SUPPORTED_FEATURES:
+			return checkSupportedFeaturesCommandArgs(arguments);
 		default:
 			//in theory, this is unreachable
 			return null;
 		}
 	}
 
+	private List<String> checkSupportedFeaturesCommandArgs(List<String> arguments) {
+		int i;
+		int num;
+		
+		if(arguments.size() < SUPPORTED_FEATURES_ARG_LIST_SIZE){
+			return defaultArguments(SUPPORTED_FEATURES);
+		}
+		
+		for(i = 0; i < arguments.size(); i++){
+			String value = arguments.get(i);
+			
+			switch(i){
+			case CAMERA_FEATURE_INDEX:
+				num = Integer.parseInt(value);
+				if (num != CAMERA_ID){
+					arguments.set(i, CAMERA_ID_DEFAULT);
+				}
+				break;
+			default:
+				//unreachable code
+				break;
+			}
+		}
+		return arguments;
+	}
+
 	/**
 	 * Checks the argument list when the header supplied is to take pictures.
 	 * 
 	 * If any element of the list falls outside specified bounds or is otherwise invalid, it is set to the default.
+	 * 
+	 *	TODO: check param list size.  It might be wrong.
 	 * @param arguments the list of arguments to check
 	 * @return a valid list of arguments, that may or may not have defaults.
 	 */
@@ -196,6 +304,12 @@ public class ARCCommand {
 		int i;
 		//value holder
 		int num;
+		
+		//make sure the list is of the right size
+		if(arguments.size() < TAKE_PICTURE_ARG_LIST_SIZE){
+			return defaultArguments(TAKE_PICTURES);
+		}
+		
 		//for each arg in the argument list...
 		for(i = 0; i < arguments.size(); i++){
 			//get the value of the argument
@@ -232,12 +346,6 @@ public class ARCCommand {
 					//set it to the minimum value
 					arguments.set(TAKE_PICTURE_AMMOUNT_INDEX, String.valueOf(MINIMUM_TAKE_PICTURE_AMMOUNT));
 				}
-				break;
-			//if i is the filetype
-			case PICTURE_FILETYPE_INDEX:
-				//TODO: check to make sure the filetype is a part of the allowed files innumeration
-				//set it as a jpeg
-				arguments.set(PICTURE_FILETYPE_INDEX, IMAGE_TYPE_JPEG);
 				break;
 			default:
 				//in theory, this segment is unreachable
@@ -301,8 +409,9 @@ public class ARCCommand {
 	 * Return a new ARC command given a string
 	 * @param line the string to create a new ARCCommand out of
 	 * @return
+	 * @throws UnsupportedValueException if the line is invalid
 	 */
-	public static ARCCommand fromString(String line) {
+	public static ARCCommand fromString(String line) throws UnsupportedValueException {
 		logger.debug("Line :" + line);
 		Scanner lineScan = new Scanner(line);
 		int header;
@@ -314,7 +423,7 @@ public class ARCCommand {
 			return new ARCCommand();
 		}
 		
-		if(header != NO_COMMAND && header != KILL && header != TAKE_PICTURES){
+		if(header != NO_COMMAND && header != KILL && header != TAKE_PICTURES && header != SUPPORTED_FEATURES){
 			logger.debug("Header not valid, using default.");
 			return new ARCCommand();
 		}
@@ -329,5 +438,4 @@ public class ARCCommand {
 			return new ARCCommand(header);
 		}
 	}
-
 }
