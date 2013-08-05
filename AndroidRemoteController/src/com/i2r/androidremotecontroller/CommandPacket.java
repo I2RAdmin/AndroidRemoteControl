@@ -1,7 +1,5 @@
 package com.i2r.androidremotecontroller;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 
 import ARC.Constants;
@@ -11,10 +9,10 @@ import android.util.Log;
 
 /**
  * This class models a container for the commands parsed
- * from this application's {@link BluetotohSocket} byte[] results.
+ * from this application's {@link RemoteConnection} byte[] results.
  * A command cannot be created, but must be parsed with the
  * static method defined in this class:<br>
- * {@link #parsePacket(String)}<br>
+ * {@link #parsePackets(String)}<br>
  * @author Josh Noel
  */
 public class CommandPacket {
@@ -22,11 +20,12 @@ public class CommandPacket {
 	public static final int MAX_ALLOWED_SIZE = 10240;
 	public static final String TAG = "CommandPacket";
 	
-	private static final int FULL_PACKET_IDENTIFIER = 9001;
+	private static final String FULL_PACKET_IDENTIFIER = "FULL_PACKET";
 	
-	private int command, taskID, packetEnd;
-	private int[] parameters;
-	private ArrayList<Integer> rawCommandPacket;
+	private int command, taskID;
+	private String packetEnd;
+	private int[] intParams;
+	private String[] stringParams;
 
 	/**
 	 * Constructor #3
@@ -34,26 +33,42 @@ public class CommandPacket {
 	 * a full command packet, and decodes it
 	 * @param packet - the StringBuilder object to decode
 	 */
-	private CommandPacket(ArrayList<Integer> packet) {
+	private CommandPacket(ArrayList<String> packet) {
 		
-		this.rawCommandPacket = packet;
-		this.taskID = packet.get(Constants.Commands.TASK_ID_INDEX);
-		this.command = packet.get(Constants.Commands.HEADER_INDEX);
+		this.taskID = Integer.parseInt(packet.get(Constants.Commands.TASK_ID_INDEX));
+		this.command = Integer.parseInt(packet.get(Constants.Commands.HEADER_INDEX));
 		this.packetEnd = packet.get(packet.size() - 1); // one over error
-		this.parameters = null;
+		this.intParams = null;
+		this.stringParams = null;
 
 		int pointer = Constants.Commands.PARAM_START_INDEX;
 		int paramLength = packet.size() - pointer - 1; // one over error
-
+		ArrayList<Integer> tempInts = new ArrayList<Integer>();
+		
 		if (paramLength > 0) {
-			this.parameters = new int[paramLength];
+			this.stringParams = new String[paramLength];
 			for (int i = 0; i < paramLength; i++) {
-				parameters[i] = packet.get(pointer++);
+				
+				stringParams[i] = packet.get(pointer);
+				
+				try{
+					tempInts.add(Integer.parseInt(packet.get(pointer)));
+				} catch(NumberFormatException e){
+					Log.d(TAG, e.getMessage());
+				}
+				
+				pointer++;
+			}
+			
+			if(!tempInts.isEmpty()){
+				intParams = new int[tempInts.size()];
+				for(int i = 0; i < intParams.length; i++){
+					intParams[i] = tempInts.get(i).intValue();
+				}
 			}
 		}
 	}
-
-
+	
 
 	/**
 	 * Query for the command packet's top level information, i.e. what
@@ -65,6 +80,7 @@ public class CommandPacket {
 		return command;
 	}
 
+	
 	/**
 	 * Query for the command packet's task ID, given by the remote PC.
 	 * @return the task ID of this command packet if it is a complete command,
@@ -74,24 +90,45 @@ public class CommandPacket {
 		return taskID;
 	}
 
+	
 	/**
-	 * Query for the command packet's parameter arguments.
-	 * @return the parameters of this command packet if it is a complete command,
-	 * or null if this is a partial packet.
+	 * Query for the command packet's int parameter arguments.
+	 * @return the int parameters of this command packet if it has any,
+	 * or null if there are no int parameters or this is a partial packet.
 	 */
-	public int[] getParameters() {
-		return parameters;
+	public int[] getIntParameters() {
+		return intParams;
+	}
+	
+	
+	/**
+	 * Query for the command packet's String parameter arguments.
+	 * @return the String parameters of this command packet if it has any,
+	 * or null if there are no String parameters or this is a partial packet.
+	 */
+	public String[] getStringParameters(){
+		return stringParams;
 	}
 
+	
 	/**
-	 * Query for the parameters of this command packet
-	 * @return true if the parameters are not null and greater than zero,
-	 * false otherwise.
+	 * Query for the state of the int parameters of this command packet
+	 * @return true if it has int parameters, false otherwise
 	 */
-	public boolean hasExtraParameters() {
-		return parameters != null && parameters.length > 0;
+	public boolean hasExtraIntParameters() {
+		return intParams != null;
+	}
+	
+	
+	/**
+	 * Query for the state of the String parameters of this command
+	 * @return true if it has string parameters, false otherwise
+	 */
+	public boolean hasExtraStringParameters(){
+		return stringParams != null;
 	}
 
+	
 	/**
 	 * Query for this command packet's main motive
 	 * @return true if the main motive is to kill by ID
@@ -101,6 +138,7 @@ public class CommandPacket {
 		return command == Constants.Commands.KILL;
 	}
 
+	
 	/**
 	 * Query for this command packet's main motive
 	 * @return true if the main motive is to kill all processes
@@ -110,6 +148,7 @@ public class CommandPacket {
 		return command == Constants.Commands.KILL_EVERYTHING;
 	}
 
+	
 	/**
 	 * Query for this command packet's main motive
 	 * @param id - the ID to compare to this command's kill motive
@@ -121,31 +160,29 @@ public class CommandPacket {
 	}
 
 	
-	
 	/**
 	 * Query for this command packet's type
 	 * @return true if this is a complete command packet,
 	 * false if this is a partial packet
 	 */
 	public boolean isCompleteCommand() {
-		return packetEnd == FULL_PACKET_IDENTIFIER;
+		return packetEnd.equals(FULL_PACKET_IDENTIFIER);
 	}
 	
 	
-	
+	/**
+	 * Query for the priority state of this command
+	 * @return true if this command is considered to
+	 * be a high priority command, as defined in 
+	 * {@link Constants#Commands}, false otherwise.
+	 */
 	public boolean hasHighPriority(){
 		return command == Constants.Commands.KILL ||
 				command == Constants.Commands.MODIFY ||
-				command == Constants.Commands.KILL_EVERYTHING;
+				command == Constants.Commands.KILL_EVERYTHING ||
+				command == Constants.Commands.SUPPORTED_FEATURES;
 	}
 	
-	
-	
-	public ArrayList<Integer> getRawPacket(){
-		ArrayList<Integer> temp = new ArrayList<Integer>();
-		temp.addAll(rawCommandPacket);
-		return temp;
-	}
 
 
 
@@ -163,13 +200,13 @@ public class CommandPacket {
 	public static CommandPacket[] parsePackets(String buffer) {
 		CommandPacket[] packets = null;
 		try{
-			ArrayList<ArrayList<Integer>> decodedPackets = decode(buffer, 
+			ArrayList<ArrayList<String>> decodedPackets = decode(buffer, 
 							Constants.PACKET_DELIMITER, Constants.PACKET_END);
 
 			if(!decodedPackets.isEmpty()){
 				packets = new CommandPacket[decodedPackets.size()];
 				for(int i = 0; i < packets.length; i++){
-					ArrayList<Integer> sub = decodedPackets.get(i);
+					ArrayList<String> sub = decodedPackets.get(i);
 					if(!sub.isEmpty()){
 						packets[i] = new CommandPacket(sub);
 					} else {
@@ -184,32 +221,6 @@ public class CommandPacket {
 			Log.d(TAG, "packets could not be parsed due to incorrect argument : " + buffer);
 		}
 		return packets;
-	}
-
-	
-	/**
-	 * Stitches two packets together assuming that at least one of these packets
-	 * has a completion identifier at its end.
-	 * @param first - the first CommandPacket to stitch
-	 * @param second - the second CommandPacket to stitch
-	 * @return a new command packet which is the composite of the two given, with
-	 * the order correlated to which one has the completion identifier being on the
-	 * second latter half of the newly formed packet. As a result, the "stitch" of these
-	 * two packets will be where the partial one ends and the complete one begins.
-	 */
-	public static CommandPacket stitchPackets(CommandPacket first, CommandPacket second){
-		CommandPacket packet = null;
-		ArrayList<Integer> temp = new ArrayList<Integer>();
-			if(!first.isCompleteCommand()){
-				temp.addAll(first.rawCommandPacket);
-				temp.addAll(second.rawCommandPacket);
-				packet = new CommandPacket(temp);
-			} else if (!second.isCompleteCommand()){
-				temp.addAll(second.rawCommandPacket);
-				temp.addAll(first.rawCommandPacket);
-				packet = new CommandPacket(temp);
-			}
-		return packet;
 	}
 	
 
@@ -235,11 +246,10 @@ public class CommandPacket {
 	 * @return an ArrayList of ArrayLists of Integers. The latter ArrayList can be seen
 	 * as an individual CommandPacket, while the former ArrayList is a container of packets.
 	 */
-	public static ArrayList<ArrayList<Integer>> decode(String buffer, char delimiter,
-								String fullPacketIdentifier) throws NumberFormatException {
+	public static ArrayList<ArrayList<String>> decode(String buffer, char delimiter, String fullPacketIdentifier) {
 		
-		ArrayList<ArrayList<Integer>> packetList = new ArrayList<ArrayList<Integer>>();
-		ArrayList<Integer> subPacket = new ArrayList<Integer>();
+		ArrayList<ArrayList<String>> packetList = new ArrayList<ArrayList<String>>();
+		ArrayList<String> subPacket = new ArrayList<String>();
 		int subPacketPointer = 0;
 		
 		for (int i = 0; i < buffer.length(); i++) {
@@ -249,11 +259,11 @@ public class CommandPacket {
 				String temp = buffer.substring(subPacketPointer, i);
 				
 				if(temp.equals(Constants.PACKET_END)){
-					subPacket.add(Integer.valueOf(FULL_PACKET_IDENTIFIER));
+					subPacket.add(FULL_PACKET_IDENTIFIER);
 					packetList.add(subPacket);
-					subPacket = new ArrayList<Integer>();
+					subPacket = new ArrayList<String>();
 				} else {
-					subPacket.add(Integer.parseInt(temp));
+					subPacket.add(temp);
 				}
 				
 				subPacketPointer = i + 1;
@@ -262,27 +272,6 @@ public class CommandPacket {
 		}
 		
 		return packetList;
-	}
-
-	
-	/**
-	 * Encodes an integer array to a byte array
-	 * @param commands - the commands to encode as bytes
-	 * @return a byte array representing the encoded integer array
-	 */
-	public static byte[] encode(int[] commands) {
-		ByteArrayOutputStream stream = new ByteArrayOutputStream();
-		try {
-			StringBuilder builder = new StringBuilder();
-			for (int i = 0; i < commands.length; i++) {
-				builder.append(Integer.toString(commands[i]));
-				builder.append(Constants.PACKET_DELIMITER);
-			}
-			stream.write(builder.toString().getBytes());
-		} catch (IOException e) {
-			stream = null;
-		}
-		return stream.toByteArray();
 	}
 
 
@@ -295,15 +284,27 @@ public class CommandPacket {
 		builder.append("command: ");
 		builder.append(command);
 		builder.append('\n');
-		builder.append("parameters: {");
-		if(parameters != null){
-			builder.append(parameters[0]);
-			for(int i = 1; i < parameters.length; i++){
+		
+		builder.append("int parameters: {");
+		if(intParams != null){
+			builder.append(intParams[0]);
+			for(int i = 1; i < intParams.length; i++){
 				builder.append(", ");
-				builder.append(parameters[i]);
+				builder.append(intParams[i]);
 			}
 		}
 		builder.append("}\n");
+		
+		builder.append("string parameters: {");
+		if(intParams != null){
+			builder.append(stringParams[0]);
+			for(int i = 1; i < stringParams.length; i++){
+				builder.append(", ");
+				builder.append(stringParams[i]);
+			}
+		}
+		builder.append("}\n");
+		
 		builder.append("complete (un-partial) task: ");
 		builder.append(isCompleteCommand());
 		return builder.toString();

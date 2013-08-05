@@ -3,6 +3,7 @@ package com.i2r.androidremotecontroller.sensors;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 
 import ARC.Constants;
 import android.app.Activity;
@@ -31,6 +32,7 @@ public abstract class GenericDeviceSensor {
 	private int taskID;
 	private LocalBroadcastManager manager;
 	private Activity activity;
+	private HashMap<String, PropertyValue> properties;
 	private RemoteConnection connection;
 	
 	
@@ -38,17 +40,27 @@ public abstract class GenericDeviceSensor {
 	public GenericDeviceSensor(Activity activity, RemoteConnection connection, int taskID) {
 		this.activity = activity;
 		this.manager = LocalBroadcastManager.getInstance(activity);
+		this.properties = new HashMap<String, PropertyValue>();
 		this.connection = connection;
 		this.taskID = taskID;
 	}
 
 
+	/**
+	 * TODO: comment this
+	 * @return wingardium leviosa
+	 */
+	protected HashMap<String, PropertyValue> getProperties(){
+		return properties;
+	}
+	
+	
 	
 	/**
 	 * Query for this SensorCapture implementation's {@link Context}.
 	 * @return the context given at the point of creation.
 	 */
-	public Context getContext() {
+	public Activity getActivity() {
 		return activity;
 	}
 	
@@ -153,6 +165,16 @@ public abstract class GenericDeviceSensor {
 	}
 	
 	
+	
+	/**
+	 * Modifies the current sensor's parameters with the one given.
+	 * @param params - the parameter to modify
+	 */
+	public void modify(String key, String value){
+		properties.put(key, new PropertyValue(value));
+	}
+	
+	
 	/**
 	 * Static method for defining what makes a sensor available for use
 	 * @param sensor - the sensor to test for availability
@@ -194,7 +216,7 @@ public abstract class GenericDeviceSensor {
 	 * will be started.
 	 * @see isSensorAvailable(GenericDeviceSensor, int)
 	 */
-	public abstract void startNewTask(int taskID, int[] params);
+	public abstract void startNewTask(int taskID, String[] args);
 	
 	
 	/**
@@ -204,31 +226,43 @@ public abstract class GenericDeviceSensor {
 	 */
 	public abstract boolean taskCompleted();
 	
-	
-	/**
-	 * Modifies the current sensor's parameters with the ones given. The int
-	 * array given should be the length of all available parameters to change
-	 * for this sensor, so that an ArrayIndexOutOfBoundsException won't occur.
-	 * @requires this sensors parameters can be modified at any time, even
-	 * when it is currently running a task.
-	 * @ensures this sensor will respond to the given changes immediately, and
-	 * the remote connection will be updated with the changes that occurred.
-	 * @param params - the parameters to modify
-	 */
-	public abstract void modify(int key, int value);
-	
-	
-	/**
-	 * As of now, this returns {@link Constants#SUPPORTED_FEATURES_HEADER}
-	 * followed by a Sensor descriptor tag, such as {@link Constants#CAMERA_SENSOR_TAG}
-	 * followed by a well ordered list of supported features, then finally
-	 * followed by the {@link Constants#SUPPORTED_FEATURES_FOOTER} tag. Any features
-	 * that are a sub-list of this list of features should have their size given beforehand,
-	 * so the controller PC knows how much data to expect.
-	 * @return a String array of all the supported features
-	 * valid for this application.
-	 */
-	public abstract byte[] getSupportedFeatures();
 
+	
+	/**
+	 * Helper class for the properties HashMap of this generic sensor.
+	 * @author Josh Noel
+	 */
+	public class PropertyValue  {
+
+		private String stringValue;
+		private int intValue;
+		private boolean isNumber;
+		
+		public PropertyValue(String value){
+			this.stringValue = value;
+			
+			try {
+				intValue = Integer.parseInt(value);
+				this.isNumber = true;
+			} catch (NumberFormatException e) {
+				intValue = Constants.Args.ARG_NONE;
+				this.isNumber = false;
+			}
+
+		}
+		
+		public String getStringValue() {
+			return stringValue;
+		}
+
+		public int getIntValue() {
+			return intValue;
+		}
+		
+		public boolean isNumber(){
+			return isNumber;
+		}
+		
+	}
 	
 }

@@ -192,10 +192,7 @@ public class RemoteControlMaster {
 		if (connectionManager.hasConnection() && started) {
 			
 			sensorController.parseCommand(command);
-
-			if(sensorController.canExecuteNextCommand()){
-				sensorController.executeNextCommand();
-			}
+			sensorController.executeNextCommand();
 			
 			// cannot update commands because there is no connection established
 		} else if(!connectionManager.hasConnection() && started){
@@ -223,12 +220,10 @@ public class RemoteControlMaster {
 	 */
 	public synchronized void updateSensors(){
 		
-		if(connectionManager.hasConnection()){
+		if(connectionManager.hasConnection() && sensorController.hasNewCommands()){
 			
 			// execute next command after previous task was completed
-			if (sensorController.canExecuteNextCommand()){
-				sensorController.executeNextCommand();
-			}
+			sensorController.executeNextCommand();
 			
 			// start saving data to SD if connection has been lost and
 			// there are still commands to execute

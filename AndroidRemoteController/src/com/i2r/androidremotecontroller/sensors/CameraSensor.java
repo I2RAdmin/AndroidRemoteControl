@@ -1,17 +1,18 @@
 package com.i2r.androidremotecontroller.sensors;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Iterator;
 
 import ARC.Constants;
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
+import com.i2r.androidremotecontroller.SupportedFeatures;
 import com.i2r.androidremotecontroller.RemoteControlActivity;
 import com.i2r.androidremotecontroller.ResponsePacket;
 
@@ -22,10 +23,6 @@ import com.i2r.androidremotecontroller.ResponsePacket;
 public class CameraSensor extends GenericDeviceSensor {
 
 	private static final String TAG = "CameraSensor";
-	private static final int PARAM_SIZE = Constants.Args.IMAGE_PARAMETER_SIZE + 3;
-	private static final int START_TIME_INDEX = PARAM_SIZE - 3;
-	private static final int MARKED_TIME_INDEX = PARAM_SIZE - 2;
-	private static final int IMAGE_COUNT_INDEX = PARAM_SIZE - 1;
 	
 	@SuppressWarnings("unused")
 	private static final int MAX_QUALITY = 100;
@@ -39,8 +36,8 @@ public class CameraSensor extends GenericDeviceSensor {
 	private Camera camera;
 	private Surface surface;
 	private GenericPictureCallback jpeg;
-	private boolean started, waitingOnPicture, forceClose;
-	private int[] parameters;
+	private boolean waitingOnPicture, forceClose;
+	private long startTime, markedTime, pictureCount;
 	
 	public CameraSensor(Activity activity, Camera camera, SurfaceHolder holder) {
 		super(activity, null, Constants.Args.ARG_NONE);
@@ -48,19 +45,18 @@ public class CameraSensor extends GenericDeviceSensor {
 		Log.d(TAG, "creating camera sensor");
 		this.surface = new Surface();
 		this.jpeg = new GenericPictureCallback(JPEG, SEND_TO_REMOTE);
-		this.waitingOnPicture = forceClose = started = false;
-		
-		this.parameters = new int[PARAM_SIZE];
-		for(int i = 0; i < PARAM_SIZE; i++){
-			parameters[i] = Constants.Args.ARG_NONE;
-		}
-		
+		this.waitingOnPicture = forceClose = false;
+		this.startTime = markedTime = pictureCount = 0;
 		this.camera = camera;
 		
 		// TODO: find display orientation before setting it
 		this.camera.setDisplayOrientation(90);
 		this.holder = holder;
 		this.holder.addCallback(surface);
+		
+		modify(SupportedFeatures.KEY_CAMERA_FREQUENCY, Constants.Args.ARG_STRING_NONE);
+		modify(SupportedFeatures.KEY_CAMERA_DURATION, Constants.Args.ARG_STRING_NONE);
+		modify(SupportedFeatures.KEY_CAMERA_PICTURE_AMOUNT, Constants.Args.ARG_STRING_NONE);
 	}
 
 	
@@ -85,22 +81,17 @@ public class CameraSensor extends GenericDeviceSensor {
 	public void killTask() {
 		Log.d(TAG, "killing task : " + getTaskID());
 		this.forceClose = true;
-		this.started = false;
 	}
 
 	
 	@Override
-	public void startNewTask(int taskID, int[] params) {
+	public void startNewTask(int taskID, String[] params) {
 		Log.d(TAG, "starting new task : " + taskID);
 		this.waitingOnPicture = forceClose = false;
-		this.started = true;
-		this.parameters[START_TIME_INDEX] = (int) System.currentTimeMillis();
-		this.parameters[MARKED_TIME_INDEX] = (int) System.currentTimeMillis();
-		this.parameters[IMAGE_COUNT_INDEX] = 0;
 		setTaskID(taskID);
-		for(int i = 0; i < parameters.length && i < params.length; i++){
-			parameters[i] = params[i];
-		}
+		modify(SupportedFeatures.KEY_CAMERA_FREQUENCY, params[Constants.Args.CAMERA_FREQUENCY_INDEX]);
+		modify(SupportedFeatures.KEY_CAMERA_DURATION, params[Constants.Args.CAMERA_DURATION_INDEX]);
+		modify(SupportedFeatures.KEY_CAMERA_PICTURE_AMOUNT, params[Constants.Args.CAMERA_PICTURE_AMOUNT_INDEX]);
 		updateCamera();
 		capture();
 	}
@@ -111,191 +102,33 @@ public class CameraSensor extends GenericDeviceSensor {
 		return !waitingOnPicture && (forceClose || done());
 	}
 
-	@Override
-	public void modify(int key, int value) {
-		if(0 <= key && key < parameters.length){
-			Log.i(TAG, "modifying image capture paramters");
-			parameters[key] = value;
-			if(key >= Constants.Args.IMAGE_CAMERA_PARAMETER_START_INDEX){
-				updateCamera();
-				if(started){
-					Log.i(TAG, "restarting preview");
-					camera.startPreview();
-				}
-			}
-		}
-	}
 	
 	
 	private void updateCamera(){
 		if(camera != null){
+			
 			Log.d(TAG, "updating camera parameters");
-//			Camera.Parameters p = camera.getParameters();
-//			p.setExposureCompensation(parameters[Constants.Args.IMAGE_EXPOSURE_COMP_INDEX]);
-//			p.setPictureFormat(parameters[Constants.Args.IMAGE_FORMAT_INDEX]);
-//			p.setPictureSize(parameters[Constants.Args.IMAGE_SIZE_WIDTH_INDEX], 
-//							 parameters[Constants.Args.IMAGE_SIZE_HEIGHT_INDEX]);
-//			p.setJpegQuality(MAX_QUALITY);
-//			
-//			
-//			camera.setParameters(p);
+			Camera.Parameters params = camera.getParameters();
+			Iterator<HashMap.Entry<String, PropertyValue>> entries = 
+					getProperties().entrySet().iterator();
+			
+			while(entries.hasNext()){
+				HashMap.Entry<String, PropertyValue> next = entries.next();
+				
+				if(next.getValue().isNumber()){
+					params.set(next.getKey(), next.getValue().getIntValue());
+				} else {
+					params.set(next.getKey(), next.getValue().getStringValue());
+				}
+
+			}
+			
 		} else {
 			Log.e(TAG, "error setting camera parameters, camera is null");
 		}
 	}
 
-	
-	// TODO: may delete this
-	@Override
-	public byte[] getSupportedFeatures() {
 
-		StringBuilder builder = new StringBuilder(1000);
-
-		if (camera != null) {
-
-			Camera.Parameters params = camera.getParameters();
-			List<String> flash = params.getSupportedFlashModes();
-			List<String> focus = params.getSupportedFocusModes();
-			List<String> whiteBalance = params.getSupportedWhiteBalance();
-			List<Integer> formats = params.getSupportedPictureFormats();
-			List<String> scenes = params.getSupportedSceneModes();
-
-			
-			char n = Constants.PACKET_DELIMITER;
-			
-			builder.append(Constants.SUPPORTED_FEATURES_HEADER);
-			builder.append(n);
-			builder.append(Constants.CAMERA_SENSOR_TAG);
-			builder.append(n);
-			builder.append(Integer.toString(params.getMinExposureCompensation()));
-			builder.append(n);
-			builder.append(Integer.toString(params.getMaxExposureCompensation()));
-			builder.append(n);
-
-			
-			
-			if (flash != null) {
-				
-				builder.append(Constants.PACKET_LIST_DELIMITER);
-				builder.append(n);
-				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_FLASH);
-				builder.append(n);
-				builder.append(Integer.toString(flash.size()));
-				builder.append(n);
-				
-				for (int i = 0; i < flash.size(); i++) {
-					builder.append(flash.get(i));
-					builder.append(n);
-				}
-			} 
-			
-
-			if (focus != null) {
-				
-				builder.append(Constants.PACKET_LIST_DELIMITER);
-				builder.append(n);
-				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_FOCUS);
-				builder.append(n);
-				builder.append(Integer.toString(focus.size()));
-				builder.append(n);
-				
-				for (int i = 0; i < focus.size(); i++) {
-					builder.append(focus.get(i));
-					builder.append(n);
-				}
-			} 
-
-			
-			// TODO: turn off white balance and delete this
-			if (whiteBalance != null) {
-				
-				builder.append(Constants.PACKET_LIST_DELIMITER);
-				builder.append(n);
-				builder.append(Integer.toString(whiteBalance.size()));
-				builder.append(n);
-				
-				for (int i = 0; i < whiteBalance.size(); i++) {
-					builder.append(whiteBalance.get(i));
-					builder.append(n);
-				}
-			} 
-			
-
-			
-			if (formats != null) {
-				
-				builder.append(Constants.PACKET_LIST_DELIMITER);
-				builder.append(n);
-				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_FORMAT);
-				builder.append(n);
-				builder.append(Integer.toString(formats.size()));
-				builder.append(n);
-				
-				for (int i = 0; i < formats.size(); i++) {
-
-					String result;
-					switch (formats.get(i).intValue()) {
-					case ImageFormat.JPEG:
-						result = Constants.Args.CAMERA_IMAGE_FORMAT_JPEG;
-						break;
-
-					case ImageFormat.NV21:
-						result = Constants.Args.CAMERA_IMAGE_FORMAT_NV21;
-						break;
-
-					case ImageFormat.NV16:
-						result = Constants.Args.CAMERA_IMAGE_FORMAT_NV16;
-						break;
-
-					case ImageFormat.RGB_565:
-						result = Constants.Args.CAMERA_IMAGE_FORMAT_RGB_565;
-						break;
-
-					case ImageFormat.YUY2:
-						result = Constants.Args.CAMERA_IMAGE_FORMAT_YUY2;
-						break;
-
-					case ImageFormat.YV12:
-						result = Constants.Args.CAMERA_IMAGE_FORMAT_YV12;
-						break;
-
-					default:
-						result = "unknown";
-						break;
-					}
-
-					builder.append(result);
-					builder.append(n);
-				}
-			}
-			
-			
-			
-			if(scenes != null){
-				
-				builder.append(Constants.PACKET_LIST_DELIMITER);
-				builder.append(n);
-				builder.append(Constants.Args.CAMERA_SUPPORTED_FEATURE_LIST_SCENES);
-				builder.append(n);
-				builder.append(Integer.toString(scenes.size()));
-				builder.append(n);
-				
-				for (int i = 0; i < scenes.size(); i++) {
-					builder.append(scenes.get(i));
-					builder.append(n);
-				}
-			}
-			
-			
-			
-			builder.append(Constants.SUPPORTED_FEATURES_FOOTER);
-			builder.append(n);
-			
-		}
-		
-		return builder.toString().getBytes();
-	}
-	
 
 	
 	
@@ -305,28 +138,29 @@ public class CameraSensor extends GenericDeviceSensor {
 	
 	
 	private boolean validToSave(){
-		return validFrequency() && validDuration() && validPictureCount();
+		long time = System.currentTimeMillis();
+		return validFrequency(time) && validDuration(time) && validPictureCount();
 	}
 	
 	private boolean done(){
-		return !validDuration() || !validPictureCount();
+		long time = System.currentTimeMillis();
+		return !validDuration(time) || !validPictureCount();
 	}
 	
-	private boolean validFrequency(){
-		return parameters[Constants.Args.IMAGE_FREQUENCY_INDEX] == Constants.Args.ARG_NONE 
-				|| System.currentTimeMillis() - parameters[MARKED_TIME_INDEX] 
-					> parameters[Constants.Args.IMAGE_FREQUENCY_INDEX];
+	private boolean validFrequency(long time){
+		int frequency = getProperties().get(SupportedFeatures.KEY_CAMERA_FREQUENCY).getIntValue();
+		return frequency == Constants.Args.ARG_NONE || time - markedTime > frequency;
 	}
 	
-	private boolean validDuration(){
-		return parameters[Constants.Args.IMAGE_DURATION_INDEX] == Constants.Args.ARG_NONE
-				|| System.currentTimeMillis() - parameters[START_TIME_INDEX]
-					< parameters[Constants.Args.IMAGE_DURATION_INDEX];
+	private boolean validDuration(long time){
+		int duration = getProperties().get(SupportedFeatures.KEY_CAMERA_DURATION).getIntValue();
+		return duration == Constants.Args.ARG_NONE || time - startTime < duration;
 	}
+	
 	
 	private boolean validPictureCount(){
-		return parameters[Constants.Args.IMAGE_MAX_COUNT_INDEX] == Constants.Args.ARG_NONE
-				|| parameters[IMAGE_COUNT_INDEX] < parameters[Constants.Args.IMAGE_MAX_COUNT_INDEX];
+		int count = getProperties().get(SupportedFeatures.KEY_CAMERA_PICTURE_AMOUNT).getIntValue();
+		return count == Constants.Args.ARG_NONE || pictureCount < count;
 	}
 	
 	
@@ -335,30 +169,27 @@ public class CameraSensor extends GenericDeviceSensor {
 		
 		// wait for specified frequency
 		Log.d(TAG, "waiting for appropriate frequency...");
-		while(!validFrequency()){
+		while(!validFrequency(System.currentTimeMillis())){
 			try {
-				Thread.sleep(2000);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		} 
 		
-		Log.d(TAG, "at capture call:\nwaiting on picture callback: " 
-				+ Boolean.toString(waitingOnPicture) 
-				+ "\nvalid to duration: " + Boolean.toString(validDuration()) 
-				+ "\nvalid picture count: "  + Boolean.toString(validPictureCount()));
-		
 		if (!waitingOnPicture && validToSave()) {
 			camera.takePicture(null, null, jpeg);
-			parameters[IMAGE_COUNT_INDEX] = parameters[IMAGE_COUNT_INDEX] + 1;
-			this.parameters[MARKED_TIME_INDEX] = (int) System.currentTimeMillis();
+			pictureCount++;
+			markedTime = System.currentTimeMillis();
 			waitingOnPicture = true;
 			Log.d(TAG, "picture taken, waiting on callback");
-		} 
+		}  else {
+			Log.d(TAG, "picture not taken, wait status: " + Boolean.toString(waitingOnPicture));
+		}
 
 		
 		if (!waitingOnPicture && taskCompleted()) {
-			Intent intent = new Intent(RemoteControlActivity.ACTION_SENSOR_COMPLETED_TASK);
+			Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
 			intent.putExtra(RemoteControlActivity.EXTRA_TASK_ID, getTaskID());
 			notifyRemoteDevice(Constants.TASK_COMPLETE);
 			killTask();
@@ -433,7 +264,7 @@ public class CameraSensor extends GenericDeviceSensor {
 			} else {
 				Log.d(name, "picture taken : byte size - " + data.length);
 				if(saveToSD){
-					saveDataToSD(data, Long.toString(System.currentTimeMillis()), ".jpg", getContext());
+					saveDataToSD(data, Long.toString(System.currentTimeMillis()), ".jpg", getActivity());
 				} else {
 					ResponsePacket packet = new ResponsePacket(getTaskID(), Constants.DataTypes.JPEG, data);
 					ResponsePacket.sendResponse(packet, getConnection());

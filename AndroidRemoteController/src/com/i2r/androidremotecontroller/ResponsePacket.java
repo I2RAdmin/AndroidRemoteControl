@@ -249,7 +249,7 @@ public class ResponsePacket {
 			
 			stream.write(Integer.toString(packet.taskID).getBytes());
 			stream.write(delimiter);
-			stream.write(Integer.toString(packet.dataType).getBytes());
+			stream.write(String.valueOf(packet.dataType).getBytes());
 			stream.write(delimiter);
 			stream.write(Integer.toString(packet.data.length).getBytes());
 			stream.write(delimiter);

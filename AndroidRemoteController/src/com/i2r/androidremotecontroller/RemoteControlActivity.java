@@ -36,7 +36,7 @@ public class RemoteControlActivity extends Activity {
 	public static final String TAG = "RemoteControlActivity";
 	
 	//public static final String ACTION_EXECUTE_COMMAND = "i2r_action_execute_command";
-	public static final String ACTION_SENSOR_COMPLETED_TASK = "i2r_action_sensor_completed_task";
+	public static final String ACTION_TASK_COMPLETE = "i2r_action_sensor_completed_task";
 	public static final String ACTION_CONNECTOR_RESPONDED = "i2r_action_connection_created";
 	public static final String ACTION_CONNECTION_READ = "i2r_action_connection_read";
 	
@@ -99,9 +99,11 @@ public class RemoteControlActivity extends Activity {
 					master.initializeConnection();
 		
 					// if the sensor is done with a task, ask the master to start the next one
-				} else if (intent.getAction().equals(ACTION_SENSOR_COMPLETED_TASK)){
+				} else if (intent.getAction().equals(ACTION_TASK_COMPLETE)){
 					int taskID = intent.getIntExtra(EXTRA_TASK_ID, Constants.Args.ARG_NONE);
-					String result = (taskID == -1) ? "sensor finished" : "task completed: " + taskID;
+					String result = (taskID == Constants.Args.ARG_NONE) ? 
+							(sensorController.hasNewCommands()) ? 
+							"starting next task" : "listening for new commands" : "task completed: " + taskID;
 					Log.d(TAG, result);
 					action.setText(result);
 					master.updateSensors();
@@ -136,7 +138,7 @@ public class RemoteControlActivity extends Activity {
 		
 		// add an IntentFilter to receive updates from bluetooth manager
 		IntentFilter filter = new IntentFilter();
-		filter.addAction(ACTION_SENSOR_COMPLETED_TASK);
+		filter.addAction(ACTION_TASK_COMPLETE);
 		filter.addAction(ACTION_CONNECTOR_RESPONDED);
 		filter.addAction(ACTION_CONNECTION_READ);
 		manager.registerReceiver(receiver, filter);
