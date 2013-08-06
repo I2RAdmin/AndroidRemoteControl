@@ -12,7 +12,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
 
 import com.i2r.ARC.PCControl.DataResponse;
-import com.i2r.ARC.PCControl.RemoteDevice;
+import com.i2r.ARC.PCControl.RemoteClient;
 import com.i2r.ARC.PCControl.ResponseAction;
 import com.i2r.ARC.PCControl.link.RemoteLink;
 
@@ -105,7 +105,7 @@ public class ARCDataParser implements DataParser<byte []> {
 	//to come in to finish them.
 	private List<Byte> partialSection;
 
-	public RemoteDevice dev;
+	public RemoteClient dev;
 	
 	/**
 	 * Constructor
@@ -124,7 +124,7 @@ public class ARCDataParser implements DataParser<byte []> {
 		lockAquired = new AtomicBoolean(false);
 	}
 	
-	public ARCDataParser(RemoteDevice dev){
+	public ARCDataParser(RemoteClient dev){
 		//set the state of the parser to the default
 		state = NEW_RESPONSE;
 		
@@ -391,14 +391,7 @@ public class ARCDataParser implements DataParser<byte []> {
 		}
 
 		private void respondWithParsedData() {
-			if(dev != null){
-				ResponseAction performResponse = new ResponseAction(new DataResponse(taskID, argumentType, fileBytes), dev);
-				performResponse.performAction();
-			}else{
-				ResponseAction performResponse = new ResponseAction(new DataResponse(taskID, argumentType, fileBytes));
-				performResponse.performAction();
-			}
-			
+			new ResponseAction(new DataResponse(taskID, argumentType, fileBytes), dev).performAction();
 		}
 
 		private void parseArgumentData() {

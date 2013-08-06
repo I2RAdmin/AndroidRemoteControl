@@ -31,6 +31,8 @@ public class Main {
 		//cntrl.trialRun();
 		//cntrl.runSendOnly();
 		cntrl.genericRun();
+		
+		System.exit(0);
 	}
 
 }

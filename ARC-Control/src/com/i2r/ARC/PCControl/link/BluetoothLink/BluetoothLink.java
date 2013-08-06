@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.bluetooth.BluetoothStateException;
+import javax.bluetooth.DataElement;
 import javax.bluetooth.DeviceClass;
 import javax.bluetooth.DiscoveryAgent;
 import javax.bluetooth.DiscoveryListener;
@@ -152,7 +153,7 @@ public class BluetoothLink implements Runnable, RemoteLink<byte[]>{
 			if(cachedDevices != null){
 				logger.debug("Retrieved " + cachedDevices.length + " devices from the cache.");
 			}else{
-				logger.debug("Retrieved " + 0 + " devices from the cache.");
+				logger.debug("Retrieved 0 devices from the cache.");
 			}
 			//if devices have been found...
 			if(cachedDevices != null){
@@ -203,7 +204,7 @@ public class BluetoothLink implements Runnable, RemoteLink<byte[]>{
 		
 		//Set the completed searching flag
 		if(!completedSearching.compareAndSet(false, true)){
-			logger.debug("Somehow, a thread got around the lock, and we've initalized Bluetooth more than once.  And it didn't crash.");
+			logger.error("Somehow, a thread got around the lock, and we've initalized Bluetooth more than once.  And it didn't crash.");
 			//TODO we have a problem
 		}
 	}
@@ -375,6 +376,18 @@ public class BluetoothLink implements Runnable, RemoteLink<byte[]>{
 				continue;
 			}
 			
+/*			 int[] deviceAttributes = record.getAttributeIDs();
+			
+			 List<String> attributeValues = new ArrayList<String>(deviceAttributes.length);
+			 for(int deviceAttribute : deviceAttributes){
+				int type = record.getAttributeValue(deviceAttribute).getDataType();
+				switch(type){
+				case(DataElement.STRING):
+					attributeValues.add(arg0)
+				default:
+					break;
+				}
+			 }*/
 			//add the URL to the services found list
 			servicesFound.add(url);
 			

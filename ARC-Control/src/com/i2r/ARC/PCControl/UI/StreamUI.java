@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 
 import com.i2r.ARC.PCControl.ARCCommand;
 import com.i2r.ARC.PCControl.Controller;
+import com.i2r.ARC.PCControl.RemoteClient;
 import com.i2r.ARC.PCControl.UnsupportedValueException;
 
 /**
@@ -106,23 +107,18 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 					break;
 				}
 
-				String dev = line.substring(0, line.indexOf(' '));
-				ARCCommand newCommand = null;
 				try {
-					newCommand = ARCCommand.fromString(line.substring(line.indexOf(' ')));
-					
+					RemoteClient dev = cntrl.getDevice(Integer.valueOf(line.substring(0, line.indexOf(' '))));
+					cntrl.send(dev, ARCCommand.fromString(dev, line.substring(line.indexOf(' '))));
 				} catch (UnsupportedValueException e) {
 					logger.error(e.getMessage(), e);
-					String uiMessage = "Invalid Command.\n";
+					String uiMessage = "Invalid Command Arguments.\n";
 					
 					try {
 						dest.write(uiMessage.getBytes());
 					} catch (IOException e1) {
 						logger.error(e1.getMessage(), e1);
 					}
-				}
-				if(newCommand != null){
-					cntrl.send(dev, newCommand);
 				}
 			}
 			

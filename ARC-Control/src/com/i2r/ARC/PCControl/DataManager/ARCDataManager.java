@@ -8,7 +8,7 @@ import java.io.InputStream;
 
 import org.apache.log4j.Logger;
 
-import com.i2r.ARC.PCControl.RemoteDevice;
+import com.i2r.ARC.PCControl.RemoteClient;
 import com.i2r.ARC.PCControl.Task;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 
@@ -43,7 +43,7 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 		parser = new ARCDataParser();
 	}
 	
-	public ARCDataManager(RemoteConnection<byte[]> conn, RemoteDevice dev){
+	public ARCDataManager(RemoteConnection<byte[]> conn, RemoteClient dev){
 		super(conn, dev);
 		
 		parser = new ARCDataParser(dev);

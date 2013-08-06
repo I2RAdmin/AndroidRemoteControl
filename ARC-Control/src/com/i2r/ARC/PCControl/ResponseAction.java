@@ -36,7 +36,7 @@ public class ResponseAction {
 	 */
 	Controller cntrl;
 	
-	RemoteDevice dev;
+	RemoteClient dev;
 	
 	/**
 	 * The {@link DataResponse} object that this action is going to use to attempt to do something
@@ -60,7 +60,7 @@ public class ResponseAction {
 		cntrl = Controller.getInstance();
 	}
 	
-	public ResponseAction(DataResponse dataResponse, RemoteDevice dev) {
+	public ResponseAction(DataResponse dataResponse, RemoteClient dev) {
 		this.response = dataResponse;
 		cntrl = Controller.getInstance();
 		this.dev = dev;
@@ -84,35 +84,8 @@ public class ResponseAction {
 	}
 	
 	private void setCameraArgs() {
-		logger.debug("Setting Camera Feature Parameter Limits");
-		cntrl.ui.write("Setting valid parameters for the camera.");
-		for(String line : response.otherArgs){
-			String[] lineElements = line.split("\n");
-			String featureName = lineElements[0];
-			DataType type = DataType.get(Integer.parseInt(lineElements[1]));
-			Limiter limit = Limiter.get(Integer.parseInt(lineElements[2]));
-			int size = Integer.parseInt(lineElements[3]);
-			
-			List<String> args = new ArrayList<String>();
-			int i = 0;
-			while(i < size){
-				args.add(lineElements[i + 3]);
-			}
-			
-			cntrl.ui.write(featureName);
-			cntrl.ui.write(type.getType().toString());
-			
-			StringBuilder sb = new StringBuilder();
-			sb.append(limit.getType());
-			sb.append(" ");
-			for(String arg : args){
-				sb.append(arg);
-				sb.append(" ");
-			}
-			cntrl.ui.write(sb.toString());
-			
-			dev.setSensorParams(Sensor.CAMERA, featureName, type, limit, args);
-		}
+		Thread t = new Thread(new SetArgumentsRunnable(Sensor.CAMERA, response));
+		t.start();
 	}
 
 	/**
@@ -158,8 +131,65 @@ public class ResponseAction {
 	}
 
 	/****************
-	 * INNER CLASS
+	 * INNER CLASSES
 	 ****************/
+	
+	private class SetArgumentsRunnable implements Runnable{
+
+		private DataResponse setArgumentResponse;
+		private Sensor sensor;
+		
+		public SetArgumentsRunnable(Sensor sensor, DataResponse response){
+			this.setArgumentResponse = response;
+			this.sensor = sensor;
+		}
+		
+		@Override
+		public void run() {
+			logger.debug("Setting Sensor Args.");
+			
+			switch(sensor){
+			case CAMERA:
+				logger.debug("Setting Camera Feature Parameter Limits");
+				cntrl.ui.write("Setting valid parameters for the camera.");
+				logger.debug("Device: " + dev.toString());
+				
+				for(String line : setArgumentResponse.otherArgs){
+					
+					String[] lineElements = line.split("\n");
+					
+					String featureName = lineElements[0];
+					DataType type = DataType.get(Integer.parseInt(lineElements[1]));
+					Limiter limit = Limiter.get(Integer.parseInt(lineElements[2]));
+					int size = Integer.parseInt(lineElements[3]);
+					
+					List<String> args = new ArrayList<String>(lineElements.length);
+					logger.debug("Setting " + (lineElements.length - 3) + " args");
+					int i = 0;
+					
+					while(i < size){
+						args.add(lineElements[i + 4]);
+						i++;
+					}
+					
+					cntrl.ui.write(featureName);
+					cntrl.ui.write(type.getType().toString());
+					
+					StringBuilder sb = new StringBuilder();
+					
+					sb.append(limit.getType());
+					sb.append(" ");
+					for(String arg : args){
+						sb.append(arg);
+						sb.append(" ");
+					}
+					cntrl.ui.write(sb.toString());
+					
+					dev.setSensorParams(Sensor.CAMERA, featureName, type, limit, args);
+				}
+			}
+		}
+	}
 	
 	private class SaveFileRunnable implements Runnable{
 		

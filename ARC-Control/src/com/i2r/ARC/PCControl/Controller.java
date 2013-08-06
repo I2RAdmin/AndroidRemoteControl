@@ -37,7 +37,7 @@ public class Controller{
 	RemoteLink<byte[]> link;
 	
 	StreamUI<OutputStream, InputStream, String> ui;
-	List<RemoteDevice> devices;
+	List<RemoteClient> devices;
 	
 	private static Controller instance = new Controller();
 	
@@ -87,9 +87,9 @@ public class Controller{
 	
 	public void initalize(){
 		logger.debug("creating data objects");
-		devices = new ArrayList<RemoteDevice>();
+		devices = new ArrayList<RemoteClient>();
 		
-		startLock = new AtomicBoolean(false);
+		startLock = new AtomicBoolean(true);
 		prop = new Properties();
 		logger.debug("Created intial objects");
 		logger.debug("loading properties");
@@ -182,9 +182,11 @@ public class Controller{
 		}
 		
 		if(in == null || out == null){
-			logger.error("could not set in/out ui streams");
-			
+			logger.error("Could not set in/out ui streams");
+			//TODO: throw an error
 		}
+		
+		
 		
 		ui = new StreamUI<OutputStream, InputStream, String>(in, out, this);
 		ui.write("Starting the Android Remote Controller!");
@@ -204,15 +206,15 @@ public class Controller{
 						ui.write("Found " + connectionURLs.get(0));
 						logger.debug("Found and using " + connectionURLs.get(0));
 						
-						devices.add(new RemoteDevice(link, connectionURLs.get(0)));
-						ui.write("Connected to " + connectionURLs.get(0));
-						logger.debug("Connected to " + connectionURLs.get(0));
+						devices.add(new RemoteClient(link, connectionURLs.get(0)));
+						ui.write("Found a valid URL " + connectionURLs.get(0));
+						ui.write("Use index " + (devices.size() - 1) + " to access this device.");
+						logger.debug("Found a valid connection " + connectionURLs.get(0));
 						foundConnections = true;
-					}else{
 					}
 				}else if(connectionURLs == null){
-					ui.write("No Valid Connections were found.");
-					logger.debug("No valid connections could be found.");
+					ui.write("No Valid bluetooth connections were found.");
+					logger.debug("No valid bluetooth connections could be found.");
 					break;
 				}
 			}
@@ -223,17 +225,26 @@ public class Controller{
 			//establish a local I/O stream connection
 			link = new CommandLineLink();
 			
-			devices.add(new RemoteDevice(link, ""));
+			devices.add(new RemoteClient(link, ""));
 		}
 		
-		RemoteDevice dev = devices.get(0);
+		if(devices.isEmpty()){
+			logger.error("No remote devices have been found.");
+			ui.write("No remote devices were found.");
+			//TODO: throw an error
+			
+			ui.close();
+			return;
+		}
+		
+		RemoteClient dev = devices.get(0);
+		logger.debug("Using device " + dev);
 		
 		//connect to the first device in the list
 		dev.connectToDevice();
 		
 		//establish the requested conn type
-		//if we want to not open the side for reading, then the remoteIn parameter is set to closed.
-		//this pretty much just never calls the dataManager.read() method.
+		//if we want to not open the side for reading, then the remoteIn parameter is set to closed, so we never call the read in method
 		if(remoteIn.equals(TYPE_OPEN)){
 			dev.dataManager.read();
 			logger.debug("Started data reading...");
@@ -243,10 +254,9 @@ public class Controller{
 		//we don't need to use the generic streams anymore, I have them this way for convience, really.
 		ui.read();
 		
-		
-		
 		ui.write("Enter Commands: ");
 		while(!startLock.compareAndSet(true, false));
+		logger.debug("Starting....");
 		
 		while(!ui.inClosed.compareAndSet(true, true));
 		ui.write("Shut down read side of UI... there may tasks still pending...");
@@ -261,7 +271,16 @@ public class Controller{
 		ui.close();
 	}
 
-	public void send(String dev, ARCCommand newCommand) {
-		devices.get(Integer.parseInt(dev)).sendTask(newCommand);
+	public void send(RemoteClient dev, ARCCommand newCommand) {
+		if(devices.contains(dev)){
+			dev.sendTask(newCommand);
+		}else{
+			logger.error("Device not found.");
+			//TODO: THROW ERROR
+		}
+	}
+
+	public RemoteClient getDevice(Integer deviceIndex) {
+		return devices.get(deviceIndex);
 	}
 }

@@ -7,7 +7,7 @@ import java.io.DataInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.i2r.ARC.PCControl.RemoteDevice;
+import com.i2r.ARC.PCControl.RemoteClient;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 
 /**
@@ -44,7 +44,7 @@ public abstract class DataManager<T, U> {
 	 */
 	public DataParser<U> parser;
 	
-	public RemoteDevice dev;
+	public RemoteClient dev;
 	/**
 	 * Constructor.
 	 * 
@@ -57,7 +57,7 @@ public abstract class DataManager<T, U> {
 		
 	}
 	
-	public DataManager(RemoteConnection<U> source, RemoteDevice dev){
+	public DataManager(RemoteConnection<U> source, RemoteClient dev){
 		this.dataIn = source.dataIn;
 		this.dataOut = source.dataOut;
 		this.dev = dev;

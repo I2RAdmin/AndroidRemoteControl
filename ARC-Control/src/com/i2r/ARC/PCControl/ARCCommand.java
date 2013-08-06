@@ -23,7 +23,7 @@ import org.apache.log4j.Logger;
 public class ARCCommand {
 	static final Logger logger = Logger.getLogger(ARCCommand.class);
 	
-	public static final int NO_COMMAND = -1;
+	public static final int NO_COMMAND = -2;
 	public static final int KILL = 0;
 	public static final int TAKE_PICTURES = 1;
 	public static final int MODIFY_SENSOR = 2;
@@ -58,6 +58,8 @@ public class ARCCommand {
 	private static final String[] DEFAULT_TAKE_PICTURE_ARGUMENTS = {PICTURE_FREQUENCY_DEFAULT, NO_ARGUMENT, PICTURE_AMMOUNT_DEFAULT};
 	private static final String[] DEFAULT_SUPPORTED_FEATURES = {NO_ARGUMENT};
 	private static final String[] DEFAULT_MODIFY_SENSOR_ARGUMENTS = {NO_ARGUMENT};
+
+	public static final int KILL_TASK_INDEX = 0;
 	
 	//the header to a command.  Usually something for the camera to do, but can also be a notifier about a sent task
 	private int header;
@@ -66,12 +68,13 @@ public class ARCCommand {
 	private List<String> arguments;
 	
 	//the remote device this command is paired with
-	private RemoteDevice dev;
+	private RemoteClient dev;
 	
 	/**
 	 * Default Constuctor
 	 */
-	public ARCCommand(){
+	public ARCCommand(RemoteClient dev){
+		this.dev = dev;
 		//set the header to no command
 		this.header = NO_COMMAND;
 		//set the arguments to the default values for the no command header
@@ -82,7 +85,8 @@ public class ARCCommand {
 	 * Default constructor for a particular header.  If the header given is invalid, then return the default ARCCommand
 	 * @param header the header to use to create a new default command.
 	 */
-	public ARCCommand(int header){
+	public ARCCommand(RemoteClient dev, int header){
+		this.dev = dev;
 		//for the supplied header
 		switch(header){
 		case NO_COMMAND:
@@ -135,7 +139,7 @@ public class ARCCommand {
 		}
 	}
 
-	public void setRemoteDevice(RemoteDevice dev){
+	public void setRemoteDevice(RemoteClient dev){
 		this.dev = dev;
 	}
 	
@@ -163,7 +167,9 @@ public class ARCCommand {
 	 * @param arguments the list of arguments to use for a specified header
 	 * @throws UnsupportedValueException if an argument in arguments is invalid for the given header
 	 */
-	public ARCCommand(int header, List<String> arguments) throws UnsupportedValueException{
+	public ARCCommand(RemoteClient dev, int header, List<String> arguments) throws UnsupportedValueException{
+		this.dev = dev;
+		
 		//for the defined headers...
 		switch(header){
 		case NO_COMMAND:
@@ -173,13 +179,8 @@ public class ARCCommand {
 		case MODIFY_SENSOR:
 			//set the header to the provided header
 			this.header = header;
+			this.arguments = checkAgainstDevice(header, arguments);
 			
-			if(dev != null){
-				this.arguments = checkAgainstDevice(header, arguments);
-			}else{
-				//check the provided argument list
-				this.arguments = checkArguments(header, arguments);
-			}
 			break;
 		default:
 			//otherwise, return the default ARCCommand
@@ -189,7 +190,19 @@ public class ARCCommand {
 		
 		
 	}
-
+	
+	/**
+	 * Checks a list of arguments, along with the header they go to, to see if they are valid.  If they are, they are returned.
+	 * If they are not, the default argument list for that particular header is returned.
+	 * 
+	 * If the header is undefined, then null is returned.
+	 * 
+	 * @param header the header to check the argument list again.
+	 * @param arguments the argument list to check
+	 * 
+	 * @return the provided argument list if it checked out, the default if the given arguments were bad or null if the given header
+	 * 			was undefined
+	 */
 	private List<String> checkAgainstDevice(int header, List<String> arguments) throws UnsupportedValueException {
 		switch (header){
 		case NO_COMMAND:
@@ -208,6 +221,7 @@ public class ARCCommand {
 
 	
 	private List<String> checkDeviceModifySensorParams(List<String> arguments) throws UnsupportedValueException {
+		logger.debug("Checking against device: " + dev.toString());
 		
 		String sensor = arguments.get(0);
 		List<String> subArgs = arguments.subList(1, arguments.size());
@@ -215,53 +229,17 @@ public class ARCCommand {
 		switch(sensor){
 		case (CAMERA_ID_DEFAULT):
 			int i = 0;
-			while(i < arguments.size()){
+			while(i < subArgs.size()){
 				String key = subArgs.get(i);
 				i++;
 				String value = subArgs.get(i);
 				i++;
 				
-				String arg = dev.checkSingleArg(Sensor.CAMERA, key, value);
-				
-				if(arg == null){
-					//TODO: throw some kind of error
-					return null;
-				}
-				
-				arguments.set(i, arg);
+				dev.checkSingleArg(Sensor.CAMERA, key, value);
 			}
 		}
 		
 		return arguments;
-	}
-
-	/**
-	 * Checks a list of arguments, along with the header they go to, to see if they are valid.  If they are, they are returned.
-	 * If they are not, the default argument list for that particular header is returned.
-	 * 
-	 * If the header is undefined, then null is returned.
-	 * 
-	 * @param header the header to check the argument list again.
-	 * @param arguments the argument list to check
-	 * 
-	 * @return the provided argument list if it checked out, the default if the given arguments were bad or null if the given header
-	 * 			was undefined
-	 */
-	private List<String> checkArguments(int header, List<String> arguments) {
-		switch(header){
-		case NO_COMMAND:
-			return checkNoCommandArgs(arguments);
-		case KILL:
-			return checkKillCommandArgs(arguments);
-		case TAKE_PICTURES:
-			return checkTakePicturesCommandArgs(arguments);
-			
-		case SUPPORTED_FEATURES:
-			return checkSupportedFeaturesCommandArgs(arguments);
-		default:
-			//in theory, this is unreachable
-			return null;
-		}
 	}
 
 	private List<String> checkSupportedFeaturesCommandArgs(List<String> arguments) {
@@ -295,7 +273,6 @@ public class ARCCommand {
 	 * 
 	 * If any element of the list falls outside specified bounds or is otherwise invalid, it is set to the default.
 	 * 
-	 *	TODO: check param list size.  It might be wrong.
 	 * @param arguments the list of arguments to check
 	 * @return a valid list of arguments, that may or may not have defaults.
 	 */
@@ -306,7 +283,7 @@ public class ARCCommand {
 		int num;
 		
 		//make sure the list is of the right size
-		if(arguments.size() < TAKE_PICTURE_ARG_LIST_SIZE){
+		if(arguments.size() != TAKE_PICTURE_ARG_LIST_SIZE){
 			return defaultArguments(TAKE_PICTURES);
 		}
 		
@@ -383,9 +360,10 @@ public class ARCCommand {
 		if(arguments.isEmpty()){
 			return defaultArguments(KILL);
 		}else{
-			int task = Integer.parseInt(arguments.get(0));
-			
+			int task = Integer.parseInt(arguments.get(KILL_TASK_INDEX));
 			if(task < 0){
+				return defaultArguments(KILL);
+			}else if(dev.deviceTasks.getTask(task) == null){
 				return defaultArguments(KILL);
 			}else{
 				return arguments;
@@ -411,7 +389,8 @@ public class ARCCommand {
 	 * @return
 	 * @throws UnsupportedValueException if the line is invalid
 	 */
-	public static ARCCommand fromString(String line) throws UnsupportedValueException {
+	public static ARCCommand fromString(RemoteClient device, String line) throws UnsupportedValueException {
+		
 		logger.debug("Line :" + line);
 		Scanner lineScan = new Scanner(line);
 		int header;
@@ -420,12 +399,12 @@ public class ARCCommand {
 			header = lineScan.nextInt();
 			logger.debug("header :" + header);
 		}else{
-			return new ARCCommand();
+			return new ARCCommand(device);
 		}
 		
-		if(header != NO_COMMAND && header != KILL && header != TAKE_PICTURES && header != SUPPORTED_FEATURES){
+		if(header != NO_COMMAND && header != KILL && header != TAKE_PICTURES && header != SUPPORTED_FEATURES && header != MODIFY_SENSOR){
 			logger.debug("Header not valid, using default.");
-			return new ARCCommand();
+			return new ARCCommand(device);
 		}
 		
 		if(lineScan.hasNext()){
@@ -433,9 +412,9 @@ public class ARCCommand {
 			while(lineScan.hasNext()){
 				lineArgs.add(lineScan.next());
 			}
-			return new ARCCommand(header, lineArgs);
+			return new ARCCommand(device, header, lineArgs);
 		}else{
-			return new ARCCommand(header);
+			return new ARCCommand(device, header);
 		}
 	}
 }

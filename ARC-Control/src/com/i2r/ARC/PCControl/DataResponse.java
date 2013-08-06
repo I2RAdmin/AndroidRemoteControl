@@ -20,10 +20,10 @@ import org.apache.log4j.Logger;
  */
 public class DataResponse {
 	public static final int DATA_TYPE_NOTIFY = 0;
-	public static final int DATA_TYPE_JPEG = 1;
-	public static final int DATA_TYPE_YUV = 2;
+	public static final int DATA_TYPE_JPEG = 2;
+	public static final int DATA_TYPE_YUV = 127;
 	
-	public static final int DATA_TYPE_CAMERA_ARGS = 4;
+	public static final int DATA_TYPE_CAMERA_ARGS = 1;
 	
 	public static final String REMOVE_TASK_ARGUMENT = "#";
 	
@@ -82,10 +82,7 @@ public class DataResponse {
 		//taskID will always be set.
 		this.taskID = taskID;
 		this.argType = dataType;
-		
-		//default set for the arg list
-		otherArgs = new ArrayList<String>();
-		
+				
 		//figure out what was in the passed block
 		interpet(data);
 	}
@@ -103,7 +100,10 @@ public class DataResponse {
 				//remove the task from the task stack
 				logger.debug("Remove Task Response created.");
 				this.type = REMOVE_TASK;
+				
+				otherArgs = new ArrayList<String>(1);
 				this.otherArgs.add(tempDataString);
+				
 			}else{
 				logger.debug("Could not interpet response packet: ");
 				logger.debug(tempDataString);
@@ -112,10 +112,15 @@ public class DataResponse {
 		}else if(argType == DATA_TYPE_CAMERA_ARGS){
 			logger.debug("Set Camera Parameters task created.");			
 			this.type = CAMERA_ARGS;
-			String[] camArgs = new String(data).split("#");
+			String[] camArgs = new String(data).split("&");
+			
+			logger.debug("Setting " + camArgs.length + " features.");
+			otherArgs = new ArrayList<String>(camArgs.length);
+			
 			for(String argLine : camArgs){
 				otherArgs.add(argLine);
 			}
+			
 		}else{
 			//Save it as a file
 			logger.debug("Save file task created.");

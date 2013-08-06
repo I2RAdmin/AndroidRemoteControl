@@ -22,21 +22,21 @@ import com.i2r.ARC.PCControl.link.RemoteConnection;
 import com.i2r.ARC.PCControl.link.RemoteLink;
 
 /**
- * The capabilities object is part of the {@link RemoteDevice} which is the {@link RemoteLink} that got the connection, the 
+ * The capabilities object is part of the {@link RemoteClient} which is the {@link RemoteLink} that got the connection, the 
  * actual {@link RemoteConnection} that has the I/O streams to the device, the {@link DataManager} that is currently handling that connection,
  * along with its {@link DataParser}.
  * 
  * Devices are created from a {@link RemoteLink} along with the connection URL.  Devices are now responsible for the actual connections.
- * Actually, {@link RemoteDevice}'s are even bigger than that.  They manage their own {@link TaskStack}, handle their own {@link DataResponse}s
- * and perform their own {@link ResponseAction}s.  Essentally, a {@link RemoteDevice} is an abstract of the entire control structure of
+ * Actually, {@link RemoteClient}'s are even bigger than that.  They manage their own {@link TaskStack}, handle their own {@link DataResponse}s
+ * and perform their own {@link ResponseAction}s.  Essentally, a {@link RemoteClient} is an abstract of the entire control structure of
  * how to handle data from a device.  This allows the {@link Controller} to handle more than one device.
  * 
  * @author Johnathan Pagnutti
  *
  */
-public class RemoteDevice {
+public class RemoteClient {
 
-	static final Logger logger = Logger.getLogger(RemoteDevice.class);
+	static final Logger logger = Logger.getLogger(RemoteClient.class);
 	
 	RemoteLink<byte[]> link;
 	RemoteConnection<byte[]> conn;
@@ -51,7 +51,7 @@ public class RemoteDevice {
 	
 	AtomicBoolean retrievedCapabilities;
 	
-	public RemoteDevice(RemoteLink<byte[]> link, String URL){
+	public RemoteClient(RemoteLink<byte[]> link, String URL){
 		responseMap = new HashMap<Task, DataResponse>();
 		deviceTasks = new TaskStack();
 		
@@ -77,16 +77,28 @@ public class RemoteDevice {
 	}
 		
 	public void sendTask(ARCCommand command){
+		int commandHeader = command.getHeader();
+		
 		Task newTask = deviceTasks.createTask(command);
+		
+		//if the task in question requires us to do something, do it here
+		if(commandHeader == ARCCommand.KILL){
+			this.deviceTasks.removeTask(Integer.parseInt(command.getArguments().get(ARCCommand.KILL_TASK_INDEX)));
+		}
+		
 		dataManager.write(newTask);
 	}
 
 	
 	public void setSensorParams(Sensor sensor, String featureName, DataType type, Limiter limit, List<String> args) {
-		Capabilities cap = new Capabilities();
-		cap.addFeature(featureName, type, limit, args);
+		Capabilities cap = supportedSensors.get(sensor);
 		
-		supportedSensors.put(sensor, cap);
+		if(cap == null){
+			cap = new Capabilities();
+			supportedSensors.put(sensor, cap);
+		}
+		
+		cap.addFeature(featureName, type, limit, args);
 	}
 
 	
