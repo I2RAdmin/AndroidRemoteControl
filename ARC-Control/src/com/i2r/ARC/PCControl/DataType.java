@@ -25,8 +25,6 @@ public enum DataType {
 		for(DataType t : EnumSet.allOf(DataType.class)){
 			lookup.put(t.getType(), t);
 		}
-		
-		
 	}
 	
 	private Integer type;

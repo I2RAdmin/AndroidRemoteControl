@@ -78,14 +78,20 @@ public class ARCCommand {
 		//set the header to no command
 		this.header = NO_COMMAND;
 		//set the arguments to the default values for the no command header
-		arguments = defaultArguments(header);
+		try {
+			arguments = defaultArguments(header);
+		} catch (UnsupportedValueException e) {
+			//this really never should happen.
+			logger.error("Congrats! you've ended up in a circle of hell.");
+		}
 	}
 	
 	/**
 	 * Default constructor for a particular header.  If the header given is invalid, then return the default ARCCommand
 	 * @param header the header to use to create a new default command.
+	 * @throws UnsupportedValueException 
 	 */
-	public ARCCommand(RemoteClient dev, int header){
+	public ARCCommand(RemoteClient dev, int header) throws UnsupportedValueException{
 		this.dev = dev;
 		//for the supplied header
 		switch(header){
@@ -102,8 +108,7 @@ public class ARCCommand {
 			break;
 		default:
 			//if the header provided was not defined, set the default values for the class fields.
-			header = NO_COMMAND;
-			arguments = defaultArguments(header);
+			throw new UnsupportedValueException("Supplied Command header " + header + " was invalid.");
 		}
 	}
 	
@@ -113,8 +118,9 @@ public class ARCCommand {
 	 * @param header the header to get the default argument list for
 	 * 
 	 * @return the default list, or null if the passed header was not defined
+	 * @throws UnsupportedValueException 
 	 */
-	private List<String> defaultArguments(int header) {
+	private List<String> defaultArguments(int header) throws UnsupportedValueException {
 		//for the value of the provided header...
 		switch(header){
 		//if the header was no command
@@ -134,11 +140,14 @@ public class ARCCommand {
 		case MODIFY_SENSOR:
 			return Arrays.asList(DEFAULT_MODIFY_SENSOR_ARGUMENTS);
 		default:
-			//the passed header was undefined, return null
-			return null;
+			throw new UnsupportedValueException("Supplied command header " + header + " was invalid.");
 		}
 	}
 
+	/**
+	 * TODO: comment this
+	 * @param dev
+	 */
 	public void setRemoteDevice(RemoteClient dev){
 		this.dev = dev;
 	}
@@ -183,9 +192,7 @@ public class ARCCommand {
 			
 			break;
 		default:
-			//otherwise, return the default ARCCommand
-			this.header = NO_COMMAND;
-			arguments = defaultArguments(header);
+			throw new UnsupportedValueException("Supplied command header " + header + " was invalid.");
 		}
 		
 		
@@ -215,8 +222,9 @@ public class ARCCommand {
 			return checkTakePicturesCommandArgs(arguments);
 		case MODIFY_SENSOR:
 			return checkDeviceModifySensorParams(arguments);
+		default:
+			throw new UnsupportedValueException("The supplied header " + header + " was invalid.");
 		}
-		return null;
 	}
 
 	
@@ -242,29 +250,23 @@ public class ARCCommand {
 		return arguments;
 	}
 
-	private List<String> checkSupportedFeaturesCommandArgs(List<String> arguments) {
-		int i;
-		int num;
+	private List<String> checkSupportedFeaturesCommandArgs(List<String> arguments) throws UnsupportedValueException {
 		
 		if(arguments.size() < SUPPORTED_FEATURES_ARG_LIST_SIZE){
 			return defaultArguments(SUPPORTED_FEATURES);
 		}
 		
-		for(i = 0; i < arguments.size(); i++){
-			String value = arguments.get(i);
+		for(int i = 0; i < arguments.size(); i++){
+			int num = Integer.parseInt(arguments.get(i));
 			
-			switch(i){
-			case CAMERA_FEATURE_INDEX:
-				num = Integer.parseInt(value);
-				if (num != CAMERA_ID){
-					arguments.set(i, CAMERA_ID_DEFAULT);
-				}
+			switch(num){
+			case CAMERA_ID:
 				break;
 			default:
-				//unreachable code
-				break;
+				throw new UnsupportedValueException("Unsupported Sensor " + num);
 			}
 		}
+		
 		return arguments;
 	}
 
@@ -275,8 +277,9 @@ public class ARCCommand {
 	 * 
 	 * @param arguments the list of arguments to check
 	 * @return a valid list of arguments, that may or may not have defaults.
+	 * @throws UnsupportedValueException 
 	 */
-	private List<String> checkTakePicturesCommandArgs(List<String> arguments) {
+	private List<String> checkTakePicturesCommandArgs(List<String> arguments) throws UnsupportedValueException {
 		//counting variable
 		int i;
 		//value holder
@@ -299,9 +302,8 @@ public class ARCCommand {
 				//parse the string value as an integer
 				num = Integer.parseInt(value);
 				//if that integer is shorter than the minimum value set
-				if(num < MINIMUM_TAKE_PICTURE_FREQUENCY_VALUE){
-					//set it at the minimum value
-					arguments.set(TAKE_PICTURE_FREQUENCY_INDEX, String.valueOf(MINIMUM_TAKE_PICTURE_FREQUENCY_VALUE));
+				if(num < 0 && num != -1){
+					throw new UnsupportedValueException("Supplied picture frequency is not valid.");
 				}
 				break;
 			//if i is the time to take pictures in index
@@ -309,9 +311,8 @@ public class ARCCommand {
 				//parse the string value as an integer
 				num = Integer.parseInt(value);
 				//if that integer is smaller than the minimum value for time
-				if(num < MINIMUM_TAKE_PICTURE_TIMEFRAME && num != -1){
-					//set it to the minimum value
-					arguments.set(TAKE_PICTURE_TIMEFRAME_INDEX, String.valueOf(MINIMUM_TAKE_PICTURE_TIMEFRAME));
+				if(num < 0 && num != -1){
+					throw new UnsupportedValueException("Supplied picture duration is invalid");
 				}
 				break;
 			//if i is the amount of pictures to take
@@ -319,14 +320,13 @@ public class ARCCommand {
 				//parse the string value as an integer
 				num = Integer.parseInt(value);
 				//if the integer value is smaller than the minimum allowed number of pictures to take
-				if(num < MINIMUM_TAKE_PICTURE_AMMOUNT && num != -1){
+				if(num < 0 && num != -1){
 					//set it to the minimum value
-					arguments.set(TAKE_PICTURE_AMMOUNT_INDEX, String.valueOf(MINIMUM_TAKE_PICTURE_AMMOUNT));
+					throw new UnsupportedValueException("Supplied picture ammount is invalid");
 				}
 				break;
 			default:
-				//in theory, this segment is unreachable
-				break;
+				throw new UnsupportedValueException("The argument at position " + i + " is out of bounds.");
 			}
 		}
 		
@@ -334,17 +334,11 @@ public class ARCCommand {
 		int takePictureTimeNum =  Integer.parseInt(arguments.get(TAKE_PICTURE_TIMEFRAME_INDEX));
 		int takePictureAmountNum = Integer.parseInt(arguments.get(TAKE_PICTURE_AMMOUNT_INDEX));
 		
-		//if they're both -1
-		if(takePictureTimeNum == -1 && takePictureAmountNum == -1){
-			//set the amount to the default
-			arguments.set(TAKE_PICTURE_AMMOUNT_INDEX, PICTURE_AMMOUNT_DEFAULT);
-		}
-		
 		//if they're both not -1
 		if(takePictureTimeNum != -1 && takePictureAmountNum != -1){
-			//set the picture amount
-			arguments.set(TAKE_PICTURE_TIMEFRAME_INDEX, NO_ARGUMENT);
+			throw new UnsupportedValueException("Both the take picture duration and the take picture amount are set.");
 		}
+		
 		return arguments;
 	}
 
@@ -354,17 +348,19 @@ public class ARCCommand {
 	 * The kill command only has one set of valid arguments- the defauts.  So, set them.
 	 * @param arguments the arguments to check for the kill command
 	 * @return the correct list of arguments for the kill command
+	 * @throws UnsupportedValueException 
 	 */
-	private List<String> checkKillCommandArgs(List<String> arguments) {
+	private List<String> checkKillCommandArgs(List<String> arguments) throws UnsupportedValueException {
+		
 		//kill just has one argument
 		if(arguments.isEmpty()){
-			return defaultArguments(KILL);
+			throw new UnsupportedValueException("Invalid number of arguments for the kill command.");
 		}else{
-			int task = Integer.parseInt(arguments.get(KILL_TASK_INDEX));
-			if(task < 0){
-				return defaultArguments(KILL);
-			}else if(dev.deviceTasks.getTask(task) == null){
-				return defaultArguments(KILL);
+			int taskId = Integer.parseInt(arguments.get(KILL_TASK_INDEX));
+			if(taskId < 0){
+				throw new UnsupportedValueException("Task ID must be greater than 0.");
+			}else if(dev.deviceTasks.getTask(taskId) == null){
+				throw new UnsupportedValueException("Task ID not found in " + dev + " task stack");
 			}else{
 				return arguments;
 			}
@@ -378,8 +374,9 @@ public class ARCCommand {
 	 * 
 	 * @param arguments the arguments that we want to check for the no command 
 	 * @return the correct list of arguments for the no command
+	 * @throws UnsupportedValueException 
 	 */
-	private List<String> checkNoCommandArgs(List<String> arguments) {
+	private List<String> checkNoCommandArgs(List<String> arguments) throws UnsupportedValueException {
 		return defaultArguments(NO_COMMAND);
 	}
 
@@ -391,15 +388,15 @@ public class ARCCommand {
 	 */
 	public static ARCCommand fromString(RemoteClient device, String line) throws UnsupportedValueException {
 		
-		logger.debug("Line :" + line);
+		logger.debug("Line: " + line);
 		Scanner lineScan = new Scanner(line);
 		int header;
 		
 		if(lineScan.hasNextInt()){
 			header = lineScan.nextInt();
-			logger.debug("header :" + header);
+			logger.debug("header: " + header);
 		}else{
-			return new ARCCommand(device);
+			throw new UnsupportedValueException("Could not parse header from supplied line.");
 		}
 		
 		if(header != NO_COMMAND && header != KILL && header != TAKE_PICTURES && header != SUPPORTED_FEATURES && header != MODIFY_SENSOR){

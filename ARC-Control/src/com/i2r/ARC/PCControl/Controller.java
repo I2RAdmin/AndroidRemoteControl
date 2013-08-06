@@ -17,15 +17,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 
-import com.i2r.ARC.PCControl.DataManager.ARCDataManager;
-import com.i2r.ARC.PCControl.DataManager.DataManager;
-import com.i2r.ARC.PCControl.Loadable.LoadableDataManager;
 import com.i2r.ARC.PCControl.UI.StreamUI;
-import com.i2r.ARC.PCControl.link.RemoteConnection;
 import com.i2r.ARC.PCControl.link.RemoteLink;
 import com.i2r.ARC.PCControl.link.BluetoothLink.BluetoothLink;
 import com.i2r.ARC.PCControl.link.lineLink.CommandLineLink;
-import com.i2r.ARC.PCControl.link.wifiLink.WifiLink;
 
 /**
  * The brains of the program, runs all the things

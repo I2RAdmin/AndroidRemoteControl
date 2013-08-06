@@ -60,6 +60,7 @@ public class Capabilities {
 	 */
 	public static final int ASCII_DOT = 46;
 	
+	public static final int ASCII_DASH = 45;
 	/**
 	 * Constant defines the interger value of ASCII null
 	 */
@@ -142,8 +143,7 @@ public class Capabilities {
 		//check to see if the key provided is a valid feature name
 		if(!featureDataTypes.containsKey(key)){
 			//it isn't.  Log and throw an error
-			logger.error(key + " not supported.");
-			throw new UnsupportedValueException();
+			throw new UnsupportedValueException(key + " not supported.");
 		}
 		
 		//the key does point to a valid feature!
@@ -154,9 +154,7 @@ public class Capabilities {
 		//check to see if the value could be interpeted as the data type for this feature
 		if(!checkType(type, value)){
 			//it can't, log and throw an error
-			logger.error("Data for " + key + " was of the incorrect type (needed to be: " + type.getType() + ")");
-			logger.error(value);
-			throw new UnsupportedValueException();
+			throw new UnsupportedValueException("Data for " + key + " was of the incorrect type (needed to be: " + type.getType() + ")");
 		}
 		
 		//it can!
@@ -168,15 +166,7 @@ public class Capabilities {
 		//check to see if the value falls under the acceptable arguments for this feature
 		if(!checkLimit(type, limit, limitVals, value)){
 			//it does not.  Log and throw the error.
-			logger.error("Data for " + key + " did not fall within the limit.");
-			logger.error("Limit: " + limit.getType());
-			logger.error("values: ");
-			for(String val : limitVals){
-				logger.error(val);
-			}
-			
-			logger.error(value);
-			throw new UnsupportedValueException();
+			throw new UnsupportedValueException("Data for " + key + " did not fall within the limit.");
 		}
 		
 		//it does!  Return the value, as we now know it is safe and can be supplied as an argument for this feature
@@ -331,6 +321,8 @@ public class Capabilities {
 	 * @return true if the value can be interpeted as an {@link DataType#INTEGER}, false if otherwise
 	 */
 	private boolean checkInt(String value) {
+		boolean dashFound = false;
+		
 		//convert the value to a byte array
 		byte[] dataToCheck = value.getBytes();
 		
@@ -345,6 +337,9 @@ public class Capabilities {
 				//great!  Move on to the next byte
 				continue;
 			//otherwise
+			}else if (rawValue == ASCII_DASH && dashFound == false){
+				dashFound = true;
+				continue;
 			}else{
 				//return false, there is a no numeric in this value somwhere, and that means we can't interpet it as a number
 				return false;
@@ -365,6 +360,7 @@ public class Capabilities {
 	private boolean checkDouble(String value) {
 		//boolean var to check to see if we have seen an ASCII dot yet
 		boolean dotFound = false;
+		boolean dashFound = false;
 		
 		//convert the value to a byte array
 		byte[] dataToCheck = value.getBytes();
@@ -385,6 +381,10 @@ public class Capabilities {
 				//but for right now, great! move on to the next byte
 				continue;
 			//otherwise
+			}else if(rawValue == ASCII_DASH && dashFound == false){
+				dashFound = true;
+				
+				continue;
 			}else{
 				//we have some bad no numeric or double dot or something.  return false
 				return false;
