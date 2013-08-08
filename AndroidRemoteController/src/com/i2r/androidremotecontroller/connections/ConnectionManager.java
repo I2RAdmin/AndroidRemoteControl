@@ -47,13 +47,17 @@ public class ConnectionManager<E> {
 	}
 
 	
-	
+	/**
+	 * Starts a new thread with the current
+	 * RemoteConnection stored by this manager.
+	 * If this manager's RemoteConnection instance is
+	 * null, this method does nothing.
+	 */
 	public void startDataTransfer(){
 		
 		if(linker.isServerLink()){
 			Log.d(TAG, "stopping connection discovery");
 			linker.haltConnectionDiscovery();
-			
 			finder = null;
 		}
 		
@@ -157,7 +161,8 @@ public class ConnectionManager<E> {
 			
 			// notify main Activity that connection search has finished
 			Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
-			intent.putExtra(RemoteControlActivity.EXTRA_CONNECTION_STATUS, connection != null);
+			String message = connection != null ? "connection found" : "no connection found";
+			intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, message);
 			manager.sendBroadcast(intent);
 		}
 	}

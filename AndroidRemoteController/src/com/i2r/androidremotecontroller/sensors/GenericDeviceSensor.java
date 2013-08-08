@@ -32,26 +32,65 @@ public abstract class GenericDeviceSensor {
 	private int taskID;
 	private LocalBroadcastManager manager;
 	private Activity activity;
-	private HashMap<String, PropertyValue> properties;
+	private HashMap<String, String> properties;
 	private RemoteConnection connection;
 	
 	
 	// Constructor
-	public GenericDeviceSensor(Activity activity, RemoteConnection connection, int taskID) {
+	public GenericDeviceSensor(Activity activity) {
 		this.activity = activity;
 		this.manager = LocalBroadcastManager.getInstance(activity);
-		this.properties = new HashMap<String, PropertyValue>();
-		this.connection = connection;
-		this.taskID = taskID;
+		this.properties = new HashMap<String, String>();
+		this.connection = null;
+		this.taskID = Constants.Args.ARG_NONE;
 	}
 
 
+	
 	/**
-	 * TODO: comment this
-	 * @return wingardium leviosa
+	 * @return the properties data structure for this
+	 * sensor. This structure stores all modification
+	 * commands received by this sensor since its creation.
 	 */
-	protected HashMap<String, PropertyValue> getProperties(){
+	protected HashMap<String, String> getProperties(){
 		return properties;
+	}
+	
+
+	/**
+	 * Get an integer property defined by the given key
+	 * from this sensor's map of properties
+	 * @param key - the key defining the property to be
+	 * retrieved.
+	 * @return the value of the key given in its integer form,
+	 * given that the key exists in this sensor's map of
+	 * properties, and the value can be parsed to an integer.
+	 * If the given key is not in this sensor's map of properties,
+	 * this returns {@link ARG_NONE} as defined in {@link Constants#Args}
+	 */
+	protected int getIntProperty(String key){
+		int result = -1;
+		try{
+			result = Integer.parseInt(properties.get(key));
+		} catch (NumberFormatException e){
+			
+		}
+		return result;
+	}
+	
+	
+	/**
+	 * Get a string property defined by the given key
+	 * from this sensor's map of properties
+	 * @param key - the key defining the property to be
+	 * retrieved.
+	 * @return the value of the key given, if it exists in
+	 * this sensor's map of properties. If the given key is
+	 * not in this sensor's map of properties, this returns
+	 * {@link ARG_NONE} as defined in {@link Constants#Args}
+	 */
+	protected String getProperty(String key){
+		return properties.get(key);
 	}
 	
 	
@@ -70,7 +109,7 @@ public abstract class GenericDeviceSensor {
 	 * main activity with
 	 * @return a LocalBroadcastManager relative to the main activity
 	 */
-	public LocalBroadcastManager getBroadcastManager() {
+	protected LocalBroadcastManager getBroadcastManager() {
 		return manager;
 	}
 
@@ -80,7 +119,7 @@ public abstract class GenericDeviceSensor {
 	 * @return the connection this sensor has, or null if there is
 	 * no valid connection
 	 */
-	public RemoteConnection getConnection(){
+	protected RemoteConnection getConnection(){
 		return connection;
 	}
 	
@@ -105,54 +144,21 @@ public abstract class GenericDeviceSensor {
 	}
 
 	
-	
-	/**
-	 * Saves the given data to the native SD card, then alerts the system through the
-	 * given Context to scan for new files on the SD card
-	 * @param data - the data to save to the SD card
-	 * @param fileName - the file name to save the data under
-	 * @param extension - the type of data being saved
-	 * @param context - the context in which to alert the system to scan for new files on
-	 * the SD card.
-	 */
-	public static void saveDataToSD(byte[] data, String fileName, String extension, Context context){
-		
-		Log.d(TAG, "attempting to save data...");
-		FileOutputStream stream = null;
-		try {
-			File file = new File(Environment.getExternalStoragePublicDirectory(
-					Environment.DIRECTORY_DOWNLOADS), fileName + extension);
-			file.createNewFile();
-			stream = new FileOutputStream(file);
-			stream.write(data);
-			stream.flush();
-			stream.close();
-			context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, 
-					Uri.parse("file://"+ file)));
-			Log.i(TAG, "data save to SD was successful");
-		} catch (IOException e) {
-			Log.e(TAG, "data save to SD failed (IOE) - " + e.getMessage());
-			e.printStackTrace();
-		} finally {
-			if(stream != null){try{stream.flush(); stream.close();}catch(IOException e){}}
-		}
-	}
-
-	
 	/**
 	 * Use char Constants in {@link Constants} for this to notify remote PC of state changes
 	 */
-	protected void notifyRemoteDevice(char notification) {
-		notifyRemoteDevice(Character.toString(notification));
+	protected void sendTaskComplete() {
+		ResponsePacket.sendNotification(taskID,
+				Constants.Notifications.TASK_COMPLETE, connection);
 	}
 	
 	
 	/**
 	 * Use String Constants in {@link Constants} for this to notify remote PC of state changes
 	 */
-	protected void notifyRemoteDevice(String notification){
-		ResponsePacket.sendResponse(new ResponsePacket(taskID, 
-				Constants.DataTypes.NOTIFY, notification.getBytes()), connection);
+	protected void sendTaskErroredOut(){
+		ResponsePacket.sendNotification(taskID,
+				Constants.Notifications.TASK_ERRORED_OUT, connection);
 	}
 	
 	
@@ -171,7 +177,49 @@ public abstract class GenericDeviceSensor {
 	 * @param params - the parameter to modify
 	 */
 	public void modify(String key, String value){
-		properties.put(key, new PropertyValue(value));
+		properties.put(key, value);
+	}
+	
+	
+	/**
+	 * Modifies the current sensor's parameters with the one given.
+	 * @param params - the parameter to modify
+	 */
+	public void modify(String key, int value){
+		properties.put(key, String.valueOf(value));
+	}
+	
+	
+	/**
+	 * Saves the given data to the native SD card, then alerts the system through the
+	 * given Context to scan for new files on the SD card
+	 * @param data - the data to save to the SD card
+	 * @param fileName - the file name to save the data under
+	 * @param extension - the type of data being saved
+	 * @param context - the context in which to alert the system to scan for new files on
+	 * the SD card.
+	 */
+	protected void saveDataToSD(byte[] data, String fileName, String extension){
+		
+		Log.d(TAG, "attempting to save data...");
+		FileOutputStream stream = null;
+		try {
+			File file = new File(Environment.getExternalStoragePublicDirectory(
+					Environment.DIRECTORY_DOWNLOADS), fileName + extension);
+			file.createNewFile();
+			stream = new FileOutputStream(file);
+			stream.write(data);
+			stream.flush();
+			stream.close();
+			manager.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, 
+					Uri.parse("file://"+ file)));
+			Log.i(TAG, "data save to SD was successful");
+		} catch (IOException e) {
+			Log.e(TAG, "data save to SD failed (IOE) - " + e.getMessage());
+			e.printStackTrace();
+		} finally {
+			if(stream != null){try{stream.flush(); stream.close();}catch(IOException e){}}
+		}
 	}
 	
 	
@@ -185,6 +233,7 @@ public abstract class GenericDeviceSensor {
 		return sensor != null && ((sensor.taskCompleted()
 				&& sensor.getTaskID() == taskID) || sensor.getTaskID() != taskID);
 	}
+	
 	
 	
 	/**
@@ -216,7 +265,7 @@ public abstract class GenericDeviceSensor {
 	 * will be started.
 	 * @see isSensorAvailable(GenericDeviceSensor, int)
 	 */
-	public abstract void startNewTask(int taskID, String[] args);
+	public abstract void startNewTask(int taskID, int[] args);
 	
 	
 	/**
@@ -226,43 +275,38 @@ public abstract class GenericDeviceSensor {
 	 */
 	public abstract boolean taskCompleted();
 	
-
+	
 	
 	/**
-	 * Helper class for the properties HashMap of this generic sensor.
-	 * @author Josh Noel
+	 * Query for how any result data obtained from
+	 * this sensor should be treated during a running task
+	 * @return true if result data should be saved to the
+	 * internal storage of the phone (possibly to free up bandwidth
+	 * on the connection), false if the data should be sent to the
+	 * remote device directly
 	 */
-	public class PropertyValue  {
+	public abstract boolean saveResultDataToFile();
+	
+	
+	/**
+	 * Query for this sensor's name, or string id
+	 * @return the name of this sensor, usually what
+	 * this sensor is (i.e., CameraSensor, AccelerometerSensor, etc.)
+	 * For ease of use, just return a TAG constant defined in any
+	 * subclasses for logging.
+	 */
+	public abstract String getName();
+	
 
-		private String stringValue;
-		private int intValue;
-		private boolean isNumber;
-		
-		public PropertyValue(String value){
-			this.stringValue = value;
-			
-			try {
-				intValue = Integer.parseInt(value);
-				this.isNumber = true;
-			} catch (NumberFormatException e) {
-				intValue = Constants.Args.ARG_NONE;
-				this.isNumber = false;
-			}
-
-		}
-		
-		public String getStringValue() {
-			return stringValue;
-		}
-
-		public int getIntValue() {
-			return intValue;
-		}
-		
-		public boolean isNumber(){
-			return isNumber;
-		}
-		
-	}
+	/**
+	 * Updates this sensor's current properties list
+	 * with the ones stored in the HashMap defined by
+	 * {@link #getProperties()}. This is a heavy weight
+	 * procedure, and should only be called when this
+	 * object's HashMap is considered to be stable and
+	 * rarely changing.
+	 */
+	public abstract void updateSensorProperties();
+	
 	
 }

@@ -1,13 +1,17 @@
 package com.i2r.androidremotecontroller.connections;
 
+import java.io.InputStream;
+import java.io.OutputStream;
+
 
 /**
  * This interface models an active connection to another device.
  * This connection should be obtained via a Link object. This
  * interface extends Runnable so that any ongoing connections
- * can run in a worker thread.
+ * can run in a worker thread - any reading operations from this
+ * connection should be placed in the run method of all
+ * concrete implementations.
  * @author Josh Noel
- * @param <T>
  */
 public interface RemoteConnection extends Runnable {
 	
@@ -31,5 +35,21 @@ public interface RemoteConnection extends Runnable {
 	 * called when all communication is complete.
 	 */
 	public void disconnect();
+	
+	
+	/**
+	 * Query for this connection's input stream
+	 * @return this connection's current input stream,
+	 * or null if there is no connection
+	 */
+	public InputStream getInputStream();
+	
+	
+	/**
+	 * Query for this connection's output stream
+	 * @return this connection's current output stream,
+	 * or null if there is no connection
+	 */
+	public OutputStream getOutputStream();
 	
 }

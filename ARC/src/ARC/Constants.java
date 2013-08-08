@@ -9,15 +9,14 @@ package ARC;
 public final class Constants {
 
 	
-	/***************************************************************|
+	/***************************************************************
 	 * Computer Command Structure:<br>
 	 * TASK ID<br>
-	 * COMMAND HEADER<br>
-	 * [COMMAND ARGS]
+	 * COMMAND<br>
+	 * [COMMAND ARGS]<br><br>
 	 * 
-	 * NOTE: the header is only interpreted if the task ID
-	 * given is unique among all currently running tasks,
-	 * otherwise the header position will be treated as a parameter.
+	 * Note: only the computer client will send these constants
+	 * across the connection.
 	 ***************************************************************
 	 */
 	public static final class Commands {
@@ -27,23 +26,12 @@ public final class Constants {
 		public static final int PARAM_START_INDEX = 2;
 		
 		/**
-		 * Kill command header - specifies that the following commands will
-		 * involve stopping one or multiple procedures.
+		 * Used by the controller PC to retrieve supported
+		 * features of a particular sensor on the client android
+		 * device - parameters should be the sensors to get features
+		 * from
 		 */
-		public static final int KILL = 0;
-
-		/**
-		 * Kills any currently running applications on the android device,
-		 * closes open sockets and terminates all android-2-PC communication.
-		 */
-		public static final int KILL_EVERYTHING = -1;
-
-		/**
-		 * Expected arguments following this command header:<br>
-		 * int - maximum amount of pictures to be taken<br>
-		 * long - frequency of captures in milliseconds (captures per second)
-		 */
-		public static final int PICTURE = 1;
+		public static final int SUPPORTED_FEATURES = -5;
 		
 		
 		/**
@@ -54,89 +42,106 @@ public final class Constants {
 		 * odd indexes after modify command are keys<br>
 		 * even indexes after modify command are values
 		 */
-		public static final int MODIFY = 2;
+		public static final int MODIFY = -4;
+		
+		
+		/**
+		 * Kill command header - specifies that the following commands will
+		 * involve stopping one or multiple procedures.
+		 */
+		public static final int KILL = -3;
+
+		
+		/**
+		 * Sent by controller if there was an error while building
+		 * command on the PC client. 
+		 */
+		public static final int NO_COMMAND = -2;
+		
+		
+		/**
+		 * Kills any currently running applications on the android device,
+		 * closes open sockets and terminates all android-2-PC communication.
+		 */
+		public static final int KILL_EVERYTHING = -1;
+		
+			
+		// TODO: tell jonathan that i did a stunt and he's gonna hate me
+		
+		/**
+		 * Expected arguments following this command header:<br>
+		 * int - maximum amount of pictures to be taken<br>
+		 * long - frequency of captures in milliseconds (captures per second)
+		 */
+		public static final int PICTURE = 0;
+		
+		
+		/**
+		 * Command to start recording audio with
+		 * the android device's microphone<br>
+		 * WARNING: microphone features must be
+		 * modified PRIOR to starting a task with
+		 * this argument. Trying to modify the mic
+		 * features while it is recording will do nothing.
+		 */
+		public static final int RECORD_AUDIO = 1;
 
 	}// end Commands class
 
 
 	
-	/*********************************************************
-	 * Argument constants used to decipher command packets.
-	 ******************************************************** 
+	/*********************************************
+	 * Argument constants used to decipher byte
+	 * streams received on either client.
+	 *********************************************
 	 */
 	public final static class Args {
 
+		
+		// DEFAULT VALUES -----------------------------------|
 		public static final int ARG_NO_CHANGE = -2;
 		public static final int ARG_NONE = -1;
+		
+		public static final String ARE_STRING_NO_CHANGE = "-2";
+		public static final String ARG_STRING_NONE = "-1";
+		
+		public static final char ARG_CHAR_NONE = '-';
+		public static final char ARG_CHAR_NO_CHANGE = '_';
+		
 		public static final String SIZE_ZERO = "0";
 		
-		public static final int IMAGE_PARAMETER_SIZE = 7;
-		public static final int IMAGE_CAMERA_PARAMETER_START_INDEX = 3;
 		
-		public static final int IMAGE_FREQUENCY_INDEX = 0;
-		public static final int IMAGE_DURATION_INDEX = 1;
-		public static final int IMAGE_MAX_COUNT_INDEX = 2;
-		public static final int IMAGE_EXPOSURE_COMP_INDEX = 3;
-		public static final int IMAGE_FORMAT_INDEX = 4;
-		public static final int IMAGE_SIZE_WIDTH_INDEX = 5;
-		public static final int IMAGE_SIZE_HEIGHT_INDEX = 6;
+		// SUPPORTED FEATURES CONSTANTS ----------------------|
+		// these are used to inform the controller of
+		// the features available on the client android device
+		
+		public static final int CP_SENSOR_INDEX = 0;
+		public static final int KEY_VALUE_START_INDEX = 1;
+		
+		// CAMERA FEATURES -----------------------------|
 		
 
-		public static final String CAMERA_SUPPORTED_FEATURE_LIST_FLASH = "camera_supported_feature_flash";
-		public static final String CAMERA_SUPPORTED_FEATURE_LIST_FOCUS = "camera_supported_feature_focus";
-		public static final String CAMERA_SUPPORTED_FEATURE_LIST_WHITE_BALANCE = "camera_supported_feature_white_balance";
-		public static final String CAMERA_SUPPORTED_FEATURE_LIST_FORMAT = "camera_supported_feature_format";
-		public static final String CAMERA_SUPPORTED_FEATURE_LIST_IMAGE_SIZE = "camera_supported_feature_size";
-		public static final String CAMERA_SUPPORTED_FEATURE_LIST_SCENES = "camera_supported_feature_scene";
-		
-		// formats are given as "string type-integer constant to return"
-		// when requesting the android device to set this parameter,
-		// only the numeric value after "-" should be used
-		public static final String CAMERA_IMAGE_FORMAT_JPEG = "jpeg-256";
-		public static final String CAMERA_IMAGE_FORMAT_NV21 = "nv21-17";
-		public static final String CAMERA_IMAGE_FORMAT_NV16 = "nv16-16";
-		public static final String CAMERA_IMAGE_FORMAT_RGB_565 = "rgb_565-4";
-		public static final String CAMERA_IMAGE_FORMAT_YUY2 = "yuy2-20";
-		public static final String CAMERA_IMAGE_FORMAT_YV12 = "yv12-842094169";
-		
-		// parameters are sent as strings defined below, but one of these ints
-		// should be returned by the PC upon request to change this camera parameter
-		public static final int CAMERA_FLASH_OFF = 0;
-		public static final int CAMERA_FLASH_ON = 1;
-		public static final int CAMERA_FLASH_RED_EYE = 2;
-		public static final int CAMERA_FLASH_TORCH = 3;
-		
-		public static final String[] IMAGE_FLASH_MODES = {
-			"off", "on", "red-eye", "torch"
-		};
-		
-		// parameters are sent as strings defined below, but one of these ints
-		// should be returned by the PC upon request to change this camera parameter
-		public static final int CAMERA_FOCUS_AUTO = 0;
-		public static final int CAMERA_FOCUS_CONTINUOUS_PICTURE = 1;
-		public static final int CAMERA_FOCUS_CONTINUOUS_VIDEO = 2;
-		public static final int CAMERA_FOCUS_EDOF = 3;
-		public static final int CAMERA_FOCUS_FIXED = 4;
-		public static final int CAMERA_FOCUS_INFINITY = 5;
-		public static final int CAMERA_FOCUS_MACRO = 6;
-		
-		public static final String[] IMAGE_FOCUS_MODES = {
-			"auto", "continuous-picture", "continuous-video",
-			"edof", "fixed", "infinity", "macro"
-		};
-		
+
+		public static final int CAMERA_FREQUENCY_INDEX = 0;
+		public static final int CAMERA_DURATION_INDEX = 1;
+		public static final int CAMERA_PICTURE_AMOUNT_INDEX = 2;
 		
 		// defaults to give the camera (for testing)
-		public static final long ARG_PICTURE_DEFAULT_FREQUENCY = 3000;
-		public static final long ARG_PICTURE_DEFAULT_TIME_ELAPSE = 20000;
-		public static final int ARG_PICTURE_DEFAULT_PICTURE_AMOUNT = 10;
-
+		public static final long PICTURE_DEFAULT_FREQUENCY = 3000;
+		public static final long PICTURE_DEFAULT_TIME_ELAPSE = 20000;
+		public static final int PICTURE_DEFAULT_PICTURE_AMOUNT = 10;
+		
+		
+		public static final int AUDIO_DURATION_INDEX = 0;
+		// others...
+		
 		// TODO: make args for other sensors
 
 	} // end Args class
 
 	
-	/*******************************************|
+	
+	/*******************************************
 	 * Info about this application
 	 *******************************************
 	 */
@@ -168,61 +173,206 @@ public final class Constants {
 	
 
 	
-	/**
-	 * Data types specified by either device, specifying
-	 * what type of data they are sending across the connection.
+	
+	/***********************************************************
+	 * Data types specified by either device, which represent
+	 * what the data they are sending correlates to.
+	 ***********************************************************
 	 */
 	public static final class DataTypes {
 		
+		/**
+		 * Notifier type - tells controller that
+		 * following data is purely informative
+		 * of the android device's state
+		 */
 		public static final int NOTIFY = 0;
 		
-		public static final int JPEG = 1;
+
+		
+		/**
+		 * Image type - informs the controller that it's
+		 * receiving a picture
+		 */
+		public static final int IMAGE = 2;
+		
+		/**
+		 * Int type - informs the controller that
+		 * a certain part of this application
+		 * expects integer values as input
+		 */
+		public static final int INTEGER = 3;
+		
+		/**
+		 * double type - informs the controller that
+		 * a certain part of this application
+		 * expects doubles values as input
+		 */
+		public static final int DOUBLE = 4;
+		
+		/**
+		 * String type - informs the controller that
+		 * a certain part of this application
+		 * expects String values as input
+		 */
+		public static final int STRING = 5;
+		
+		/**
+		 * Range type - informs the controller that
+		 * the data its about to receive is in the
+		 * form of a range of numbers, and that
+		 * any input for that range is expected to
+		 * fall within that range
+		 */
+		public static final int RANGE = 6;
+		
+		/**
+		 * Set type - informs the controller that
+		 * it's about to receive a set of elements that
+		 * it can choose from as input parameters
+		 */
+		public static final int SET = 7;
+		
+		/**
+		 * data type any - input is not specific
+		 * to a particular data type
+		 */
+		public static final int ANY = 8;
+		
+		
+		/**
+		 * data type const - describes any
+		 * properties that are immutable and
+		 * cannot be set to a different value
+		 */
+		public static final int CONST = 9;
+		
+		
+		/**
+		 * Feature type - used when the controller is querying the android
+		 * device for the camera's features
+		 */
+		public static final int CAMERA = 1;
+
+		
+		/**
+		 * Audio data type - used when a request is received by the android
+		 * device for an audio task, or when the android device is sending audio
+		 * back to the controller
+		 */
+		public static final int MICROPHONE = 10;
+
+		/**
+		 * Temperature data type - used when a request is recieved by the
+		 * android device for the phone's current temperature reading
+		 * of its surrounding environment
+		 */
+		public static final int TEMPERATURE = 6;
+
+		/**
+		 * Pressure data type - used when a request is recieved by the
+		 * android device for the phone's current atmospheric pressure reading
+		 * of its surrounding environment
+		 */
+		public static final int PRESSURE = 7;
+
+		
+		
+	} // end of DataTypes class
+	
+	
+
+	
+	
+	
+	/*****************************************************
+	 * All delimiters used to encode information to byte
+	 * streams so that when they are received, they can
+	 * be parsed back into meaningful information.
+	 *****************************************************
+	 */
+	public static final class Delimiters {
+		
+		/**
+		 * Command separator for a packet of commands to be interpreted by the phone
+		 * app. WARNING: ALL commands must end with this terminator or they will not
+		 * be interpreted correctly. (especially the last command in the packet)
+		 */
+		public static final char PACKET_DELIMITER = '\n';
+		
+		/**
+		 * Used to define the end of a list of elements being sent
+		 * to the controller PC. The controller can use this list,
+		 * along with its reference name, to change the parameter
+		 * that the list name represents to any of the values
+		 * defined in the resulting list.
+		 */
+		public static final char PACKET_LIST_DELIMITER = '&';
+		
+		
+		/**
+		 * Defines a response packet's starting point.
+		 * Not currently used.
+		 */
+		public static final String PACKET_START = "PACKET_START";
+		
+		/**
+		 * Defines a response packet's ending point.
+		 * Used to split packets if they are received in
+		 * a single bundled string.
+		 */
+		public static final String PACKET_END = "PACKET_COMPLETE";
+		
+		
+		/**
+		 * Header for android device's response to the controller PC's
+		 * request for a list of supported features. Order will be
+		 * as follows:<br>
+		 * SUPPORTED_FEATURES_HEADER<br>
+		 * sensor tag (such as {@link #CAMERA_SENSOR_TAG})<br> 
+		 * list of features<br>
+		 * {@link #SUPPORTED_FEATURES_FOOTER}<br>
+		 * if the list of features contains sub-lists for feature types,
+		 * their size will be given in advance
+		 */
+		public static final char SUPPORTED_FEATURES_HEADER = 'H';
+		
+		public static final char SUPPORTED_FEATURES_FOOTER = 'F';
+		
+	} // end of Delimiters class
+	
+	
+
+	/*******************************************************
+	 * Notifications are short byte packets sent from the
+	 * android device to quickly tell the pc client about
+	 * a certain task or query that the pc gave to the
+	 * android device.
+	 *******************************************************
+	 */
+	public static final class Notifications {
+		
+		
+		/**
+		 * Used with Notify DataTypes to alert the controller
+		 * that a task has been completed on the android side
+		 */
+		public static final char TASK_COMPLETE = '#';
+		
+		
+		/**
+		 * Used with Notify DataTypes to alert the controller
+		 * that a task has failed to complete on the android side
+		 */
+		public static final char TASK_ERRORED_OUT = '!';
+		
+		
+		public static final char SENSOR_NOT_SUPPORTED = '@';
+		
+		
 	}
-	
-	
 
-	/**
-	 * Command separator for a packet of commands to be interpreted by the phone
-	 * app. WARNING: ALL commands must end with this terminator or they will not
-	 * be interpreted correctly. (especially the last command in the packet)
-	 */
-	public static final char PACKET_DELIMITER = '\n';
 	
-	public static final char PACKET_LIST_DELIMITER = '&';
-	
-	public static final char PACKET_START = 'S';
-	
-	public static final String PACKET_END = "PACKET_COMPLETE";
-	
-	public static final char TASK_COMPLETE = '#';
-	
-	public static final char TASK_ERRORED_OUT = '!';
-	
-
-	/**
-	 * Header for android device's response to the controller PC's
-	 * request for a list of supported features. Order will be
-	 * as follows:<br>
-	 * SUPPORTED_FEATURES_HEADER<br>
-	 * sensor tag (such as {@link #CAMERA_SENSOR_TAG})<br> 
-	 * list of features<br>
-	 * {@link #SUPPORTED_FEATURES_FOOTER}<br>
-	 * if the list of features contains sub-lists for feature types,
-	 * their size will be given in advance
-	 */
-	public static final char SUPPORTED_FEATURES_HEADER = 'H';
-	
-	public static final char SUPPORTED_FEATURES_FOOTER = 'F';
-	
-	
-	public static final char CAMERA_SENSOR_TAG = 'C';
-
-	/**
-	 * Returns from phone:<br>
-	 * Task id<br>
-	 * data (probably byte array)
-	 */
-	public static final int HEADER_ELEMENTS = 2;
 
 	/**
 	 * Jenny, I got your number<br>

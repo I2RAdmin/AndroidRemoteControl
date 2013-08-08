@@ -1,6 +1,5 @@
 package com.i2r.androidremotecontroller;
 
-import ARC.Constants;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -40,11 +39,11 @@ public class RemoteControlActivity extends Activity {
 	public static final String ACTION_CONNECTOR_RESPONDED = "i2r_action_connection_created";
 	public static final String ACTION_CONNECTION_READ = "i2r_action_connection_read";
 	
-	public static final String EXTRA_CONNECTION_STATUS = "i2r_extra_connection_status";
 	public static final String EXTRA_TASK_ID = "i2r_extra_task_id";
 	public static final String EXTRA_COMMAND = "i2r_extra_command";
 	public static final String EXTRA_RESULT_DATA = "i2r_extra_result_data";
 	public static final String EXTRA_DATA_TYPE = "i2r_extra_data_type";
+	public static final String EXTRA_INFO_MESSAGE = "i2r_extra_info_message";
 
 
 	private BroadcastReceiver receiver;
@@ -92,18 +91,13 @@ public class RemoteControlActivity extends Activity {
 				} else if(intent.getAction().equals(ACTION_CONNECTOR_RESPONDED)){
 					
 					Log.d(TAG, "initialization broadcast recieved");
-					boolean connectionFound = intent.getBooleanExtra(EXTRA_CONNECTION_STATUS, false);
-					String result = connectionFound ? "initializing connection..." : 
-						"connection terminated by remote device, listening for reconnect...";
-					action.setText(result);
+					String message = intent.getStringExtra(EXTRA_INFO_MESSAGE);
+					action.setText(message);
 					master.initializeConnection();
 		
 					// if the sensor is done with a task, ask the master to start the next one
 				} else if (intent.getAction().equals(ACTION_TASK_COMPLETE)){
-					int taskID = intent.getIntExtra(EXTRA_TASK_ID, Constants.Args.ARG_NONE);
-					String result = (taskID == Constants.Args.ARG_NONE) ? 
-							(sensorController.hasNewCommands()) ? 
-							"starting next task" : "listening for new commands" : "task completed: " + taskID;
+					String result = intent.getStringExtra(EXTRA_INFO_MESSAGE);
 					Log.d(TAG, result);
 					action.setText(result);
 					master.updateSensors();
@@ -179,6 +173,9 @@ public class RemoteControlActivity extends Activity {
 				Log.d(TAG, "remote control started");
 				master.start();
 			}
+			
+			// goes back to main activity if connectionType parameter was not valid or
+			// no connection of the given type was found
 		} catch(ServiceNotFoundException e){
 			Toast.makeText(this, "connection service for remote control not found, shutting down app",  
 					Toast.LENGTH_SHORT).show();

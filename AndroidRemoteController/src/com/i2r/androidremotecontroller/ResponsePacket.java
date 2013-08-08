@@ -1,8 +1,5 @@
 package com.i2r.androidremotecontroller;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
 import ARC.Constants;
 
 import android.util.Log;
@@ -22,13 +19,16 @@ public class ResponsePacket {
 
 	private static final String TAG = "ResponsePacket";
 	
-	private int header, footer, taskID, dataType;
+	public static boolean SHOW_DATA = true;
+	
+	private char header, footer;
+	private int taskID, dataType;
 	private byte[] data;
 	
 	
 	public ResponsePacket(){
-		this.header = Constants.Args.ARG_NONE;
-		this.footer = Constants.Args.ARG_NONE;
+		this.header = Constants.Args.ARG_CHAR_NONE;
+		this.footer = Constants.Args.ARG_CHAR_NONE;
 		this.taskID = Constants.Args.ARG_NONE;
 		this.dataType = Constants.Args.ARG_NONE;
 		this.data = null;
@@ -36,8 +36,8 @@ public class ResponsePacket {
 	
 	
 	public ResponsePacket(int taskID, int dataType, byte[] data){
-		this.header = Constants.Args.ARG_NONE;
-		this.footer = Constants.Args.ARG_NONE;
+		this.header = Constants.Args.ARG_CHAR_NONE;
+		this.footer = Constants.Args.ARG_CHAR_NONE;
 		this.taskID = taskID;
 		this.dataType = dataType;
 		this.data = data;
@@ -45,7 +45,7 @@ public class ResponsePacket {
 	
 	
 	
-	public ResponsePacket(int header, int footer, int taskID){
+	public ResponsePacket(char header, char footer, int taskID){
 		this.header = header;
 		this.footer = footer;
 		this.taskID = taskID;
@@ -54,7 +54,7 @@ public class ResponsePacket {
 	}
 	
 	
-	public ResponsePacket(int header, int footer, int taskID, int dataType, byte[] data){
+	public ResponsePacket(char header, char footer, int taskID, int dataType, byte[] data){
 		this.header = header;
 		this.footer = footer;
 		this.taskID = taskID;
@@ -99,12 +99,12 @@ public class ResponsePacket {
 	//************************|
 	
 	
-	public void setHeader(int header){
+	public void setHeader(char header){
 		this.header = header;
 	}
 	
 	
-	public void setFooter(int footer){
+	public void setFooter(char footer){
 		this.footer = footer;
 	}
 	
@@ -166,15 +166,20 @@ public class ResponsePacket {
 	 * and footers are assumed to be unnecessary.
 	 * @return the encoded version of this response packet, or null
 	 * if encoding failed
-	 * @see {@link #encodedPacket(ResponsePacket, char, boolean)}
+	 * @see {@link #encodePacket(ResponsePacket, char, boolean)}
 	 */
-	public byte[] encode() {
-		return encodedPacket(this, Constants.PACKET_DELIMITER, false);
+	private byte[] encode() {
+		return encodePacket(this, Constants.Delimiters.PACKET_DELIMITER);
 	}
 	
 	
 	@Override
 	public String toString(){
+		return toString(false);
+	}
+	
+	
+	public String toString(boolean showData){
 		StringBuilder builder = new StringBuilder();
 		builder.append("header: ");
 		builder.append(header);
@@ -183,11 +188,100 @@ public class ResponsePacket {
 		builder.append("\ndata type: ");
 		builder.append(dataType);
 		builder.append("\ndata size: ");
-		builder.append((data != null) ? data.length : 0);
+		
+		if(data != null){
+			builder.append(data.length);
+			if(showData){
+				builder.append("\ndata:\n");
+				builder.append(new String(data));
+			}
+		} else {
+			builder.append(0);
+		}
+		
 		builder.append("\nfooter: ");
 		builder.append(footer);
 		return builder.toString();
 	}
+	
+	
+	
+	
+	/**
+	 * Notifies the remote device about this android device's state
+	 * @param taskID - the taskID identifying the notification source
+	 * @param notification - the notification that the remote device needs
+	 * to be told about
+	 * @param connection - the connection to send the notification over
+	 * @return true if the notification was sent, false otherwise
+	 * @see {@link Constants#Notifications}
+	 * @see {@link #sendNotification(int, String, String, RemoteConnection)}
+	 */
+	public static synchronized boolean sendNotification(int taskID, 
+								String notification, RemoteConnection connection){
+		return sendNotification(taskID, notification, Constants.Args.ARG_NONE, connection);
+	}
+	
+	
+	/**
+	 * Notifies the remote device about this android device's state
+	 * @param taskID - the taskID identifying the notification source
+	 * @param notification - the notification that the remote device needs
+	 * to be told about
+	 * @param connection - the connection to send the notification over
+	 * @return true if the notification was sent, false otherwise
+	 * @see {@link Constants#Notifications}<br>
+	 * {@link #sendNotification(int, String, RemoteConnection)}
+	 */
+	public static synchronized boolean sendNotification(int taskID, 
+							char notification, RemoteConnection connection){
+		return sendNotification(taskID, Character.toString(notification), connection);
+	}
+	
+	
+	
+	/**
+	 * See {@link #sendNotification(int, String, String, RemoteConnection)} 
+	 * for details on this method.
+	 */
+	public static synchronized boolean sendNotification(int taskID, char notification, 
+												int extraData, RemoteConnection connection){
+		return sendNotification(taskID, Character.toString(notification), extraData, connection);
+	}
+	
+	
+	
+	/**
+	 * Notify the remote device about this android device's state
+	 * @param taskID - the taskID identifying the notification source
+	 * @param notification - the notification that the remote device needs
+	 * to be told about
+	 * @param extraData - any extra data to further inform the controller
+	 * about the state of this notification. This parameter will not be
+	 * sent if it is equal to {@link ARG_STRING_NONE} as defined in 
+	 * {@link Constants#Args}
+	 * @param connection - the connection to send the notification over
+	 * @return true if the notification was sent, false otherwise
+	 * @see {@link Constants#Notifications}
+	 */
+	public static synchronized boolean sendNotification(int taskID, String notification, 
+											int extraType, RemoteConnection connection){
+		ResponsePacket packet;
+		if(extraType != Constants.Args.ARG_NONE){
+			StringBuilder builder = new StringBuilder();
+			builder.append(notification);
+			builder.append(Constants.Delimiters.PACKET_DELIMITER);
+			builder.append(extraType);
+			builder.append(Constants.Delimiters.PACKET_DELIMITER);
+			packet = new ResponsePacket(taskID, Constants.DataTypes.NOTIFY, 
+					builder.toString().getBytes());
+		} else {
+			packet = new ResponsePacket(taskID, 
+					Constants.DataTypes.NOTIFY, notification.getBytes());
+		}
+		return sendResponse(packet, connection);
+	}
+	
 	
 	
 	/**
@@ -211,14 +305,18 @@ public class ResponsePacket {
 			
 			StringBuilder builder = new StringBuilder();
 			builder.append("response was not sent:\n");
-			builder.append((packet == null) ? "packet is null\n" : (!packet.isValid()) ? "packet is not valid\n" : "");
-			builder.append((connection == null) ? "connection is null" : (!connection.isConnected()) ? "connection is not valid" : "");
+			builder.append((packet == null) ? "packet is null\n" : 
+				(!packet.isValid()) ? "packet is not valid\n" : "");
+			builder.append((connection == null) ? "connection is null" : 
+				(!connection.isConnected()) ? "connection is not valid" : "");
 			
 			Log.e(TAG,  builder.toString());
 		}
+		
 		return result != null;
 	}
 
+	
 	
 	/**
 	 * Encodes the given ResponsePacket to a byte array that can be
@@ -232,45 +330,35 @@ public class ResponsePacket {
 	 * to send across an ARC connection to the controlling PC, or null if writing
 	 * to a temp ByteArrayOutputStream failed.
 	 */
-	public static byte[] encodedPacket(ResponsePacket packet, char delimiter,
-										boolean includeWrappers) {
+	private static byte[] encodePacket(ResponsePacket packet, char delimiter) {
 		
 		byte[] result = null;
-		ByteArrayOutputStream stream = new ByteArrayOutputStream();
 		
 		if(packet.isValid()){
 			
-			try{
+			StringBuilder buffer = new StringBuilder();
 				
-			if(includeWrappers){
-				stream.write(Integer.toString(packet.header).getBytes());
-				stream.write(delimiter);
+			if(packet.hasHeader()){
+				buffer.append(packet.header);
+				buffer.append(delimiter);
 			}
 			
-			stream.write(Integer.toString(packet.taskID).getBytes());
-			stream.write(delimiter);
-			stream.write(String.valueOf(packet.dataType).getBytes());
-			stream.write(delimiter);
-			stream.write(Integer.toString(packet.data.length).getBytes());
-			stream.write(delimiter);
-			stream.write(packet.data);
+			buffer.append(packet.taskID);
+			buffer.append(delimiter);
+			buffer.append(packet.dataType);
+			buffer.append(delimiter);
+			buffer.append(packet.data.length);
+			buffer.append(delimiter);
+			buffer.append(packet.data);
 			
 			
-			if(includeWrappers){
-				stream.write(Integer.toString(packet.footer).getBytes());
-				stream.write(delimiter);
+			if(packet.hasFooter()){
+				buffer.append(packet.footer);
+				buffer.append(delimiter);
 			}
 			
-			result = stream.toByteArray();
-			
-			Log.d(TAG, "response successfully encoded");
-			
-			} catch(IOException e) {
-				Log.d(TAG, "failed to write ResponsePacket to ByteArrayOutputStrteam");
-			} finally {
-				if(stream != null)
-					try{stream.flush(); stream.close();} catch (IOException e){}
-			}
+			result = buffer.toString().getBytes();
+
 		} else {
 			Log.e(TAG, "error - response is not well formed and could not be transposed to a byte array result");
 		}

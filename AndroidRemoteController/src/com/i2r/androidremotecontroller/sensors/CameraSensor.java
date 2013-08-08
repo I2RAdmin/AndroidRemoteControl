@@ -35,17 +35,18 @@ public class CameraSensor extends GenericDeviceSensor {
 	private SurfaceHolder holder;
 	private Camera camera;
 	private Surface surface;
-	private GenericPictureCallback jpeg;
-	private boolean waitingOnPicture, forceClose;
+	private GenericPictureCallback pictureCallback;
+	private boolean waitingOnPicture, forceClose, started, saveToFile;
 	private long startTime, markedTime, pictureCount;
 	
 	public CameraSensor(Activity activity, Camera camera, SurfaceHolder holder) {
-		super(activity, null, Constants.Args.ARG_NONE);
+		super(activity);
 		
 		Log.d(TAG, "creating camera sensor");
 		this.surface = new Surface();
-		this.jpeg = new GenericPictureCallback(JPEG, SEND_TO_REMOTE);
-		this.waitingOnPicture = forceClose = false;
+		this.saveToFile = SEND_TO_REMOTE;
+		this.pictureCallback = new GenericPictureCallback(JPEG);
+		this.waitingOnPicture = forceClose = started = false;
 		this.startTime = markedTime = pictureCount = 0;
 		this.camera = camera;
 		
@@ -54,9 +55,9 @@ public class CameraSensor extends GenericDeviceSensor {
 		this.holder = holder;
 		this.holder.addCallback(surface);
 		
-		modify(SupportedFeatures.KEY_CAMERA_FREQUENCY, Constants.Args.ARG_STRING_NONE);
-		modify(SupportedFeatures.KEY_CAMERA_DURATION, Constants.Args.ARG_STRING_NONE);
-		modify(SupportedFeatures.KEY_CAMERA_PICTURE_AMOUNT, Constants.Args.ARG_STRING_NONE);
+		modify(SupportedFeatures.CameraKeys.FREQUENCY, Constants.Args.ARG_STRING_NONE);
+		modify(SupportedFeatures.CameraKeys.DURATION, Constants.Args.ARG_STRING_NONE);
+		modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, Constants.Args.ARG_STRING_NONE);
 	}
 
 	
@@ -64,8 +65,6 @@ public class CameraSensor extends GenericDeviceSensor {
 	public void releaseSensor() {
 		
 		Log.d(TAG, "releasing camera sensor");
-		
-		killTask();
 		
 		if(camera != null){
 			camera.stopPreview();
@@ -81,18 +80,22 @@ public class CameraSensor extends GenericDeviceSensor {
 	public void killTask() {
 		Log.d(TAG, "killing task : " + getTaskID());
 		this.forceClose = true;
+		this.started = waitingOnPicture = false;
 	}
 
 	
 	@Override
-	public void startNewTask(int taskID, String[] params) {
+	public void startNewTask(int taskID, int[] params) {
 		Log.d(TAG, "starting new task : " + taskID);
 		this.waitingOnPicture = forceClose = false;
+		this.started = true;
+		this.pictureCount = 0;
+		this.startTime = markedTime = System.currentTimeMillis();
 		setTaskID(taskID);
-		modify(SupportedFeatures.KEY_CAMERA_FREQUENCY, params[Constants.Args.CAMERA_FREQUENCY_INDEX]);
-		modify(SupportedFeatures.KEY_CAMERA_DURATION, params[Constants.Args.CAMERA_DURATION_INDEX]);
-		modify(SupportedFeatures.KEY_CAMERA_PICTURE_AMOUNT, params[Constants.Args.CAMERA_PICTURE_AMOUNT_INDEX]);
-		updateCamera();
+		modify(SupportedFeatures.CameraKeys.FREQUENCY, Constants.Args.ARG_STRING_NONE);
+		modify(SupportedFeatures.CameraKeys.DURATION, Constants.Args.ARG_STRING_NONE);
+		modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, Constants.Args.ARG_STRING_NONE);
+		updateSensorProperties();
 		capture();
 	}
 
@@ -101,26 +104,38 @@ public class CameraSensor extends GenericDeviceSensor {
 	public boolean taskCompleted() {
 		return !waitingOnPicture && (forceClose || done());
 	}
+	
+	
+	@Override
+	public boolean saveResultDataToFile(){
+		return saveToFile;
+	}
 
 	
+	@Override
+	public String getName(){
+		return TAG;
+	}
 	
-	private void updateCamera(){
+	
+	@Override
+	public void updateSensorProperties(){
 		if(camera != null){
 			
 			Log.d(TAG, "updating camera parameters");
 			Camera.Parameters params = camera.getParameters();
-			Iterator<HashMap.Entry<String, PropertyValue>> entries = 
+			Iterator<HashMap.Entry<String, String>> entries = 
 					getProperties().entrySet().iterator();
 			
 			while(entries.hasNext()){
-				HashMap.Entry<String, PropertyValue> next = entries.next();
-				
-				if(next.getValue().isNumber()){
-					params.set(next.getKey(), next.getValue().getIntValue());
-				} else {
-					params.set(next.getKey(), next.getValue().getStringValue());
-				}
-
+				HashMap.Entry<String, String> next = entries.next();
+				params.set(next.getKey(), next.getValue());
+			}
+			
+			camera.setParameters(params);
+			
+			if(started){
+				camera.startPreview();
 			}
 			
 		} else {
@@ -139,7 +154,7 @@ public class CameraSensor extends GenericDeviceSensor {
 	
 	private boolean validToSave(){
 		long time = System.currentTimeMillis();
-		return validFrequency(time) && validDuration(time) && validPictureCount();
+		return validFrequency(time) && validDuration(time) && validPictureCount() && !forceClose && !waitingOnPicture;
 	}
 	
 	private boolean done(){
@@ -148,18 +163,18 @@ public class CameraSensor extends GenericDeviceSensor {
 	}
 	
 	private boolean validFrequency(long time){
-		int frequency = getProperties().get(SupportedFeatures.KEY_CAMERA_FREQUENCY).getIntValue();
+		int frequency = getIntProperty(SupportedFeatures.CameraKeys.FREQUENCY);
 		return frequency == Constants.Args.ARG_NONE || time - markedTime > frequency;
 	}
 	
 	private boolean validDuration(long time){
-		int duration = getProperties().get(SupportedFeatures.KEY_CAMERA_DURATION).getIntValue();
+		int duration = getIntProperty(SupportedFeatures.CameraKeys.DURATION);
 		return duration == Constants.Args.ARG_NONE || time - startTime < duration;
 	}
 	
 	
 	private boolean validPictureCount(){
-		int count = getProperties().get(SupportedFeatures.KEY_CAMERA_PICTURE_AMOUNT).getIntValue();
+		int count = getIntProperty(SupportedFeatures.CameraKeys.PICTURE_AMOUNT);
 		return count == Constants.Args.ARG_NONE || pictureCount < count;
 	}
 	
@@ -177,21 +192,31 @@ public class CameraSensor extends GenericDeviceSensor {
 			}
 		} 
 		
-		if (!waitingOnPicture && validToSave()) {
-			camera.takePicture(null, null, jpeg);
+		if (validToSave()) {
+			
+			camera.takePicture(null, null, pictureCallback);
 			pictureCount++;
 			markedTime = System.currentTimeMillis();
 			waitingOnPicture = true;
 			Log.d(TAG, "picture taken, waiting on callback");
+			
 		}  else {
-			Log.d(TAG, "picture not taken, wait status: " + Boolean.toString(waitingOnPicture));
+			
+			StringBuilder status = new StringBuilder();
+			status.append("picture not taken\nwaiting on picture: ");
+			status.append(waitingOnPicture);
+			status.append("\nvalid picture count: ");
+			status.append(validPictureCount());
+			status.append("\nvalid duration: ");
+			status.append(validDuration(System.currentTimeMillis()));
+			Log.d(TAG, status.toString());
 		}
 
 		
-		if (!waitingOnPicture && taskCompleted()) {
+		if (taskCompleted()) {
 			Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-			intent.putExtra(RemoteControlActivity.EXTRA_TASK_ID, getTaskID());
-			notifyRemoteDevice(Constants.TASK_COMPLETE);
+			intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "task complete: " + getTaskID());
+			sendTaskComplete();
 			killTask();
 			getBroadcastManager().sendBroadcast(intent);
 		}
@@ -233,8 +258,7 @@ public class CameraSensor extends GenericDeviceSensor {
 		
 		@Override
 		public void surfaceDestroyed(SurfaceHolder holder) {
-			// no point in having a sensor that can't relay data
-			releaseSensor();
+			// do nothing
 		}
 	}
 	
@@ -250,11 +274,9 @@ public class CameraSensor extends GenericDeviceSensor {
 
 
 		private String name;
-		private boolean saveToSD;
 		
-		public GenericPictureCallback(String name, boolean saveToSD){
+		public GenericPictureCallback(String name){
 			this.name = name;
-			this.saveToSD = saveToSD;
 		}
 		
 		@Override
@@ -263,12 +285,7 @@ public class CameraSensor extends GenericDeviceSensor {
 				Log.e(name, "byte array is null");
 			} else {
 				Log.d(name, "picture taken : byte size - " + data.length);
-				if(saveToSD){
-					saveDataToSD(data, Long.toString(System.currentTimeMillis()), ".jpg", getActivity());
-				} else {
-					ResponsePacket packet = new ResponsePacket(getTaskID(), Constants.DataTypes.JPEG, data);
-					ResponsePacket.sendResponse(packet, getConnection());
-				}
+				saveData(data, saveToFile);
 			}
 			
 			if(name.equals(JPEG)){
@@ -277,6 +294,23 @@ public class CameraSensor extends GenericDeviceSensor {
 				waitingOnPicture = false;
 				capture();
 			}
+		}
+		
+		
+		private void saveData(final byte[] data, final boolean saveToSD){
+			StringBuilder builder = new StringBuilder();
+			builder.append("write-picture-");
+			builder.append(getTaskID());
+			builder.append("-");
+			builder.append(pictureCount);
+			new Thread(new Runnable() { public void run(){
+				if(saveToSD){
+					saveDataToSD(data, Long.toString(System.currentTimeMillis()), ".jpg");
+				} else {
+					ResponsePacket packet = new ResponsePacket(getTaskID(), Constants.DataTypes.IMAGE, data);
+					ResponsePacket.sendResponse(packet, getConnection());
+				}
+			}}, builder.toString()).start();
 		}
 
 	} // end of GenericPictureCallback class

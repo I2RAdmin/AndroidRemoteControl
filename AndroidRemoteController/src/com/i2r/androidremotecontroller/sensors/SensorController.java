@@ -28,24 +28,29 @@ public class SensorController {
 	private static final String TAG = "SensorController";
 	private static final int MAX_COMMAND_CAPACITY = 10;
 	
+	private static final int SENSOR_SIZE = 2;
+	private static final int CAMERA_INDEX = Constants.Commands.PICTURE;
+	private static final int MICROPHONE_INDEX = Constants.Commands.RECORD_AUDIO;
+	
 	private Activity activity;
 	private LocalBroadcastManager manager;
-	private RemoteConnection connection;
-	private CameraSensor imageCapture;
-	private SurfaceHolder holder;
 	private Camera camera;
 	private LinkedList<CommandPacket> commandQueue;
+	private GenericDeviceSensor[] sensors;
+	private RemoteConnection connection;
 	
 	
 	// Constructor
 	public SensorController(Activity activity, Camera camera, SurfaceHolder holder){
 		this.activity = activity;
-		this.holder = holder;
 		this.camera = camera;
 		this.manager = LocalBroadcastManager.getInstance(activity);
-		this.imageCapture = new CameraSensor(activity, camera, holder);
 		this.commandQueue = new LinkedList<CommandPacket>();
 		this.connection = null;
+		
+		this.sensors = new GenericDeviceSensor[SENSOR_SIZE];
+		this.sensors[CAMERA_INDEX] = new CameraSensor(activity, camera, holder);
+		this.sensors[MICROPHONE_INDEX] = new MicrophoneSensor(activity);
 	}
 	
 
@@ -58,7 +63,7 @@ public class SensorController {
 	 * @param packet - the CommandPacket object to use for filtering
 	 * @see {@link CommandPacket#parsePackets(String)}
 	 */
-	private void execute(final CommandPacket packet){
+	private void execute(CommandPacket packet){
 		if(connection != null && packet != null){
 			Log.d(TAG, "filtering packet...");
 			filter(packet);
@@ -78,7 +83,12 @@ public class SensorController {
 		// command to take pictures
 		case Constants.Commands.PICTURE:
 			// create a new imageCapture task
-			startPictureService(packet);
+			startService(packet);
+			break;
+			
+		// begin recording audio
+		case Constants.Commands.RECORD_AUDIO:
+			startService(packet);
 			break;
 			 
 			// modify a currently running task
@@ -94,7 +104,7 @@ public class SensorController {
 			
 		// command to stop all processes
 		case Constants.Commands.KILL_EVERYTHING:
-			killAllServices();
+			killAllTasks(packet.getTaskID());
 			break;
 			
 		case Constants.Commands.SUPPORTED_FEATURES:
@@ -102,87 +112,128 @@ public class SensorController {
 			break;
 			
 		default:
-			// TODO: make a default
 			break;
 		}
 	}
 	
 	
-	// FILTER HELPER METHODS --------------------------|
+	// FILTER HELPER METHODS ------------------------------|
+	// the following methods are called based on the switch
+	// statements defined in the filter method above
 	
-	private void startPictureService(CommandPacket packet){
-		if(imageCapture == null){
-			Log.d(TAG, "image capture is null, creating for task : " + packet.getTaskID());
-			imageCapture = new CameraSensor(activity, camera, holder);
-		}
-		imageCapture.setConnection(connection);
-		imageCapture.startNewTask(packet.getTaskID(), packet.getStringParameters());
+	
+	/**
+	 * Called if a command to start taking pictures was received
+	 * from the controller PC.
+	 * @param packet - the packet containing the command to start
+	 * taking pictures, as well as parameters defining how pictures
+	 * should be taken.
+	 */
+	private void startService(CommandPacket packet){
+		sensors[packet.getCommand()].setConnection(connection);
+		sensors[packet.getCommand()].startNewTask(packet.getTaskID(), packet.getIntParameters());
 	}
 	
 	
 	
+	
+	/**
+	 * Called if a command to modify a service was
+	 * received from the controller PC
+	 * @param packet - the CommandPacket containing which
+	 * service to modify, and what parameters should be modified
+	 * in that service
+	 */
 	private void modifyService(CommandPacket packet){
 		
-		if(packet.hasExtraStringParameters()){
-			GenericDeviceSensor sensor = getSensor(packet.getTaskID());
+		if(packet.hasExtraStringParameters() && packet.hasExtraIntParameters()){
+			GenericDeviceSensor sensor = getSensor(packet.getInt(Constants.Args.CP_SENSOR_INDEX));
 			
 			if(sensor != null){
-				Log.d(TAG, "modifying task: " + packet.getTaskID());
+				
+				Log.d(TAG, "modifying sensor: " + sensor.getName());
 				String[] params = packet.getStringParameters();
+				
 				// key : value modifications
-				for(int i = 0; i < params.length - 1; i += 2){
-					imageCapture.modify(params[i], params[i+1]);
+				for(int i = Constants.Args.KEY_VALUE_START_INDEX; i < params.length - 1; i += 2){
+					sensor.modify(params[i], params[i+1]);
 				}
+				
+				sensor.updateSensorProperties();
+				
+				ResponsePacket.sendNotification(packet.getTaskID(),
+						Constants.Notifications.TASK_COMPLETE, connection);
 			}
+			
 		} else {
-			Log.e(TAG, "no string parameters found in command");
+			Log.e(TAG, "correct parameters not found in command");
+			ResponsePacket.sendNotification(packet.getTaskID(),
+					Constants.Notifications.TASK_ERRORED_OUT, connection);
 		}
 	}
 	
 	
 	
+	/**
+	 * Called if a command to kill specific services was recieved
+	 * from the controller PC. 
+	 * @param packet - the CommandPacket containing the services to kill
+	 */
 	private void killServicesByTaskID(CommandPacket packet){
 		
 		if(packet.hasExtraIntParameters()){
+			
 			int[] tasksToKill = packet.getIntParameters();
 			
-			boolean isCamera = arrayContainsValue(tasksToKill,
-					imageCapture.getTaskID());
-			
-			if (imageCapture != null && isCamera) {
-				Log.d(TAG, "killing current camera task");
-				imageCapture.killTask();
-
-				// TODO: add more sensor processes to stop by task ID here
-			}
-
-			if (!isCamera || tasksToKill.length > 1) {
-				
-				boolean found = false;
-				Iterator<CommandPacket> iter = commandQueue.iterator();
-
-				while (iter.hasNext() && !found) {
-
-					CommandPacket temp = iter.next();
-
-					// iterating through the parameter array multiple times
-					// rather than the LinkedList, since iteration through the
-					// LinkedList is more expensive
-					if (arrayContainsValue(tasksToKill, temp.getTaskID())) {
-						Log.d(TAG, "removing task from queue: " + temp.getTaskID());
-						iter.remove();
-						found = true;
-					}
+			for(int i = 0; i < sensors.length; i++){
+				if (sensors[i] != null && arrayContainsValue(tasksToKill,
+						sensors[i].getTaskID())) {
+					Log.d(TAG, "killing current task: " + sensors[i].getTaskID());
+					sensors[i].killTask();
 				}
 			}
+ 		
+			boolean found = false;
+			Iterator<CommandPacket> iter = commandQueue.iterator();
+
+			while (iter.hasNext() && !found) {
+
+				CommandPacket temp = iter.next();
+
+				// iterating through the parameter array multiple times
+				// rather than the LinkedList, since iteration through the
+				// LinkedList is more expensive
+				if (arrayContainsValue(tasksToKill, temp.getTaskID())) {
+					Log.d(TAG, "removing task from queue: " + temp.getTaskID());
+					iter.remove();
+					found = true;
+				}
+			}
+			
+			ResponsePacket.sendNotification(packet.getTaskID(),
+					Constants.Notifications.TASK_COMPLETE, connection);
+			
 		} else {
+			
 			Log.e(TAG, "no int parameters found in command");
+			ResponsePacket.sendNotification(packet.getTaskID(),
+					Constants.Notifications.TASK_ERRORED_OUT, connection);
 		}
+
 	}
 	
 	
+	/**
+	 * Helper method for finding int values in an array. This
+	 * method is more efficient than going through the commandQueue
+	 * multiple times with an iterator, as that would require
+	 * object creation on the iterator's part.
+	 * @param array - the array to search through for the given value
+	 * @param value - the value to search for in the given array
+	 * @return true if the value given was found in the given array,
+	 * false otherwise.
+	 */
 	public static boolean arrayContainsValue(int[] array, int value){
-		
 		boolean hasValue = false;
 		for(int i = 0; i < array.length && !hasValue; i++){
 			hasValue = array[i] == value;
@@ -191,19 +242,12 @@ public class SensorController {
 	}
 	
 	
-	private void killAllServices(){
-		
-		if(imageCapture != null){ 
-			imageCapture.killTask();
-			imageCapture.releaseSensor(); 
-			imageCapture = null;
-		}
-		
-		// add all other sensor processes to stop here...
-	}
 	
-	
-	
+	/**
+	 * Called if the given packet is a query for features of this device, so
+	 * find out which feature descriptions the controller wants and send them.
+	 * @param packet - the packet containing a request for this device's features
+	 */
 	private synchronized void findSupportedFeatures(CommandPacket packet){
 		
 		if(packet.hasExtraIntParameters()){
@@ -213,13 +257,37 @@ public class SensorController {
 				
 				switch(features[i]){
 				
-				case Constants.Args.CAMERA_FEATURES:
+				case Constants.DataTypes.CAMERA:
 					
-					Log.d(TAG, "sending supported camera features to controller PC");
+					Log.d(TAG, "sending supported camera features to controller");
 					byte[] cameraFeatures = SupportedFeatures.getCameraFeatures(camera);
-					ResponsePacket rp = new ResponsePacket(packet.getTaskID(),
-							Constants.DataTypes.CAMERA_FEATURES, cameraFeatures);
-					ResponsePacket.sendResponse(rp, connection);
+					
+					if(cameraFeatures != null){
+						ResponsePacket rp = new ResponsePacket(packet.getTaskID(),
+								Constants.DataTypes.CAMERA, cameraFeatures);
+						ResponsePacket.sendResponse(rp, connection);
+					} else {
+						ResponsePacket.sendNotification(packet.getTaskID(), 
+								Constants.Notifications.SENSOR_NOT_SUPPORTED, 
+								Constants.DataTypes.CAMERA, connection);
+					}
+					
+					break;
+					
+				case Constants.DataTypes.MICROPHONE:
+					
+					Log.d(TAG, "sending supported microphone features to controller");
+					byte[] micFeatures = SupportedFeatures.getMicrophoneFeatures();
+					
+					if(micFeatures != null){
+						ResponsePacket rp = new ResponsePacket(packet.getTaskID(),
+								Constants.DataTypes.MICROPHONE, micFeatures);
+						ResponsePacket.sendResponse(rp, connection);
+					} else {
+						ResponsePacket.sendNotification(packet.getTaskID(), 
+								Constants.Notifications.SENSOR_NOT_SUPPORTED,
+								Constants.DataTypes.MICROPHONE, connection);
+					}
 					
 					break;
 					
@@ -229,23 +297,48 @@ public class SensorController {
 					Log.e(TAG, "supported features went to default case");
 					break;
 				}
+				
+				ResponsePacket.sendNotification(packet.getTaskID(),
+						Constants.Notifications.TASK_COMPLETE, connection);
 			}
+			
 		} else {
+			
 			Log.e(TAG, "no int parameters found in command");
+			ResponsePacket.sendNotification(packet.getTaskID(),
+					Constants.Notifications.TASK_ERRORED_OUT, connection);
 		}
+
 	}
 	
 	
 	
+	/**
+	 * Called if command to kill all processes is received from
+	 * the remote device.
+	 * @param taskID - the task ID of the kill all processes command,
+	 * which will be used to inform the remote device that this
+	 * kill command completed successfully
+	 */
+	private void killAllTasks(int taskID){
+		cancel();
+		ResponsePacket.sendNotification(taskID,
+				Constants.Notifications.TASK_COMPLETE, connection);
+	}
+	
+	
 	
 	/**
-	 * Cancel any currently running tasks
+	 * Cancels any currently running tasks,
+	 * and pauses the state of this controller
 	 */
 	public void cancel(){
-		if(imageCapture != null){ 
-			imageCapture.killTask();
-			imageCapture.releaseSensor(); 
-			imageCapture = null;
+		for(int i = 0; i < sensors.length; i++){
+			if(sensors[i] != null){ 
+				sensors[i].killTask();
+				sensors[i].releaseSensor(); 
+				sensors[i] = null;
+			}
 		}
 		commandQueue.clear();
 	}
@@ -254,19 +347,17 @@ public class SensorController {
 	
 	/**
 	 * Query for the availability of a given process.
-	 * Since all hardware on the android device can
-	 * only be used for one task at a time, the objects
-	 * representing the hardware can be directly referenced
-	 * in this class.
-	 * @param taskID - the id to check against the currently
-	 * running hardware processes.
-	 * @return true if the task ID is unique among running processes or it has
-	 * not yet been initialized, false if it matches the ID of an existing process.
+	 * @param service - the service to check against the currently
+	 * running hardware processes for availability
+	 * @return true if the service is available, false otherwise.
+	 * @see {@link Constants#Commands}
 	 */
 	public boolean isAvailableService(int service){
 		boolean result;
 		if(service == Constants.Commands.PICTURE){
-			result = isServiceAvailable(imageCapture);
+			result = isServiceAvailable(sensors[CAMERA_INDEX]);
+		} else if(service == Constants.Commands.RECORD_AUDIO){
+			result = isServiceAvailable(sensors[MICROPHONE_INDEX]);
 		} else {
 			result = true;
 		}
@@ -275,7 +366,12 @@ public class SensorController {
 	}
 
 	
-	
+	/**
+	 * Query for the state of a given sensor
+	 * @param sensor - the sensor to test for availability
+	 * @return true if the sensor is not null and either its current
+	 * task is complete or it has not started any tasks yet, false otherwise.
+	 */
 	private static boolean isServiceAvailable(GenericDeviceSensor sensor){
 		return sensor != null && (sensor.taskCompleted() || 
 				sensor.getTaskID() == Constants.Args.ARG_NONE);
@@ -289,10 +385,18 @@ public class SensorController {
 	 * @return the sensor which has a matching task ID to the one
 	 * given, or null if no sensor with the given task ID was found
 	 */
-	public GenericDeviceSensor getSensor(int taskID){
-		GenericDeviceSensor sensor = null;
-		if(imageCapture != null && imageCapture.getTaskID() == taskID){
-			sensor = imageCapture;
+	public GenericDeviceSensor getSensor(int sensorID){
+		GenericDeviceSensor sensor;
+		switch (sensorID){
+		case Constants.DataTypes.CAMERA:
+			sensor = sensors[CAMERA_INDEX];
+			break;
+			
+		case Constants.DataTypes.MICROPHONE:
+			sensor = sensors[MICROPHONE_INDEX];
+			break;
+		default:
+			sensor = null;
 		}
 		return sensor;
 	}
@@ -314,16 +418,6 @@ public class SensorController {
 	 */
 	public void setConnection(RemoteConnection connection){
 		this.connection = connection;
-	}
-	
-	
-	/**
-	 * Sets this sensorController's SurfaceHolder to give to
-	 * a camera sensor
-	 * @param holder - the holder to obtain a reference of
-	 */
-	public void setSurfaceHolderForCamera(SurfaceHolder holder){
-		this.holder = holder;
 	}
 	
 	
@@ -370,8 +464,10 @@ public class SensorController {
 
 	
 	/**
-	 * Decodes the given byte array into a {@link CommandPacket}
+	 * Decodes the given String buffer into a {@link CommandPacket}
 	 * object, and adds it to the queue of commands.
+	 * @param buffer - the String to parse one or more CommandPacket
+	 * objects from
 	 */
 	public void parseCommand(String buffer){
 		
@@ -384,25 +480,37 @@ public class SensorController {
 			for(int i = 0; i < packets.length; i++){
 				if(packets[i] != null && packets[i].isCompleteCommand()){
 					
+					// high priority packets get executed immediately
 					if(packets[i].hasHighPriority()){
 						Log.d(TAG, "executing high priority command:\n" + packets[i].toString());
 						execute(packets[i]);
+						
+						// low priority packets get placed in queue
 					} else {
 						Log.d(TAG, "queueing command:\n" + packets[i].toString());
 						commandQueue.add(packets[i]);
 					}
 					
-					
+					// packet is incomplete command, see if it is blank
 				} else if(packets[i] != null && !packets[i].isCompleteCommand()){
 					
-					Log.d(TAG, "partial command received");
-					// TODO: hold and wait to stitch
+					if(!packets[i].isBlankCommand()){
+						Log.d(TAG, "partial command received");
+						
+						// TODO: hold and wait to stitch
+						
+					} else {
+						Log.e(TAG, "blank command recieved, no action performed");
+					}
 					
 				} else {
 					Log.e(TAG, "command " + i + " could not be parsed");
-					notifyMain(Constants.Args.ARG_NONE);
 				}
 			}
+			
+		} else {
+			Log.d(TAG, "resulting packet is null, returning to main");
+			notifyMain("command not parsed, listening for new commands");
 		}
 	}
 
@@ -411,7 +519,8 @@ public class SensorController {
 	
 	/**
 	 * Executes the next command in sequence.
-	 * If the command is for a process that is already running,
+	 * If the command is for a process that is already running, this
+	 * method does nothing.
 	 */
 	public void executeNextCommand(){
 		
@@ -437,15 +546,24 @@ public class SensorController {
 			}
 		} else {
 			Log.d(TAG, "no more commands to execute in queue");
-			notifyMain(Constants.Args.ARG_NONE);
+			notifyMain("listening for commands");
 		}
 	}
 	
 	
-	private void notifyMain(int notifyType){
+	/**
+	 * Notification helper method - notifies the main activity.
+	 * This is used when both the sensors and the master cannot
+	 * update main and the responsibility for updating is left
+	 * to this class.
+	 * @param notifyType - the type of notification to send back to main
+	 */
+	private void notifyMain(String message){
 		Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-		intent.putExtra(RemoteControlActivity.EXTRA_TASK_ID, notifyType);
+		intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, message);
 		manager.sendBroadcast(intent);
 	}
+	
+
 	
 }

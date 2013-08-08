@@ -24,8 +24,8 @@ public class CommandPacket {
 	
 	private int command, taskID;
 	private String packetEnd;
+	private String[] parameters;
 	private int[] intParams;
-	private String[] stringParams;
 
 	/**
 	 * Constructor #3
@@ -38,23 +38,21 @@ public class CommandPacket {
 		this.taskID = Integer.parseInt(packet.get(Constants.Commands.TASK_ID_INDEX));
 		this.command = Integer.parseInt(packet.get(Constants.Commands.HEADER_INDEX));
 		this.packetEnd = packet.get(packet.size() - 1); // one over error
-		this.intParams = null;
-		this.stringParams = null;
+		this.parameters = null;
 
 		int pointer = Constants.Commands.PARAM_START_INDEX;
 		int paramLength = packet.size() - pointer - 1; // one over error
-		ArrayList<Integer> tempInts = new ArrayList<Integer>();
 		
 		if (paramLength > 0) {
-			this.stringParams = new String[paramLength];
+			parameters = new String[paramLength];
+			ArrayList<Integer> tempInts = new ArrayList<Integer>();
 			for (int i = 0; i < paramLength; i++) {
-				
-				stringParams[i] = packet.get(pointer);
+				parameters[i] = packet.get(pointer);
 				
 				try{
 					tempInts.add(Integer.parseInt(packet.get(pointer)));
-				} catch(NumberFormatException e){
-					Log.d(TAG, e.getMessage());
+				} catch (NumberFormatException e) {
+					// not a number
 				}
 				
 				pointer++;
@@ -63,7 +61,7 @@ public class CommandPacket {
 			if(!tempInts.isEmpty()){
 				intParams = new int[tempInts.size()];
 				for(int i = 0; i < intParams.length; i++){
-					intParams[i] = tempInts.get(i).intValue();
+					intParams[i] = tempInts.get(i);
 				}
 			}
 		}
@@ -92,12 +90,46 @@ public class CommandPacket {
 
 	
 	/**
-	 * Query for the command packet's int parameter arguments.
-	 * @return the int parameters of this command packet if it has any,
-	 * or null if there are no int parameters or this is a partial packet.
+	 * Retrieves the int value of the specified index
+	 * from this packet's integer parameters, if it has any
+	 * @param index - the index to return the value of
+	 * @return the value at the specified index of this packet's
+	 * integer parameters or {@link ARG_NONE} if there are no
+	 * integer parameters or the index is out of range
+	 * @see {@link Constants#Args}
 	 */
-	public int[] getIntParameters() {
-		return intParams;
+	public int getInt(int index){
+		int result = Constants.Args.ARG_NONE;
+		if(intParams != null){
+			try {
+				result = intParams[index];
+			} catch (ArrayIndexOutOfBoundsException e){
+				Log.e(TAG, "index is not in range for params: " + index);
+			}
+		}
+		return result;
+	}
+	
+	
+	/**
+	 * Retrieves the String value of the specified index
+	 * from this packet's String parameters, if it has any
+	 * @param index - the index to return the value of
+	 * @return the value at the specified index of this packet's
+	 * String parameters or {@link ARG_STRING_NONE} if there are no
+	 * String parameters or the index is out of range
+	 * @see {@link Constants#Args}
+	 */
+	public String getString(int index){
+		String result = Constants.Args.ARG_STRING_NONE;
+		if(parameters != null){
+			try {
+				result = parameters[index];
+			} catch (ArrayIndexOutOfBoundsException e){
+				Log.e(TAG, "index is not in range for params: " + index);
+			}
+		}
+		return result;
 	}
 	
 	
@@ -107,27 +139,37 @@ public class CommandPacket {
 	 * or null if there are no String parameters or this is a partial packet.
 	 */
 	public String[] getStringParameters(){
-		return stringParams;
+		return parameters;
 	}
-
+	
 	
 	/**
-	 * Query for the state of the int parameters of this command packet
-	 * @return true if it has int parameters, false otherwise
+	 * Query for the command packet's integer parameter arguments.
+	 * @return the String parameters of this command packet if it has any,
+	 * or null if there are no integer parameters or this is a partial packet.
 	 */
-	public boolean hasExtraIntParameters() {
-		return intParams != null;
+	public int[] getIntParameters(){
+		return intParams;
 	}
-	
-	
+
+
 	/**
 	 * Query for the state of the String parameters of this command
 	 * @return true if it has string parameters, false otherwise
 	 */
 	public boolean hasExtraStringParameters(){
-		return stringParams != null;
+		return parameters != null;
 	}
 
+	
+	/**
+	 * Query for the state of the integer parameters of this command
+	 * @return true if it has integer parameters, false otherwise
+	 */
+	public boolean hasExtraIntParameters(){
+		return intParams != null;
+	}
+	
 	
 	/**
 	 * Query for this command packet's main motive
@@ -166,7 +208,13 @@ public class CommandPacket {
 	 * false if this is a partial packet
 	 */
 	public boolean isCompleteCommand() {
-		return packetEnd.equals(FULL_PACKET_IDENTIFIER);
+		return packetEnd.equals(FULL_PACKET_IDENTIFIER) 
+				&& command != Constants.Commands.NO_COMMAND;
+	}
+	
+	
+	public boolean isBlankCommand(){
+		return command == Constants.Commands.NO_COMMAND;
 	}
 	
 	
@@ -185,7 +233,6 @@ public class CommandPacket {
 	
 
 
-
 	/**
 	 * Parses an array of {@link CommandPacket} objects from the given
 	 * String buffer. This invocation assumes that the given String
@@ -201,7 +248,7 @@ public class CommandPacket {
 		CommandPacket[] packets = null;
 		try{
 			ArrayList<ArrayList<String>> decodedPackets = decode(buffer, 
-							Constants.PACKET_DELIMITER, Constants.PACKET_END);
+							Constants.Delimiters.PACKET_DELIMITER, Constants.Delimiters.PACKET_END);
 
 			if(!decodedPackets.isEmpty()){
 				packets = new CommandPacket[decodedPackets.size()];
@@ -218,7 +265,7 @@ public class CommandPacket {
 			}
 			
 		} catch(NumberFormatException e){
-			Log.d(TAG, "packets could not be parsed due to incorrect argument : " + buffer);
+			Log.e(TAG, "packets could not be parsed due to incorrect formatting:\n" + buffer);
 		}
 		return packets;
 	}
@@ -254,11 +301,11 @@ public class CommandPacket {
 		
 		for (int i = 0; i < buffer.length(); i++) {
 			
-			if (buffer.charAt(i) == Constants.PACKET_DELIMITER) {
+			if (buffer.charAt(i) == Constants.Delimiters.PACKET_DELIMITER) {
 				
 				String temp = buffer.substring(subPacketPointer, i);
 				
-				if(temp.equals(Constants.PACKET_END)){
+				if(temp.equals(Constants.Delimiters.PACKET_END)){
 					subPacket.add(FULL_PACKET_IDENTIFIER);
 					packetList.add(subPacket);
 					subPacket = new ArrayList<String>();
@@ -285,22 +332,12 @@ public class CommandPacket {
 		builder.append(command);
 		builder.append('\n');
 		
-		builder.append("int parameters: {");
-		if(intParams != null){
-			builder.append(intParams[0]);
-			for(int i = 1; i < intParams.length; i++){
+		builder.append("parameters: {");
+		if(parameters != null){
+			builder.append(parameters[0]);
+			for(int i = 1; i < parameters.length; i++){
 				builder.append(", ");
-				builder.append(intParams[i]);
-			}
-		}
-		builder.append("}\n");
-		
-		builder.append("string parameters: {");
-		if(intParams != null){
-			builder.append(stringParams[0]);
-			for(int i = 1; i < stringParams.length; i++){
-				builder.append(", ");
-				builder.append(stringParams[i]);
+				builder.append(parameters[i]);
 			}
 		}
 		builder.append("}\n");
@@ -309,4 +346,5 @@ public class CommandPacket {
 		builder.append(isCompleteCommand());
 		return builder.toString();
 	}
+	
 }

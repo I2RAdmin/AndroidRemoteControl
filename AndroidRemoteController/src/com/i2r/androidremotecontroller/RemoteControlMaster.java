@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -48,19 +49,32 @@ public class RemoteControlMaster {
 		this.sensorController = sensors;
 		this.started = false;
 	
+		// figure out what type of connection the user chose
 		
+		// BLUETOOTH
 		if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_BLUETOOTH)){
 			
 			createBluetoothRemoteConnection(BluetoothAdapter.getDefaultAdapter());
 			
+			// WIFI
 		} else if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_WIFI)){
 			
-			createWifiDirectRemoteConnection((WifiP2pManager) 
-					sensors.getRelativeActivity().getSystemService(Activity.WIFI_P2P_SERVICE));
+			WifiP2pManager wifi = (WifiP2pManager) sensors.getRelativeActivity()
+										.getSystemService(Activity.WIFI_P2P_SERVICE);
 			
+			createWifiDirectRemoteConnection(wifi);
+			
+			// USB
 		} else if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_USB)){
 			
-			createUsbRemoteConnection();
+			UsbManager usb = (UsbManager) sensors.getRelativeActivity()
+					.getSystemService(Activity.USB_SERVICE);
+			
+			createUsbRemoteConnection(usb);
+			
+		} else {
+			throw new ServiceNotFoundException
+				("given connection type is not defined in this application");
 		}
 	}
 	
@@ -115,7 +129,7 @@ public class RemoteControlMaster {
 	 * should block until either this application is stopped or
 	 * a USB is connected.
 	 */
-	private void createUsbRemoteConnection(){
+	private void createUsbRemoteConnection(UsbManager manager){
 		// TODO: implement USB
 	}
 	

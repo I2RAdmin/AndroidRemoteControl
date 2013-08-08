@@ -11,6 +11,12 @@ import android.util.Log;
 
 import com.i2r.androidremotecontroller.RemoteControlActivity;
 
+/**
+ * This class models a generic connection with a controller device.
+ * The connection should be established prior to creating an instance
+ * of this class, so that this class can handle the bulk of communication.
+ * @author Josh Noel
+ */
 public class GenericRemoteConnection implements RemoteConnection {
 
 	private static final int BUFFER_SIZE = 1024;
@@ -52,7 +58,8 @@ public class GenericRemoteConnection implements RemoteConnection {
 				connected = false;
 				Log.d(TAG, "connection closed by remote device");
 				Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
-				intent.putExtra(RemoteControlActivity.EXTRA_CONNECTION_STATUS, false);
+				intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, 
+						"connection closed by remote device, listening for connection...");
 				manager.sendBroadcast(intent);
 			}
 		}
@@ -88,5 +95,16 @@ public class GenericRemoteConnection implements RemoteConnection {
 	public Context getContext(){
 		return context;
 	}
+
+	@Override
+	public InputStream getInputStream() {
+		return input;
+	}
+
+	@Override
+	public OutputStream getOutputStream() {
+		return output;
+	}
+	
 	
 }
