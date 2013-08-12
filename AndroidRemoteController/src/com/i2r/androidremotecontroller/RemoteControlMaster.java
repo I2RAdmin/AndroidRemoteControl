@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -18,9 +19,9 @@ import android.util.Log;
 import com.i2r.androidremotecontroller.connections.BluetoothLink;
 import com.i2r.androidremotecontroller.connections.ConnectionManager;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.connections.UsbLink;
 import com.i2r.androidremotecontroller.connections.WifiDirectLink;
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
-import com.i2r.androidremotecontroller.sensors.CommandFilter;
 
 /**
  * This class models the master to pivot all sub-operations of this
@@ -53,23 +54,18 @@ public class RemoteControlMaster {
 		
 		// BLUETOOTH
 		if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_BLUETOOTH)){
-			
 			createBluetoothRemoteConnection(BluetoothAdapter.getDefaultAdapter());
 			
 			// WIFI
 		} else if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_WIFI)){
-			
-			WifiP2pManager wifi = (WifiP2pManager) filter.getRelativeActivity()
+			WifiP2pManager wifi = (WifiP2pManager) filter.getActivity()
 										.getSystemService(Activity.WIFI_P2P_SERVICE);
-			
 			createWifiDirectRemoteConnection(wifi);
 			
 			// USB
 		} else if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_USB)){
-			
-			UsbManager usb = (UsbManager) filter.getRelativeActivity()
+			UsbManager usb = (UsbManager) filter.getActivity()
 					.getSystemService(Activity.USB_SERVICE);
-			
 			createUsbRemoteConnection(usb);
 			
 		} else {
@@ -89,14 +85,14 @@ public class RemoteControlMaster {
 
 			// create a WifiDirectLink to pass to this ConnectionManager
 			WifiDirectLink linker = new WifiDirectLink(
-						filter.getRelativeActivity(),
+						filter.getActivity(),
 						ConnectionManager.CONNECTION_TYPE_SERVER, manager);
 				
 			// create a new ConnectionManager
 			this.connectionManager = new ConnectionManager<WifiP2pDevice>(linker,
-						ConnectionManager.CONNECTION_TYPE_SERVER, filter.getRelativeActivity());
+						ConnectionManager.CONNECTION_TYPE_SERVER, filter.getActivity());
 				
-			Log.d(TAG, "connection manager created");
+			Log.d(TAG, "connection manager created with WifiLink");
 
 	}
 	
@@ -113,13 +109,13 @@ public class RemoteControlMaster {
 		// create a BluetoothLink to pass to this ConnectionManager
 		BluetoothLink linker = new BluetoothLink(adapter,
 				UUID.fromString(Constants.Info.UUID),
-				Constants.Info.SERVICE_NAME, filter.getRelativeActivity());
+				Constants.Info.SERVICE_NAME, filter.getActivity());
 			
 		// create a new ConnectionManager
 		this.connectionManager = new ConnectionManager<BluetoothDevice>(linker,
-				ConnectionManager.CONNECTION_TYPE_SERVER, filter.getRelativeActivity());
+				ConnectionManager.CONNECTION_TYPE_SERVER, filter.getActivity());
 			
-		Log.d(TAG, "connection manager created");
+		Log.d(TAG, "connection manager created with BluetoothLink");
 	}
 	
 	
@@ -129,14 +125,19 @@ public class RemoteControlMaster {
 	 * should block until either this application is stopped or
 	 * a USB is connected.
 	 */
-	private void createUsbRemoteConnection(UsbManager manager){
-		// TODO: implement USB
+	private void createUsbRemoteConnection(UsbManager manager) throws ServiceNotFoundException {
+		UsbLink linker = new UsbLink(filter.getActivity());
+		
+		this.connectionManager = new ConnectionManager<UsbDevice>(linker, 
+				ConnectionManager.CONNECTION_TYPE_SERVER, filter.getActivity());
+		
+		Log.d(TAG, "connection manager created with USB link");
 	}
 	
 	
 	
 	/**
-	 * Initializer used by the main activity
+	 * Initializer used by {@link RemoteControlActivity}
 	 */
 	public void start(){
 		this.started = true;
@@ -148,7 +149,8 @@ public class RemoteControlMaster {
 	
 	
 	/**
-	 * Used by the main activity to stop this application
+	 * Used by {@link RemoteControlActivity} to halt all
+	 * master processes for this application.
 	 */
 	public void stop(){
 		Log.d(TAG, "master stopped");
@@ -167,8 +169,11 @@ public class RemoteControlMaster {
 	
 	
 	/**
-	 *  if the command manager has not been created due to no available
-	 *  RemoteConnection, then create a new CommandManager
+	 *  Updates the connection status of this master.
+	 *  If this class's {@link ConnectionManager} has
+	 *  a connection, pass it on to this class's {@link CommandFilter}.
+	 *  Else, open a socket to accept connections from the
+	 *  remote controller.
 	 */
 	public void initializeConnection(){
 		
@@ -195,9 +200,11 @@ public class RemoteControlMaster {
 	
 	
 	/**
-	 * Any sensor updates or new command reads are thrown to the
-	 * main activity which then waterfalls down to this method to
-	 * update the command manager. 
+	 * This is called whenever a {@link RemoteConnection} successfully
+	 * reads data from the connection stream, and sends it to this application's
+	 * {@link RemoteControlActivity} via broadcast. The activity then calls
+	 * this method with the command string that was given to it by the connection
+	 * which did the initial reading.
 	 */
 	public synchronized void updateByRemoteControl(String command){	
 
@@ -219,7 +226,7 @@ public class RemoteControlMaster {
 			// alert the System to scan for new files are on the SD card
 			File file = new File(Environment.getExternalStoragePublicDirectory(
 				    Environment.DIRECTORY_PICTURES).getAbsolutePath());
-				filter.getRelativeActivity()
+				filter.getActivity()
 				.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, 
 				    Uri.parse("file://"+ file)));
 		}
@@ -229,8 +236,9 @@ public class RemoteControlMaster {
 	/**
 	 * Updates this master's {@link CommandFilter} by trying
 	 * to execute the next command in its command queue. This
-	 * method is meant to be called when a sensor sends a broadcast
-	 * back to main to notify that it has completed its task.
+	 * method is meant to be called when a
+	 * {@link RemoteControlActivity#ACTION_TASK_COMPLETE}
+	 * broadcast is received in the main activity.
 	 */
 	public synchronized void updateSensors(){
 		

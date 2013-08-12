@@ -7,15 +7,13 @@ import ARC.Constants.Args;
 import android.util.Log;
 
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
-import com.i2r.androidremotecontroller.sensors.CommandFilter;
 
 
 /**
  * This class models a container for the commands parsed
  * from this application's {@link RemoteConnection} byte[] results.
- * A command cannot be created, but must be parsed with the
- * static method defined in this class:<br>
- * {@link #parsePackets(String)}<br>
+ * A command cannot be created, but instead must be parsed with the
+ * static method <br>{@link #parsePackets(String)} defined in this class.
  * @author Josh Noel
  */
 public class CommandPacket {
@@ -23,23 +21,23 @@ public class CommandPacket {
 	public static final int MAX_ALLOWED_SIZE = 10240;
 	public static final String TAG = "CommandPacket";
 	
-	private static final String FULL_PACKET_IDENTIFIER = "FULL_PACKET";
-	
 	private int command, taskID;
 	private String packetEnd;
 	private String[] parameters;
 	private int[] intParams;
 
 	/**
-	 * Constructor #3
-	 * Assumes the given StringBuilder is already
-	 * a full command packet, and decodes it
+	 * Constructor<br>
+	 * Derives the given ArrayList of strings into meaningful
+	 * information about this command.
 	 * @param packet - the StringBuilder object to decode
+	 * @throws NumberFormatException if a command int and task ID int could not
+	 * be parsed from the given ArrayList
 	 */
-	private CommandPacket(ArrayList<String> packet) {
+	private CommandPacket(ArrayList<String> packet) throws NumberFormatException {
 		
 		this.taskID = Integer.parseInt(packet.get(Constants.Commands.TASK_ID_INDEX));
-		this.command = Integer.parseInt(packet.get(Constants.Commands.HEADER_INDEX));
+		this.command = Integer.parseInt(packet.get(Constants.Commands.COMMAND_INDEX));
 		this.packetEnd = packet.get(packet.size() - 1); // one over error
 		this.parameters = null;
 
@@ -78,6 +76,7 @@ public class CommandPacket {
 	 * its main objective is.
 	 * @return the header of this command packet if it is a complete command,
 	 * or {@link Args#ARG_NONE} if this is a partial packet.
+	 * @see {@link Constants#Commands}
 	 */
 	public int getCommand() {
 		return command;
@@ -86,8 +85,7 @@ public class CommandPacket {
 	
 	/**
 	 * Query for the command packet's task ID, given by the remote PC.
-	 * @return the task ID of this command packet if it is a complete command,
-	 * or {@link Args#ARG_NONE} if this is a partial packet.
+	 * @return the task ID of this command packet.
 	 */
 	public int getTaskID() {
 		return taskID;
@@ -174,37 +172,6 @@ public class CommandPacket {
 	public boolean hasExtraIntParameters(){
 		return intParams != null;
 	}
-	
-	
-	/**
-	 * Query for this command packet's main motive
-	 * @return true if the main motive is to kill by ID
-	 * false otherwise
-	 */
-	public boolean isKillByID() {
-		return command == Constants.Commands.KILL;
-	}
-
-	
-	/**
-	 * Query for this command packet's main motive
-	 * @return true if the main motive is to kill all processes
-	 * false otherwise
-	 */
-	public boolean isKillAll() {
-		return command == Constants.Commands.KILL_EVERYTHING;
-	}
-
-	
-	/**
-	 * Query for this command packet's main motive for task killing
-	 * @param id - the ID to compare to this command's kill motive
-	 * @return true if the main motive is to kill the ID given
-	 * false otherwise
-	 */
-	public boolean isKillThis(int id) {
-		return isKillByID() && getInt(0) == id;
-	}
 
 	
 	/**
@@ -213,7 +180,7 @@ public class CommandPacket {
 	 * false if this is a partial packet
 	 */
 	public boolean isCompleteCommand() {
-		return packetEnd.equals(FULL_PACKET_IDENTIFIER) 
+		return packetEnd.equals(Constants.Delimiters.PACKET_END) 
 				&& command != Constants.Commands.NO_COMMAND;
 	}
 	
@@ -222,7 +189,7 @@ public class CommandPacket {
 	 * Query for the state of this packet
 	 * @return true if this is a blank command
 	 * that should not be executed, false if this
-	 * command is valid
+	 * command is not blank
 	 */
 	public boolean isBlankCommand(){
 		return command == Constants.Commands.NO_COMMAND;
@@ -236,17 +203,9 @@ public class CommandPacket {
 	 * {@link Constants#Commands}, false otherwise.
 	 */
 	public boolean hasHighPriority(){
-		return command == Constants.Commands.KILL ||
-				command == Constants.Commands.MODIFY ||
-				command == Constants.Commands.KILL_EVERYTHING ||
-				command == Constants.Commands.SUPPORTED_FEATURES;
+		return command < 0;
 	}
 
-	
-	
-	public void execute(CommandFilter controller) {
-		
-	}
 	
 
 	/**
@@ -271,7 +230,11 @@ public class CommandPacket {
 				for(int i = 0; i < packets.length; i++){
 					ArrayList<String> sub = decodedPackets.get(i);
 					if(!sub.isEmpty()){
-						packets[i] = new CommandPacket(sub);
+						try{
+							packets[i] = new CommandPacket(sub);
+						} catch(NumberFormatException e){
+							Log.e(TAG, "sub packet not formatted correctly");
+						}
 					} else {
 						Log.e(TAG, "sub packet is empty");
 					}
@@ -309,7 +272,8 @@ public class CommandPacket {
 	 * @return an ArrayList of ArrayLists of Integers. The latter ArrayList can be seen
 	 * as an individual CommandPacket, while the former ArrayList is a container of packets.
 	 */
-	public static ArrayList<ArrayList<String>> decode(String buffer, char delimiter, String fullPacketIdentifier) {
+	private static ArrayList<ArrayList<String>> decode(String buffer,
+							char delimiter, String fullPacketIdentifier) {
 		
 		ArrayList<ArrayList<String>> packetList = new ArrayList<ArrayList<String>>();
 		ArrayList<String> subPacket = new ArrayList<String>();
@@ -321,13 +285,12 @@ public class CommandPacket {
 				
 				String temp = buffer.substring(subPacketPointer, i);
 				
+				subPacket.add(temp);
+				
 				if(temp.equals(Constants.Delimiters.PACKET_END)){
-					subPacket.add(FULL_PACKET_IDENTIFIER);
 					packetList.add(subPacket);
 					subPacket = new ArrayList<String>();
-				} else {
-					subPacket.add(temp);
-				}
+				} 
 				
 				subPacketPointer = i + 1;
 			}
@@ -336,9 +299,13 @@ public class CommandPacket {
 		
 		return packetList;
 	}
-
-
 	
+
+
+	/**
+	 * Returns all the values of this
+	 * CommandPacket, in the form "key: value\n"
+	 */
 	public String toString(){
 		StringBuilder builder = new StringBuilder();
 		builder.append("task ID: ");

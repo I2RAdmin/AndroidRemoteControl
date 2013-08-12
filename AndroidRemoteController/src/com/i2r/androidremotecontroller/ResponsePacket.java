@@ -1,14 +1,16 @@
 package com.i2r.androidremotecontroller;
 
-import ARC.Constants;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
+import ARC.Constants;
 import android.util.Log;
 
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
 
 /**
  * This class models a response that the android device can build
- * and send across a {@link RemoteConnection} to a controlling PC.
+ * and send across a {@link RemoteConnection} to a controlling PC.<br>
  * NOTE: this object is blind to its parameters, as they can vary
  * greatly. Be sure to use the {@link Constants} class when defining
  * a new ResponsePacket.
@@ -26,6 +28,13 @@ public class ResponsePacket {
 	private byte[] data;
 	
 	
+	/**
+	 * Construct a new blank ResponsePacket.<br>
+	 * NOTE: blank response packets are considered invalid.
+	 * A response will only be sent across a connection
+	 * when it is considered valid.
+	 * @see {@link ResponsePacket#isValid()}
+	 */
 	public ResponsePacket(){
 		this.header = Constants.Args.ARG_CHAR_NONE;
 		this.footer = Constants.Args.ARG_CHAR_NONE;
@@ -35,6 +44,19 @@ public class ResponsePacket {
 	}
 	
 	
+	/**
+	 * Construct a new valid ResponsePacket that can
+	 * be written to a connection stream with
+	 * {@link ResponsePacket#sendResponse(ResponsePacket, RemoteConnection)}.<br>
+	 * NOTE: in order for this response packet to be valid, none of
+	 * the following parameters can be null.
+	 * @param taskID - the task id for the result data in this response.
+	 * Task IDs for data are supplied via the remote control PC.
+	 * @param dataType - the type of data being sent. This is
+	 * to inform the remote control PC what kind of data it is about to receive.
+	 * @param data - the actual data being sent
+	 * 
+	 */
 	public ResponsePacket(int taskID, int dataType, byte[] data){
 		this.header = Constants.Args.ARG_CHAR_NONE;
 		this.footer = Constants.Args.ARG_CHAR_NONE;
@@ -136,12 +158,12 @@ public class ResponsePacket {
 	
 	
 	public boolean hasHeader(){
-		return header != Constants.Args.ARG_NONE;
+		return header != Constants.Args.ARG_CHAR_NONE;
 	}
 	
 	
 	public boolean hasFooter(){
-		return footer != Constants.Args.ARG_NONE;
+		return footer != Constants.Args.ARG_CHAR_NONE;
 	}
 	
 	
@@ -179,7 +201,12 @@ public class ResponsePacket {
 	}
 	
 	
-	public String toString(boolean showData){
+	public String toStringWithData(){
+		return toString(SHOW_DATA);
+	}
+	
+	
+	private String toString(boolean showData){
 		StringBuilder builder = new StringBuilder();
 		builder.append("header: ");
 		builder.append(header);
@@ -219,7 +246,7 @@ public class ResponsePacket {
 	 */
 	public static synchronized boolean sendNotification(int taskID, 
 								String notification, RemoteConnection connection){
-		return sendNotification(taskID, notification, Constants.Args.ARG_NONE, connection);
+		return sendNotification(taskID, notification, Constants.Args.ARG_STRING_NONE, connection);
 	}
 	
 	
@@ -245,8 +272,8 @@ public class ResponsePacket {
 	 * for details on this method.
 	 */
 	public static synchronized boolean sendNotification(int taskID, char notification, 
-												int extraData, RemoteConnection connection){
-		return sendNotification(taskID, Character.toString(notification), extraData, connection);
+												String message, RemoteConnection connection){
+		return sendNotification(taskID, Character.toString(notification), message, connection);
 	}
 	
 	
@@ -265,13 +292,13 @@ public class ResponsePacket {
 	 * @see {@link Constants#Notifications}
 	 */
 	public static synchronized boolean sendNotification(int taskID, String notification, 
-											int extraType, RemoteConnection connection){
+											String message, RemoteConnection connection){
 		ResponsePacket packet;
-		if(extraType != Constants.Args.ARG_NONE){
+		if(!message.equals(Constants.Args.ARG_STRING_NONE)){
 			StringBuilder builder = new StringBuilder();
 			builder.append(notification);
 			builder.append(Constants.Delimiters.PACKET_DELIMITER);
-			builder.append(extraType);
+			builder.append(message);
 			builder.append(Constants.Delimiters.PACKET_DELIMITER);
 			packet = new ResponsePacket(taskID, Constants.DataTypes.NOTIFY, 
 					builder.toString().getBytes());
@@ -297,6 +324,7 @@ public class ResponsePacket {
 		if(packet != null && packet.isValid() && connection != null && connection.isConnected()){
 			result = packet.encode();
 			if(result != null){
+				Log.d(TAG, "sending response:\n" + packet.toStringWithData());
 				connection.write(result);
 			} else {
 				Log.e(TAG, "could not send response because encodedPacket returned null");
@@ -334,30 +362,36 @@ public class ResponsePacket {
 		
 		byte[] result = null;
 		
+		// make sure data is valid before it is sent
 		if(packet.isValid()){
 			
-			StringBuilder buffer = new StringBuilder();
-				
-			if(packet.hasHeader()){
-				buffer.append(packet.header);
-				buffer.append(delimiter);
+			try {
+				ByteArrayOutputStream stream = new ByteArrayOutputStream();
+
+				if (packet.hasHeader()) {
+					stream.write(packet.header);
+					stream.write(delimiter);
+				}
+
+				stream.write(String.valueOf(packet.taskID).getBytes());
+				stream.write(delimiter);
+				stream.write(String.valueOf(packet.dataType).getBytes());
+				stream.write(delimiter);
+				stream.write(String.valueOf(packet.data.length).getBytes());
+				stream.write(delimiter);
+
+				stream.write(packet.data);
+
+				if (packet.hasFooter()) {
+					stream.write(packet.footer);
+					stream.write(delimiter);
+				}
+
+				result = stream.toByteArray();
+
+			} catch (IOException e) {
+				Log.e(TAG, "error while creating byte encoded packet: " + e.getMessage());
 			}
-			
-			buffer.append(packet.taskID);
-			buffer.append(delimiter);
-			buffer.append(packet.dataType);
-			buffer.append(delimiter);
-			buffer.append(packet.data.length);
-			buffer.append(delimiter);
-			buffer.append(packet.data);
-			
-			
-			if(packet.hasFooter()){
-				buffer.append(packet.footer);
-				buffer.append(delimiter);
-			}
-			
-			result = buffer.toString().getBytes();
 
 		} else {
 			Log.e(TAG, "error - response is not well formed and could not be transposed to a byte array result");

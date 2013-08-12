@@ -18,15 +18,47 @@ import android.widget.Toast;
 
 
 /**
- * TODO: comment this class
+ * This class models an activity where the user can
+ * select what type of connection they would like to
+ * use (i.e., bluetooth, usb, wifi, etc) to communicate
+ * with the controlling PC for this application. Once
+ * a connection type has been confirmed by the user,
+ * control of this application is passed over to
+ * the {@link RemoteControlActivity} class.
+ * 
  * @author Josh Noel
  */
 public class ConnectionTypeSelectionActivity extends Activity implements DialogInterface.OnClickListener {
 	
+	/**
+	 * Used to specify in an Intent that the result
+	 * of this extra will be one of the following:<br>
+	 * {@link #EXTRA_BLUETOOTH}, {@link #EXTRA_USB},
+	 * {@link #EXTRA_WIFI}
+	 */
 	public static final String EXTRA_CONNECTION_TYPE = "i2r_extra_connection_type";
+	
+	/**
+	 * Used to pass as an argument for {@link #EXTRA_CONNECTION_TYPE}
+	 * in the {@link Intent} that starts this application's
+	 * {@link RemoteControlActivity}
+	 */
 	public static final String EXTRA_WIFI = "Wifi";
+	
+	/**
+	 * Used to pass as an argument for {@link #EXTRA_CONNECTION_TYPE}
+	 * in the {@link Intent} that starts this application's
+	 * {@link RemoteControlActivity}
+	 */
 	public static final String EXTRA_BLUETOOTH = "Bluetooth";
+	
+	/**
+	 * Used to pass as an argument for {@link #EXTRA_CONNECTION_TYPE}
+	 * in the {@link Intent} that starts this application's
+	 * {@link RemoteControlActivity}
+	 */
 	public static final String EXTRA_USB = "USB";
+	
 	
 	private static final String TAG = "ConnectionActivity";
 	private static final String EXIT = "Exit";
@@ -110,9 +142,9 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 		case USB_CODE:
 			
 			if(resultCode == RESULT_OK){
-				
+				// TODO: respond to USB activity result success
 			} else {
-				
+				// TODO: respond to USB activity result failure
 			}
 			
 			break;
@@ -120,17 +152,15 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 		case WIFI_CODE:
 			
 			if(resultCode == RESULT_OK){
-				
+				// TODO: respond to wifi activity result success
 			} else {
-				
+				// TODO: respond to wifi activity result failure
 			}
 			
 			break;
 			
 			default:
-				
 				// TODO: make default
-				
 				break;
 		}
 	}
@@ -167,7 +197,11 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	 * would like to start the application with, using
 	 * a Dialog Box with "OK" and "Cancel" options.
 	 * @param selection - the connection type selection
-	 * to confirm for use
+	 * to confirm for use.
+	 * @see {@link #EXTRA_BLUETOOTH}
+	 * @see {@link #EXTRA_USB}
+	 * @see {@link #EXTRA_WIFI}
+	 * @see {@link #EXTRA_CONNECTION_TYPE}
 	 */
 	private void ensureSelection(String selection){
 		

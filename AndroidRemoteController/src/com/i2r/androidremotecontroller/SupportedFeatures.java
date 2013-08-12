@@ -8,10 +8,8 @@ import java.util.List;
 import ARC.Constants;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
-import android.hardware.Camera.Size;
-import android.media.MediaRecorder.AudioEncoder;
+import android.media.AudioFormat;
 import android.media.MediaRecorder.AudioSource;
-import android.media.MediaRecorder.OutputFormat;
 
 /**
  * This class defines a static way to obtain all the information that the
@@ -49,6 +47,7 @@ public final class SupportedFeatures {
 	 * @author Josh Noel
 	 */
 	public static final class CameraKeys {
+		
 		// conversion arrays - these are used so the formats make sense
 		// to the controller PC as well as the user
 		public static final String[] STRING_IMAGE_FORMATS = {
@@ -105,8 +104,6 @@ public final class SupportedFeatures {
 	    public static final String VIDEO_STABILIZATION = "video-stabilization";
 		
 		
-		
-		
 		// ranges
 		public static final String EXPOSURE_COMPENSATION = "exposure-compensation";
 		public static final String JPEG_QUALITY = "jpeg-quality";
@@ -157,31 +154,21 @@ public final class SupportedFeatures {
 	 */
 	public static final class AudioKeys {
 		
-		public static final String ENCODER = "audio-encoding";
+		public static final String ENCODING = "audio-encoding";
 		public static final String SOURCE = "audio-source";
 		public static final String CHANNEL = "audio-channel";
-		public static final String OUTPUT_FORMAT = "audio-output-format";
-		public static final String ENCODING_BIT_RATE = "audio-encoding-bit-rate";
 		public static final String SAMPLING_RATE = "audio-sampling-rate";
-		public static final String GPS_LONGITUDE = "audio-gps-longitude";
-		public static final String GPS_LATTITUDE = "audio-gps-lattitude";
-		public static final String MAX_DURATION = "audio-max-duration";
-		public static final String MAX_FILE_SIZE = "audio-max-file-size";
-		
+		public static final String RECORD_DURATION = "recording-duration";
 		
 		// ENCODING OPTIONS
 		
 		public static final int[] INTEGER_ENCODINGS = {
-			AudioEncoder.AAC, AudioEncoder.AAC_ELD,
-			AudioEncoder.AMR_NB, AudioEncoder.AMR_WB,
-			AudioEncoder.HE_AAC, AudioEncoder.DEFAULT 
+			AudioFormat.ENCODING_PCM_16BIT, AudioFormat.ENCODING_PCM_8BIT
 		};
 		
 		public static final String[] STRING_ENCODINGS = {
-			"aac", "aac-eld", "amr-narrow-band",
-			"amr-wide-band", "high-efficiency-aac", "default"
+			"encoding-pcm-16-bit", "encoding-pcm-8-bit"
 		};
-		
 		
 		// RECORDING TYPE OPTIONS
 		
@@ -199,21 +186,26 @@ public final class SupportedFeatures {
 		};
 		
 		
-		// OUTPUT FORMAT OPTIONS
-		
-		public static final int[] INTEGER_OUTPUT_FORMATS = {
-			OutputFormat.AAC_ADTS, OutputFormat.AMR_NB,
-			OutputFormat.AMR_WB, OutputFormat.MPEG_4,
-			OutputFormat.THREE_GPP, OutputFormat.DEFAULT
+		public static final int[] INTEGER_CHANNELS = {
+			AudioFormat.CHANNEL_IN_MONO, AudioFormat.CHANNEL_IN_STEREO
 		};
 		
 		
-		public static final String[] STRING_OUTPUT_FORMATS = {
-			"aac-adts", "amr-narrow-band", "amr-wide-band", 
-			"mpeg-4", "3-gpp", "default"
+		public static final String[] STRING_CHANNELS = {
+			"mono", "stereo"
 		};
+		
+		
+		public static final String[] BIT_RATE_SAMPLES = {
+			"44100", "22050", "16000", "11025"
+		};
+		
 	}
 
+	// common constants to all supported features
+	
+	public static final String KEY_SAVE_TO_SD = "save-to-sd";
+	public static final String KEY_CONTINUE_ON_CONNECTION_LOST = "continue-on-connection-lost";
 	
 	public static final String TRUE = "true";
 	public static final String FALSE = "false";
@@ -392,35 +384,29 @@ public final class SupportedFeatures {
 					Constants.DataTypes.INTEGER, rotations));
 			
 			
+//			List<Size> sizes = params.getSupportedPictureSizes();
+//			builder.append(encodeCameraSpecialObject(params, 
+//					CameraKeys.PICTURE_SIZE, sizes.size(), 
+//					CameraKeys.SIZE_DELIMITER));
+
+		
 			
-			List<Size> sizes = params.getSupportedPictureSizes();
-			builder.append(encodeCameraSpecialObject(params, 
-					CameraKeys.PICTURE_SIZE, sizes.size(), 
-					CameraKeys.SIZE_DELIMITER));
+//			List<Size> thumbnail = params.getSupportedJpegThumbnailSizes();
+//			builder.append(encodeCameraSpecialObject(params, 
+//					CameraKeys.JPEG_THUMBNAIL_SIZE, thumbnail.size(),
+//					CameraKeys.SIZE_DELIMITER));
 
 			
+//			List<int[]> fpsRanges = params.getSupportedPreviewFpsRange();
+//			builder.append(encodeCameraSpecialObject(params, 
+//					CameraKeys.PREVIEW_FPS_RANGE, fpsRanges.size(), 
+//					CameraKeys.AREA_DELIMITER));
+
 			
-			List<Size> thumbnail = params.getSupportedJpegThumbnailSizes();
-			builder.append(encodeCameraSpecialObject(params, 
-					CameraKeys.JPEG_THUMBNAIL_SIZE, thumbnail.size(),
-					CameraKeys.SIZE_DELIMITER));
-			
-			
-			List<int[]> fpsRanges = params.getSupportedPreviewFpsRange();
-			builder.append(encodeCameraSpecialObject(params, 
-					CameraKeys.PREVIEW_FPS_RANGE, fpsRanges.size(), 
-					CameraKeys.AREA_DELIMITER));
-			
-			
-			
-			List<Size> previewSizes = params.getSupportedPreviewSizes();
-			builder.append(encodeCameraSpecialObject(params, 
-					CameraKeys.PREVIEW_SIZE, previewSizes.size(), 
-					CameraKeys.SIZE_DELIMITER));
-			
-			
-			
-			params.getSupportedVideoSizes(); // set
+//			List<Size> previewSizes = params.getSupportedPreviewSizes();
+//			builder.append(encodeCameraSpecialObject(params, 
+//					CameraKeys.PREVIEW_SIZE, previewSizes.size(), 
+//					CameraKeys.SIZE_DELIMITER));
 			
 			
 			// ***********************************|
@@ -446,32 +432,37 @@ public final class SupportedFeatures {
 			// --------- PROPERTIES -----------|
 			// ********************************|
 			
-			builder.append(encodeProperty(CameraKeys.FOCAL_LENGTH,
-					String.valueOf(params.getFocalLength())));
+			builder.append(encodeSingle(CameraKeys.FOCAL_LENGTH,
+					String.valueOf(params.getFocalLength()),
+					Constants.DataTypes.DOUBLE));
 			
-			builder.append(encodeProperty(CameraKeys.HORIZONTAL_VIEW_ANGLE,
-					String.valueOf(params.getHorizontalViewAngle())));
+			builder.append(encodeSingle(CameraKeys.HORIZONTAL_VIEW_ANGLE,
+					String.valueOf(params.getHorizontalViewAngle()),
+					Constants.DataTypes.DOUBLE));
 			
-			builder.append(encodeProperty(CameraKeys.VERTICAL_VIEW_ANGLE,
-					String.valueOf(params.getVerticalViewAngle())));
+			builder.append(encodeSingle(CameraKeys.VERTICAL_VIEW_ANGLE,
+					String.valueOf(params.getVerticalViewAngle()),
+					Constants.DataTypes.DOUBLE));
 			
-			builder.append(encodeProperty(CameraKeys.EXPOSURE_COMPENSATION_STEP,
-					String.valueOf(params.getExposureCompensationStep())));
+			builder.append(encodeSingle(CameraKeys.EXPOSURE_COMPENSATION_STEP,
+					String.valueOf(params.getExposureCompensationStep()),
+					Constants.DataTypes.DOUBLE));
 			
-			builder.append(encodeProperty(CameraKeys.PREFERRED_PREVIEW_SIZE_FOR_VIDEO,
-					String.valueOf(params.getPreferredPreviewSizeForVideo())));
+			builder.append(encodeSingle(CameraKeys.PREFERRED_PREVIEW_SIZE_FOR_VIDEO,
+					String.valueOf(params.getPreferredPreviewSizeForVideo()),
+					Constants.DataTypes.STRING));
 			
-			builder.append(encodeProperty(CameraKeys.FOCUS_DISTANCES,
-					params.get(CameraKeys.FOCUS_DISTANCES)));
+			builder.append(encodeSingle(CameraKeys.FOCUS_DISTANCES,
+					params.get(CameraKeys.FOCUS_DISTANCES), Constants.DataTypes.STRING));
 			
 			if(params.getMaxNumMeteringAreas() > 0){
-				builder.append(encodeProperty(CameraKeys.METERING_AREAS, 
-						params.get(CameraKeys.METERING_AREAS)));
+				builder.append(encodeSingle(CameraKeys.METERING_AREAS, 
+						params.get(CameraKeys.METERING_AREAS), Constants.DataTypes.STRING));
 			}
 			
 			if(params.getMaxNumFocusAreas() > 0){
-				builder.append(encodeProperty(CameraKeys.FOCUS_AREAS, 
-						params.get(CameraKeys.FOCUS_AREAS)));
+				builder.append(encodeSingle(CameraKeys.FOCUS_AREAS, 
+						params.get(CameraKeys.FOCUS_AREAS), Constants.DataTypes.STRING));
 			}
 			
 			
@@ -491,6 +482,7 @@ public final class SupportedFeatures {
 			builder.append(encodeSingle(CameraKeys.GPS_TIMESTAMP, 
 					params.get(CameraKeys.GPS_TIMESTAMP), Constants.DataTypes.INTEGER));
 			
+			builder.append(sdOptions());
 			
 			result = builder.toString().getBytes();
 			
@@ -514,48 +506,32 @@ public final class SupportedFeatures {
 	public static byte[] getMicrophoneFeatures(){
 		
 		StringBuilder builder = new StringBuilder(1000);
-		
-		// SETS
-		
-		builder.append(encodeSize2Set(AudioKeys.CHANNEL, Constants.Args.ARG_STRING_NONE, 
-				Constants.DataTypes.INTEGER, Constants.DataTypes.SET, 
-				String.valueOf(1), String.valueOf(2)));
-		
-		builder.append(encodeCollection(AudioKeys.ENCODER, Constants.Args.ARG_STRING_NONE, 
+	
+	
+		builder.append(encodeCollection(AudioKeys.ENCODING, Constants.Args.ARG_STRING_NONE, 
 				Constants.DataTypes.STRING, AudioKeys.STRING_ENCODINGS.length,
-				encodeCollection(AudioKeys.STRING_ENCODINGS)));
+				encodeStringArray(AudioKeys.STRING_ENCODINGS)));
+			
 		
 		builder.append(encodeCollection(AudioKeys.SOURCE, Constants.Args.ARG_STRING_NONE, 
 				Constants.DataTypes.STRING, AudioKeys.STRING_SOURCES.length,
-				encodeCollection(AudioKeys.STRING_SOURCES)));
-		
-		builder.append(encodeCollection(AudioKeys.OUTPUT_FORMAT, Constants.Args.ARG_STRING_NONE, 
-				Constants.DataTypes.STRING, AudioKeys.STRING_OUTPUT_FORMATS.length,
-				encodeCollection(AudioKeys.STRING_OUTPUT_FORMATS)));
+				encodeStringArray(AudioKeys.STRING_SOURCES)));
 		
 		
-		// SINGLE INT VARIANTS
-		
-		builder.append(encodeSingle(AudioKeys.ENCODING_BIT_RATE, Constants.Args.ARG_STRING_NONE,
-				Constants.DataTypes.INTEGER));
-		
-		builder.append(encodeSingle(AudioKeys.GPS_LATTITUDE, Constants.Args.ARG_STRING_NONE,
-				Constants.DataTypes.INTEGER));
-		
-		builder.append(encodeSingle(AudioKeys.GPS_LONGITUDE, Constants.Args.ARG_STRING_NONE,
-				Constants.DataTypes.INTEGER));
+		builder.append(encodeCollection(AudioKeys.CHANNEL, AudioKeys.STRING_CHANNELS[0], 
+				Constants.DataTypes.STRING, AudioKeys.STRING_CHANNELS.length,
+				encodeStringArray(AudioKeys.STRING_CHANNELS)));
 		
 		
-		builder.append(encodeSingle(AudioKeys.MAX_DURATION, Constants.Args.ARG_STRING_NONE,
-				Constants.DataTypes.INTEGER));
+		builder.append(encodeCollection(AudioKeys.SAMPLING_RATE, AudioKeys.BIT_RATE_SAMPLES[0],
+				Constants.DataTypes.INTEGER, AudioKeys.BIT_RATE_SAMPLES.length,
+				encodeStringArray(AudioKeys.BIT_RATE_SAMPLES)));
 		
 		
-		builder.append(encodeSingle(AudioKeys.MAX_FILE_SIZE, Constants.Args.ARG_STRING_NONE,
-				Constants.DataTypes.INTEGER));
+		builder.append(encodeRange(AudioKeys.RECORD_DURATION, Constants.Args.ARG_STRING_NONE,
+				Constants.DataTypes.INTEGER, String.valueOf(0), String.valueOf(Integer.MAX_VALUE)));
 		
-		
-		builder.append(encodeSingle(AudioKeys.SAMPLING_RATE, Constants.Args.ARG_STRING_NONE,
-				Constants.DataTypes.INTEGER));
+		builder.append(sdOptions());
 		
 		
 		return builder.toString().getBytes();
@@ -574,26 +550,27 @@ public final class SupportedFeatures {
 	//|********************************************************************|
 	//|********************************************************************|
 	
+	
+	
 	/**
-	 * Encodes the given property with the given value to a string which
-	 * will be parsable by the controller PC. This is only used to inform
-	 * the controller of fixed parameters, and the given property cannot
-	 * be changed.
-	 * @return the String representation of the given property and value
-	 * to be sent to the controller PC
+	 * TODO: comment
+	 * @return
 	 */
-	public static String encodeProperty(String propertyName, String value){
-		return encodeSingle(propertyName, value, Constants.DataTypes.CONST);
+	public static String sdOptions(){
+		StringBuilder builder = new StringBuilder();
+		builder.append(encodeSwitch(KEY_SAVE_TO_SD, FALSE));
+		builder.append(encodeSwitch(KEY_CONTINUE_ON_CONNECTION_LOST, FALSE));
+		return builder.toString();
 	}
 	
 	
-	
-	public static String encodeSingularVariant(String property, String value){
-		return encodeSingle(property, value, Constants.DataTypes.ANY);
-	}
-	
-	
-	
+	/**
+	 * 
+	 * @param name
+	 * @param value
+	 * @param dataType
+	 * @return
+	 */
 	public static String encodeSingle(String name, String value, int dataType){
 		StringBuilder builder = new StringBuilder();
 		
@@ -649,6 +626,16 @@ public final class SupportedFeatures {
 	
 	
 	
+	/**
+	 * TODO: comment
+	 * @param name
+	 * @param currentValue
+	 * @param dataType
+	 * @param limiter
+	 * @param first
+	 * @param second
+	 * @return
+	 */
 	private static String encodeSize2Set(String name, String currentValue, int dataType, 
 								int limiter, String first, String second){
 		
@@ -711,7 +698,22 @@ public final class SupportedFeatures {
 	}
 	
 
-	
+	/**
+	 * This defines the basic encoding algorithm for feature lists
+	 * that will be sent to the remote controller to be parsed.
+	 * the basic format is the same order and definition as the
+	 * following parameters
+	 * @param collectionName - the name by which the remote controller should
+	 * refer to this collection when changing its parameters. (should be human readable
+	 * and relevant to the wrapping sensor)
+	 * @param currentValue - the current value that this parameter is set to
+	 * @param dataType - the data type that this application expects back from the
+	 * remote controller when changing this parameter
+	 * @param size - the number of elements in this collection's feature set
+	 * @param encodedItems - the already encoded feature set
+	 * @return the encoded representation of the given collection, following the
+	 * specified parameters that define it.
+	 */
 	private static String encodeCollection(String collectionName, String currentValue,
 												int dataType, int size, String encodedItems){
 		StringBuilder builder = new StringBuilder();
@@ -753,11 +755,19 @@ public final class SupportedFeatures {
 		
 		return builder.toString();
 	}
+		
 	
 	
-	
-	
-	private static String encodeCollection(String[] collection){
+	/**
+	 * Used to encode String array constants defined at
+	 * the beginning of this class definition.
+	 * @param collection - the collection to encode for
+	 * sending to the remote controller
+	 * @return the encoded String representation of the given
+	 * string array which the remote controller can parse into
+	 * meaningful information
+	 */
+	private static String encodeStringArray(String[] collection){
 		StringBuilder builder = new StringBuilder();
 		
 		for(int i = 0; i < collection.length; i++){
@@ -773,12 +783,12 @@ public final class SupportedFeatures {
 	//|-------------------- EXCHANGE HELPER METHODS -----------------------------|
 	
 	
-	public static int exchangeAudioOutputFormat(String format){
-		return exchangeFormat(format, AudioKeys.STRING_OUTPUT_FORMATS, AudioKeys.INTEGER_OUTPUT_FORMATS);
+	public static int exchangeAudioChannel(String format){
+		return exchangeFormat(format, AudioKeys.STRING_CHANNELS, AudioKeys.INTEGER_CHANNELS);
 	}
 	
-	public static String exchangeAudioOutputFormat(int format){
-		return exchangeFormat(format, AudioKeys.INTEGER_OUTPUT_FORMATS, AudioKeys.STRING_OUTPUT_FORMATS);
+	public static String exchangeAudioChannel(int format){
+		return exchangeFormat(format, AudioKeys.INTEGER_CHANNELS, AudioKeys.STRING_CHANNELS);
 	}
 	
 	public static int exchangeAudioSourceFormat(String format){
@@ -797,7 +807,7 @@ public final class SupportedFeatures {
 		return exchangeFormat(encoding, AudioKeys.INTEGER_ENCODINGS, AudioKeys.STRING_ENCODINGS);
 	}
 	
-	public static int echangeImageFormat(String format){
+	public static int exhangeImageFormat(String format){
 		return exchangeFormat(format, CameraKeys.STRING_IMAGE_FORMATS, CameraKeys.INTEGER_IMAGE_FORMATS);
 	}
 	
@@ -819,7 +829,7 @@ public final class SupportedFeatures {
 	 * @see {@link ImageFormat}
 	 * @see {@link Constants#Args}
 	 */
-	public static int exchangeFormat(String format, String[] stringFormats, int[] intFormats){
+	private static int exchangeFormat(String format, String[] stringFormats, int[] intFormats){
 		int result = Constants.Args.ARG_NONE;
 		if (stringFormats != null && intFormats != null
 				&& stringFormats.length == intFormats.length) {
@@ -847,7 +857,7 @@ public final class SupportedFeatures {
 	 * @see {@link ImageFormat}
 	 * @see {@link Constants#Args}
 	 */
-	public static String exchangeFormat(int format, int[] intFormats, String[] stringFormats){
+	private static String exchangeFormat(int format, int[] intFormats, String[] stringFormats){
 		String result = Constants.Args.ARG_STRING_NONE;
 		if (stringFormats != null && intFormats != null
 				&& stringFormats.length == intFormats.length) {
@@ -860,33 +870,5 @@ public final class SupportedFeatures {
 		}
 		return result;
 	}
-	
-	
-	/**
-	 * Specialty method for the camera supported features
-	 * @param p - the parameters to obtain info from
-	 * @param key - the key of the info in the parameters to deal with
-	 * @param size - the size of the collection given by the key
-	 * @param delimiterToReplace - the delimiter to replace in the returned
-	 * value to make the result string match this application's remote
-	 * communication specifications.
-	 * @return An encoded string representing the collection obtained from
-	 * the given parameters with the given key
-	 */
-	private static String encodeCameraSpecialObject(Camera.Parameters p, String key, int size, String delimiterToReplace){
-		String collection = null;
-		String temp = p.get(key + CameraKeys.SUPPORTED_VALUES_SUFFIX)
-				.replaceAll(delimiterToReplace, STRING_DELIMITER);
-		
-		if(temp.charAt(0) == '(' && temp.charAt(temp.length() - 1) == ')'){
-			collection = temp.substring(1, temp.length() - 1);
-		} else {
-			collection = temp;
-		}
-		
-		return encodeCollection(key, p.get(key), Constants.DataTypes.STRING, size, collection);
-	}
-	
-	
-	
+
 }

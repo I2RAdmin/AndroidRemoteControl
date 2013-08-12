@@ -19,6 +19,8 @@ import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
 
+import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
+
 public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 
 	private static final String TAG = "UsbLink";
@@ -35,17 +37,21 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	private int[] endpointAddresses, interfaceIds;
 	
 	/**
-	 * Create a UsbLink where this device is the UsbAccessory.
+	 * Create a UsbLink where this device is the UsbAccessory.<br>
+	 * NOTE: This requires that a usb device is already connected to this
+	 * device when an instance of this class is created.<br>
 	 * Currently used by this application.
 	 * @param context - the context in which this link was created.
+	 * @throws ServiceNotFoundException if no connected USB device is detected
 	 */
-	public UsbLink(Context context){
-		
-		if(endpointAddresses.length > 2){
-			throw new IllegalArgumentException("only a USB link with two endpoint addresses (in/out) can be created");
-		}
+	public UsbLink(Context context) throws ServiceNotFoundException {
 		
 		this.usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+		
+		if(usbManager.getAccessoryList() == null && usbManager.getDeviceList().isEmpty()){
+			throw new ServiceNotFoundException("no usb device detected");
+		}
+		
 		this.isServer = true;
 		this.endpointAddresses = null;
 		this.interfaceIds = null;
@@ -74,7 +80,7 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * @see {@link UsbInterface}
 	 * @see {@link UsbEndpoint}
 	 */
-	public UsbLink(Context context, int[] endpointAddresses, int[] interfaceIds){
+	public UsbLink(Context context, int[] endpointAddresses, int[] interfaceIds) throws IllegalArgumentException {
 		if(endpointAddresses.length > 2){
 			throw new IllegalArgumentException("only a USB link with two endpoint addresses (in/out) can be created");
 		}

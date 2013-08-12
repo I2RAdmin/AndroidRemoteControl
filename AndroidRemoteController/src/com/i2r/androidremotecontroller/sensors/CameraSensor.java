@@ -15,6 +15,7 @@ import android.view.SurfaceHolder;
 import com.i2r.androidremotecontroller.SupportedFeatures;
 import com.i2r.androidremotecontroller.RemoteControlActivity;
 import com.i2r.androidremotecontroller.ResponsePacket;
+import com.i2r.androidremotecontroller.SupportedFeatures.CameraKeys;
 
 /**
  * This class models an android camera that responds to commands.
@@ -28,15 +29,11 @@ public class CameraSensor extends GenericDeviceSensor {
 	private static final int MAX_QUALITY = 100;
 	private static final String JPEG = "jpeg";
 	
-	@SuppressWarnings("unused")
-	private static final boolean SAVE_TO_SD = true;
-	private static final boolean SEND_TO_REMOTE = false;
-	
 	private SurfaceHolder holder;
 	private Camera camera;
 	private Surface surface;
 	private GenericPictureCallback pictureCallback;
-	private boolean waitingOnPicture, forceClose, started, saveToFile;
+	private boolean waitingOnPicture, forceClose, started;
 	private long startTime, markedTime, pictureCount;
 	
 	public CameraSensor(Activity activity, Camera camera, SurfaceHolder holder) {
@@ -44,7 +41,6 @@ public class CameraSensor extends GenericDeviceSensor {
 		
 		Log.d(TAG, "creating camera sensor");
 		this.surface = new Surface();
-		this.saveToFile = SEND_TO_REMOTE;
 		this.pictureCallback = new GenericPictureCallback(JPEG);
 		this.waitingOnPicture = forceClose = started = false;
 		this.startTime = markedTime = pictureCount = 0;
@@ -92,9 +88,9 @@ public class CameraSensor extends GenericDeviceSensor {
 		this.pictureCount = 0;
 		this.startTime = markedTime = System.currentTimeMillis();
 		setTaskID(taskID);
-		modify(SupportedFeatures.CameraKeys.FREQUENCY, Constants.Args.ARG_STRING_NONE);
-		modify(SupportedFeatures.CameraKeys.DURATION, Constants.Args.ARG_STRING_NONE);
-		modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, Constants.Args.ARG_STRING_NONE);
+		modify(SupportedFeatures.CameraKeys.FREQUENCY, params[Constants.Args.FREQUENCY_INDEX]);
+		modify(SupportedFeatures.CameraKeys.DURATION, params[Constants.Args.DURATION_INDEX]);
+		modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, params[Constants.Args.AMOUNT_INDEX]);
 		updateSensorProperties();
 		capture();
 	}
@@ -103,12 +99,6 @@ public class CameraSensor extends GenericDeviceSensor {
 	@Override
 	public boolean taskCompleted() {
 		return !waitingOnPicture && (forceClose || done());
-	}
-	
-	
-	@Override
-	public boolean saveResultDataToFile(){
-		return saveToFile;
 	}
 
 	
@@ -120,6 +110,13 @@ public class CameraSensor extends GenericDeviceSensor {
 	
 	@Override
 	public void updateSensorProperties(){
+		
+		String sTemp = getProperty(CameraKeys.PICTURE_FORMAT);
+		if(sTemp != null){
+			int iTemp = SupportedFeatures.exhangeImageFormat(sTemp);
+			modify(CameraKeys.PICTURE_FORMAT, iTemp);
+		}
+		
 		if(camera != null){
 			
 			Log.d(TAG, "updating camera parameters");
@@ -285,7 +282,7 @@ public class CameraSensor extends GenericDeviceSensor {
 				Log.e(name, "byte array is null");
 			} else {
 				Log.d(name, "picture taken : byte size - " + data.length);
-				saveData(data, saveToFile);
+				saveData(data, saveResultDataToFile());
 			}
 			
 			if(name.equals(JPEG)){

@@ -1,4 +1,4 @@
-package com.i2r.androidremotecontroller.sensors;
+package com.i2r.androidremotecontroller;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -11,26 +11,30 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
-import com.i2r.androidremotecontroller.CommandPacket;
-import com.i2r.androidremotecontroller.RemoteControlActivity;
-import com.i2r.androidremotecontroller.ResponsePacket;
-import com.i2r.androidremotecontroller.SupportedFeatures;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.sensors.CameraSensor;
+import com.i2r.androidremotecontroller.sensors.GenericDeviceSensor;
+import com.i2r.androidremotecontroller.sensors.MicrophoneSensor;
 
 
 /**
- * This class models a responder to any system calls for updating,
- * starting or ending sensor tasks.
+ * This class models a filtering system for {@link CommandPacket}
+ * objects which are parsed from bytes received by the controlling
+ * PC. These commands, once parsed, are either executed or put
+ * in a queue based on the result of {@link CommandPacket#hasHighPriority()}.
+ * If a command has high priority it is executed immediately, otherwise
+ * it will be executed after all the commands ahead of it in this filtering
+ * system's queue have been executed. Command execution will typically be
+ * controlled by this application's {@link RemoteControlMaster}.
+ * 
  * @author Josh Noel
  */
 public class CommandFilter {
 	
-	private static final String TAG = "SensorController";
+	private static final String TAG = "CommandFilter";
 	private static final int MAX_COMMAND_CAPACITY = 10;
 	
 	private static final int SENSOR_SIZE = 2;
-	private static final int CAMERA_INDEX = Constants.Commands.PICTURE;
-	private static final int MICROPHONE_INDEX = Constants.Commands.RECORD_AUDIO;
 	
 	private Activity activity;
 	private LocalBroadcastManager manager;
@@ -40,7 +44,14 @@ public class CommandFilter {
 	private RemoteConnection connection;
 	
 	
-	// Constructor
+	/**
+	 * Constructor
+	 * Takes all necessary sensor objects as its parameters, so that
+	 * it can start and stop them independently of the main activity.
+	 * @param activity - the activity that created this command filter
+	 * @param camera - the camera from the main activity.
+	 * @param holder - the surface holder from the view of the main activity
+	 */
 	public CommandFilter(Activity activity, Camera camera, SurfaceHolder holder){
 		this.activity = activity;
 		this.camera = camera;
@@ -49,17 +60,22 @@ public class CommandFilter {
 		this.connection = null;
 		
 		this.sensors = new GenericDeviceSensor[SENSOR_SIZE];
-		this.sensors[CAMERA_INDEX] = new CameraSensor(activity, camera, holder);
-		this.sensors[MICROPHONE_INDEX] = new MicrophoneSensor(activity);
+		this.sensors[Constants.Commands.PICTURE] = new CameraSensor(activity, camera, holder);
+		this.sensors[Constants.Commands.RECORD_AUDIO] = new MicrophoneSensor(activity);
 	}
 	
 
 	
 	/**
 	 * Decodes the given String buffer into a {@link CommandPacket}
-	 * object, and adds it to the queue of commands.
+	 * object array, and adds the contents of the array to the queue
+	 * of commands, given that a command in the array is complete
+	 * and not blank. If the command is considered high priority,
+	 * it is executed immediately.
 	 * @param buffer - the String to parse one or more CommandPacket
 	 * objects from
+	 * @see {@link CommandPacket#isCompleteCommand()}
+	 * @see {@link CommandPacket#isCompleteCommand()}
 	 */
 	public void parseCommand(String buffer){
 		
@@ -110,9 +126,10 @@ public class CommandFilter {
 	
 	
 	/**
-	 * Executes the next command in sequence.
-	 * If the command is for a process that is already running, this
-	 * method does nothing.
+	 * Executes the next command in sequence if there are still
+	 * commands queued. If the command is for a process that is
+	 * already running or there are no commands left in the queue,
+	 * this method does nothing.
 	 */
 	public void executeNextCommand(){
 		
@@ -145,12 +162,9 @@ public class CommandFilter {
 	
 	
 	/**
-	 * This method acts as a filter for command packets that are sent in via
-	 * this application's open bluetooth socket. The {@link CommandPacket} parsed from
-	 * the bytes read from the socket is sent here for interpretation.
-	 * Commands are interpreted based on values in the {@link Constants} class.
-	 * @param packet - the CommandPacket object to use for filtering
-	 * @see {@link CommandPacket#parsePackets(String)}
+	 * Executes the given command packet only if
+	 * the current connection to a controlling device
+	 * is not null and the given command packet is not null.
 	 */
 	private void execute(CommandPacket packet){
 		if(connection != null && packet != null){
@@ -163,6 +177,7 @@ public class CommandFilter {
 	}
 	
 	
+	// helper method for the execute(CommandPacket) method above
 	// to be called only if this connection is not null
 	private void filter(CommandPacket packet){
 		
@@ -212,11 +227,12 @@ public class CommandFilter {
 	
 	
 	/**
-	 * Called if a command to start taking pictures was received
+	 * FILTER CASE #1:
+	 * Called if a command to start a sensor service was received
 	 * from the controller PC.
 	 * @param packet - the packet containing the command to start
-	 * taking pictures, as well as parameters defining how pictures
-	 * should be taken.
+	 * a specified sensor service, as well as parameters defining
+	 * how that service should be carried out
 	 */
 	private void startService(CommandPacket packet){
 		sensors[packet.getCommand()].setConnection(connection);
@@ -225,9 +241,8 @@ public class CommandFilter {
 	}
 	
 	
-	
-	
 	/**
+	 * FILTER CASE #2:
 	 * Called if a command to modify a service was
 	 * received from the controller PC
 	 * @param packet - the CommandPacket containing which
@@ -265,6 +280,7 @@ public class CommandFilter {
 	
 	
 	/**
+	 * FILTER CASE #3:
 	 * Called if a command to kill specific services was recieved
 	 * from the controller PC. 
 	 * @param packet - the CommandPacket containing the services to kill
@@ -315,6 +331,23 @@ public class CommandFilter {
 	
 	
 	/**
+	 * FILTER CASE #4:
+	 * Called if command to kill all processes is received from
+	 * the remote device.
+	 * @param taskID - the task ID of the kill all processes command,
+	 * which will be used to inform the remote device that this
+	 * kill command completed successfully
+	 */
+	private void killAllTasks(int taskID){
+		cancel();
+		ResponsePacket.sendNotification(taskID,
+				Constants.Notifications.TASK_COMPLETE, connection);
+	}
+	
+	
+	
+	/**
+	 * FILTER CASE #5:
 	 * Called if the given packet is a query for features of this device, so
 	 * find out which feature descriptions the controller wants and send them.
 	 * @param packet - the packet containing a request for this device's features
@@ -362,7 +395,7 @@ public class CommandFilter {
 	// Supported features helper method
 	private void sendFeatures(int taskID, int sensorType, byte[] features){
 		
-		Log.d(TAG, "sending supported features to controller");
+		Log.d(TAG, "sending supported features to controller: " + sensorType);
 		
 		if(features != null){
 			ResponsePacket rp = new ResponsePacket(taskID, sensorType, features);
@@ -370,29 +403,16 @@ public class CommandFilter {
 		} else {
 			ResponsePacket.sendNotification(taskID, 
 					Constants.Notifications.SENSOR_NOT_SUPPORTED,
-					sensorType, connection);
+					String.valueOf(sensorType), connection);
 		}
 	}
 	
 	
 	
-	/**
-	 * Called if command to kill all processes is received from
-	 * the remote device.
-	 * @param taskID - the task ID of the kill all processes command,
-	 * which will be used to inform the remote device that this
-	 * kill command completed successfully
-	 */
-	private void killAllTasks(int taskID){
-		cancel();
-		ResponsePacket.sendNotification(taskID,
-				Constants.Notifications.TASK_COMPLETE, connection);
-	}
-	
-	
 	
 	/**
-	 * Cancels any currently running tasks,
+	 * Cancels any currently running tasks, clears
+	 * any pending tasks from the command queue,
 	 * and pauses the state of this controller
 	 */
 	public void cancel(){
@@ -412,7 +432,9 @@ public class CommandFilter {
 	 * Notification helper method - notifies the main activity.
 	 * This is used when both the sensors and the master cannot
 	 * update main and the responsibility for updating is left
-	 * to this class.
+	 * to this class. This is simply for updating the info that
+	 * the UI displays about this application's progress with
+	 * command execution.
 	 * @param notifyType - the type of notification to send back to main
 	 */
 	private void notifyMain(String message){
@@ -424,7 +446,10 @@ public class CommandFilter {
 	
 	
 	/**
-	 * Sets the connection for this responder object
+	 * Sets the connection for this responder object.<br>
+	 * NOTE: if this is null and there are pending commands
+	 * in this filter's queue, the commands will fail to
+	 * execute, and will be disposed of.
 	 * @param connection - the connection to read and write with
 	 */
 	public void setConnection(RemoteConnection connection){
@@ -438,7 +463,7 @@ public class CommandFilter {
 	 * Helper method for finding int values in an array. This
 	 * method is more efficient than going through the commandQueue
 	 * multiple times with an iterator, as that would require
-	 * object creation on the iterator's part.
+	 * multiple object instances of creation on the iterator's part.
 	 * @param array - the array to search through for the given value
 	 * @param value - the value to search for in the given array
 	 * @return true if the value given was found in the given array,
@@ -463,10 +488,9 @@ public class CommandFilter {
 	 */
 	public boolean isAvailableService(int service){
 		boolean result;
-		if(service == Constants.Commands.PICTURE){
-			result = isServiceAvailable(sensors[CAMERA_INDEX]);
-		} else if(service == Constants.Commands.RECORD_AUDIO){
-			result = isServiceAvailable(sensors[MICROPHONE_INDEX]);
+		if(service == Constants.Commands.PICTURE ||
+		   service == Constants.Commands.RECORD_AUDIO){
+			result = isServiceAvailable(sensors[service]);
 		} else {
 			result = true;
 		}
@@ -499,11 +523,11 @@ public class CommandFilter {
 		GenericDeviceSensor sensor;
 		switch (sensorID){
 		case Constants.DataTypes.CAMERA:
-			sensor = sensors[CAMERA_INDEX];
+			sensor = sensors[Constants.Commands.PICTURE];
 			break;
 			
 		case Constants.DataTypes.MICROPHONE:
-			sensor = sensors[MICROPHONE_INDEX];
+			sensor = sensors[Constants.Commands.RECORD_AUDIO];
 			break;
 		default:
 			sensor = null;
@@ -518,10 +542,9 @@ public class CommandFilter {
 	 * sensors in this application use.
 	 * @return the relative activity (context of this application)
 	 */
-	public Activity getRelativeActivity(){
+	public Activity getActivity(){
 		return activity;
 	}
-	
 	
 	
 	/**
@@ -548,6 +571,7 @@ public class CommandFilter {
 	 * next command in line intends to use
 	 * @return true if the next command in line's required
 	 * sensor is available, false otherwise.
+	 * @see {@link #isAvailableService(int)}
 	 */
 	public boolean sensorForNextCommandIsAvailable(){
 		return isAvailableService(commandQueue.get(0).getCommand());
@@ -555,7 +579,7 @@ public class CommandFilter {
 	
 	
 	/**
-	 * @return a composite of {@link #hasNewCommands()}
+	 * @return a composite boolean result of {@link #hasNewCommands()}
 	 * and {@link #sensorForNextCommandIsAvailable()}. Returns true
 	 * only if both of these return true.
 	 */

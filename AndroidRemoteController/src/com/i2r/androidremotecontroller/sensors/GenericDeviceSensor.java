@@ -14,7 +14,9 @@ import android.os.Environment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.i2r.androidremotecontroller.CommandFilter;
 import com.i2r.androidremotecontroller.ResponsePacket;
+import com.i2r.androidremotecontroller.SupportedFeatures;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
 
 /**
@@ -69,11 +71,26 @@ public abstract class GenericDeviceSensor {
 	 * this returns {@link ARG_NONE} as defined in {@link Constants#Args}
 	 */
 	protected int getIntProperty(String key){
-		int result = -1;
-		try{
-			result = Integer.parseInt(properties.get(key));
-		} catch (NumberFormatException e){
-			
+		return getIntProperty(key, Constants.Args.ARG_NONE);
+	}
+	
+	
+	
+	/**
+	 * TODO: comment
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	protected int getIntProperty(String key, int defaultValue){
+		int result = defaultValue;
+		String temp = properties.get(key);
+		if(temp != null){
+			try{
+				result = Integer.parseInt(properties.get(key));
+			} catch (NumberFormatException e){
+				
+			}
 		}
 		return result;
 	}
@@ -150,6 +167,13 @@ public abstract class GenericDeviceSensor {
 	protected void sendTaskComplete() {
 		ResponsePacket.sendNotification(taskID,
 				Constants.Notifications.TASK_COMPLETE, connection);
+	}
+	
+	
+	protected void sendTaskErroredOut(String message){
+		ResponsePacket.sendNotification(taskID, 
+				Constants.Notifications.TASK_ERRORED_OUT,
+				message, connection);
 	}
 	
 	
@@ -237,6 +261,28 @@ public abstract class GenericDeviceSensor {
 	
 	
 	/**
+	 * Query for how any result data obtained from
+	 * this sensor should be treated during a running task
+	 * @return true if result data should be saved to the
+	 * internal storage of the phone (possibly to free up bandwidth
+	 * on the connection), false if the data should be sent to the
+	 * remote device directly
+	 */
+	public boolean saveResultDataToFile(){
+		String result = properties.get(SupportedFeatures.KEY_SAVE_TO_SD);
+		return result != null && result.equals(SupportedFeatures.TRUE);
+	}
+	
+	
+	
+	public boolean continueOnConnectionLost(){
+		String result = properties.get(SupportedFeatures.KEY_CONTINUE_ON_CONNECTION_LOST);
+		return result != null && result.equals(SupportedFeatures.TRUE);
+	}
+	
+	
+	
+	/**
 	 * Used when a device sensor's resources must be freed to use elsewhere.
 	 * @requires all resources for this sensor will be released so that it may be
 	 * used in other applications.
@@ -275,17 +321,6 @@ public abstract class GenericDeviceSensor {
 	 */
 	public abstract boolean taskCompleted();
 	
-	
-	
-	/**
-	 * Query for how any result data obtained from
-	 * this sensor should be treated during a running task
-	 * @return true if result data should be saved to the
-	 * internal storage of the phone (possibly to free up bandwidth
-	 * on the connection), false if the data should be sent to the
-	 * remote device directly
-	 */
-	public abstract boolean saveResultDataToFile();
 	
 	
 	/**

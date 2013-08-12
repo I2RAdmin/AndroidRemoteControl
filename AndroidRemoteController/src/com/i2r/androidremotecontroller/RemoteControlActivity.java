@@ -18,25 +18,38 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
-import com.i2r.androidremotecontroller.sensors.CommandFilter;
 
 /**
  * This class acts as a base starter for remote control
- * of an android device. It links remote control by
- * means of the start and stop buttons defined in the UI.
- * Once remote control has been started, all interaction
- * is sought through an outside connection to a PC.
- * This class acts as an interpreter for all incoming
+ * of an android device. This class starts the
+ * {@link RemoteControlMaster} for this application,
+ * giving it the connection type receiv
  * commands from the PC serving said commands.
  */
 public class RemoteControlActivity extends Activity {
 
 	
-	public static final String TAG = "RemoteControlActivity";
+	private static final String TAG = "RemoteControlActivity";
 	
-	//public static final String ACTION_EXECUTE_COMMAND = "i2r_action_execute_command";
+	/**
+	 * Used for filtering {@link Intent}s in this application.
+	 * This constant is called whenever a command filter has
+	 * finished a short term task.
+	 */
 	public static final String ACTION_TASK_COMPLETE = "i2r_action_sensor_completed_task";
+	
+	/**
+	 * Used for filtering {@link Intent}s in this application.
+	 * This constant is called whenever a connection manager
+	 * has established or lost a connection to the controller.
+	 */
 	public static final String ACTION_CONNECTOR_RESPONDED = "i2r_action_connection_created";
+	
+	/**
+	 * Used for filtering {@link Intent}s in this application.
+	 * This constant is called a connection manager has received
+	 * byte data on an open connection with the controller.
+	 */
 	public static final String ACTION_CONNECTION_READ = "i2r_action_connection_read";
 	
 	public static final String EXTRA_TASK_ID = "i2r_extra_task_id";
@@ -152,10 +165,14 @@ public class RemoteControlActivity extends Activity {
 	
 	
 	/**
-	 * Begins main execution of this remote control app.
+	 * Begins main execution of this remote control application.
 	 * This creates a new RemoteControlMaster to control the phone
 	 * remotely by taking in commands across a connection, and it creates
-	 * a new SensorController for the Master's use 
+	 * a new SensorController for the Master's use
+	 * @param connectionType - the connection type chosen by the user to
+	 * start this application with. This parameter is passed to this activity
+	 * from the starting intent passed here by this application's 
+	 * {@link ConnectionTypeSelectionActivity} 
 	 */
 	private void startMaster(String connectionType){
 		Log.d(TAG, "Setting current SurfaceHolder to SensorController");
@@ -183,9 +200,15 @@ public class RemoteControlActivity extends Activity {
 		}
 	}
 	
-
 	
-	
+	/**
+	 * Stops this application's progress, and kills this
+	 * activity, reverting back to the {@link ConnectionTypeSelectionActivity}
+	 * that started this activity. This is called
+	 * whenever the UI "stop" button is pushed, or
+	 * when {@link #startMaster(String)} is called
+	 * with an invalid or unavailable connection type. 
+	 */
 	private void stopMaster(){
 		// set the 'stop' button to stop remote control
 		started = false;
@@ -203,8 +226,6 @@ public class RemoteControlActivity extends Activity {
 		action.setText("remote control stopped, finishing...");
 		finish();
 	}
-	
-	
 	
 	
 }// end of SelectorActivity class
