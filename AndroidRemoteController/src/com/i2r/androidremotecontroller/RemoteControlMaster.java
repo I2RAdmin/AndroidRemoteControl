@@ -20,7 +20,7 @@ import com.i2r.androidremotecontroller.connections.ConnectionManager;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
 import com.i2r.androidremotecontroller.connections.WifiDirectLink;
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
-import com.i2r.androidremotecontroller.sensors.SensorController;
+import com.i2r.androidremotecontroller.sensors.CommandFilter;
 
 /**
  * This class models the master to pivot all sub-operations of this
@@ -33,7 +33,7 @@ public class RemoteControlMaster {
 	private static final String TAG = "RemoteControlMaster";
 	
 	private ConnectionManager<?> connectionManager;
-	private SensorController sensorController;
+	private CommandFilter filter;
 	private boolean started;
 	
 	
@@ -44,9 +44,9 @@ public class RemoteControlMaster {
 	 * hierarchy will waterfall correctly.
 	 * @param holder - a holder to give to the command manager for image capturing
 	 */
-	public RemoteControlMaster(SensorController sensors, String connectionType) throws ServiceNotFoundException {
+	public RemoteControlMaster(CommandFilter filter, String connectionType) throws ServiceNotFoundException {
 		
-		this.sensorController = sensors;
+		this.filter = filter;
 		this.started = false;
 	
 		// figure out what type of connection the user chose
@@ -59,7 +59,7 @@ public class RemoteControlMaster {
 			// WIFI
 		} else if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_WIFI)){
 			
-			WifiP2pManager wifi = (WifiP2pManager) sensors.getRelativeActivity()
+			WifiP2pManager wifi = (WifiP2pManager) filter.getRelativeActivity()
 										.getSystemService(Activity.WIFI_P2P_SERVICE);
 			
 			createWifiDirectRemoteConnection(wifi);
@@ -67,7 +67,7 @@ public class RemoteControlMaster {
 			// USB
 		} else if(connectionType.equals(ConnectionTypeSelectionActivity.EXTRA_USB)){
 			
-			UsbManager usb = (UsbManager) sensors.getRelativeActivity()
+			UsbManager usb = (UsbManager) filter.getRelativeActivity()
 					.getSystemService(Activity.USB_SERVICE);
 			
 			createUsbRemoteConnection(usb);
@@ -89,12 +89,12 @@ public class RemoteControlMaster {
 
 			// create a WifiDirectLink to pass to this ConnectionManager
 			WifiDirectLink linker = new WifiDirectLink(
-						sensorController.getRelativeActivity(),
+						filter.getRelativeActivity(),
 						ConnectionManager.CONNECTION_TYPE_SERVER, manager);
 				
 			// create a new ConnectionManager
 			this.connectionManager = new ConnectionManager<WifiP2pDevice>(linker,
-						ConnectionManager.CONNECTION_TYPE_SERVER, sensorController.getRelativeActivity());
+						ConnectionManager.CONNECTION_TYPE_SERVER, filter.getRelativeActivity());
 				
 			Log.d(TAG, "connection manager created");
 
@@ -113,11 +113,11 @@ public class RemoteControlMaster {
 		// create a BluetoothLink to pass to this ConnectionManager
 		BluetoothLink linker = new BluetoothLink(adapter,
 				UUID.fromString(Constants.Info.UUID),
-				Constants.Info.SERVICE_NAME, sensorController.getRelativeActivity());
+				Constants.Info.SERVICE_NAME, filter.getRelativeActivity());
 			
 		// create a new ConnectionManager
 		this.connectionManager = new ConnectionManager<BluetoothDevice>(linker,
-				ConnectionManager.CONNECTION_TYPE_SERVER, sensorController.getRelativeActivity());
+				ConnectionManager.CONNECTION_TYPE_SERVER, filter.getRelativeActivity());
 			
 		Log.d(TAG, "connection manager created");
 	}
@@ -158,9 +158,9 @@ public class RemoteControlMaster {
 			connectionManager.cancel();
 		}
 		
-		if(sensorController != null){
-			sensorController.cancel();
-			sensorController.setConnection(null);
+		if(filter != null){
+			filter.cancel();
+			filter.setConnection(null);
 		}
 	}
 
@@ -180,7 +180,7 @@ public class RemoteControlMaster {
 			connectionManager.startDataTransfer();
 			
 			Log.d(TAG, "connection found, passing reference to responder");
-			this.sensorController.setConnection(connectionManager.getConnection());
+			this.filter.setConnection(connectionManager.getConnection());
 			
 			// if there is no connection established and the connection manager
 			// isn't running, try again to get a remote connection
@@ -205,8 +205,8 @@ public class RemoteControlMaster {
 		// if a remote connection has been established, continue with update
 		if (connectionManager.hasConnection() && started) {
 			
-			sensorController.parseCommand(command);
-			sensorController.executeNextCommand();
+			filter.parseCommand(command);
+			filter.executeNextCommand();
 			
 			// cannot update commands because there is no connection established
 		} else if(!connectionManager.hasConnection() && started){
@@ -219,7 +219,7 @@ public class RemoteControlMaster {
 			// alert the System to scan for new files are on the SD card
 			File file = new File(Environment.getExternalStoragePublicDirectory(
 				    Environment.DIRECTORY_PICTURES).getAbsolutePath());
-				sensorController.getRelativeActivity()
+				filter.getRelativeActivity()
 				.sendBroadcast(new Intent(Intent.ACTION_MEDIA_MOUNTED, 
 				    Uri.parse("file://"+ file)));
 		}
@@ -227,17 +227,17 @@ public class RemoteControlMaster {
 	
 	
 	/**
-	 * Updates this master's {@link SensorController} by trying
+	 * Updates this master's {@link CommandFilter} by trying
 	 * to execute the next command in its command queue. This
 	 * method is meant to be called when a sensor sends a broadcast
 	 * back to main to notify that it has completed its task.
 	 */
 	public synchronized void updateSensors(){
 		
-		if(connectionManager.hasConnection() && sensorController.hasNewCommands()){
+		if(connectionManager.hasConnection() && filter.hasNewCommands()){
 			
 			// execute next command after previous task was completed
-			sensorController.executeNextCommand();
+			filter.executeNextCommand();
 			
 			// start saving data to SD if connection has been lost and
 			// there are still commands to execute

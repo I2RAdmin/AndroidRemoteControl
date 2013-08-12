@@ -6,6 +6,9 @@ import ARC.Constants;
 import ARC.Constants.Args;
 import android.util.Log;
 
+import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.sensors.CommandFilter;
+
 
 /**
  * This class models a container for the commands parsed
@@ -44,8 +47,10 @@ public class CommandPacket {
 		int paramLength = packet.size() - pointer - 1; // one over error
 		
 		if (paramLength > 0) {
+			
 			parameters = new String[paramLength];
 			ArrayList<Integer> tempInts = new ArrayList<Integer>();
+			
 			for (int i = 0; i < paramLength; i++) {
 				parameters[i] = packet.get(pointer);
 				
@@ -192,13 +197,13 @@ public class CommandPacket {
 
 	
 	/**
-	 * Query for this command packet's main motive
+	 * Query for this command packet's main motive for task killing
 	 * @param id - the ID to compare to this command's kill motive
 	 * @return true if the main motive is to kill the ID given
 	 * false otherwise
 	 */
-	public boolean killThis(int id) {
-		return isKillByID() && this.taskID == id;
+	public boolean isKillThis(int id) {
+		return isKillByID() && getInt(0) == id;
 	}
 
 	
@@ -213,6 +218,12 @@ public class CommandPacket {
 	}
 	
 	
+	/**
+	 * Query for the state of this packet
+	 * @return true if this is a blank command
+	 * that should not be executed, false if this
+	 * command is valid
+	 */
 	public boolean isBlankCommand(){
 		return command == Constants.Commands.NO_COMMAND;
 	}
@@ -230,8 +241,13 @@ public class CommandPacket {
 				command == Constants.Commands.KILL_EVERYTHING ||
 				command == Constants.Commands.SUPPORTED_FEATURES;
 	}
-	
 
+	
+	
+	public void execute(CommandFilter controller) {
+		
+	}
+	
 
 	/**
 	 * Parses an array of {@link CommandPacket} objects from the given

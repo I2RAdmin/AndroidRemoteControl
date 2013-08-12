@@ -23,7 +23,7 @@ import com.i2r.androidremotecontroller.connections.RemoteConnection;
  * starting or ending sensor tasks.
  * @author Josh Noel
  */
-public class SensorController {
+public class CommandFilter {
 	
 	private static final String TAG = "SensorController";
 	private static final int MAX_COMMAND_CAPACITY = 10;
@@ -41,7 +41,7 @@ public class SensorController {
 	
 	
 	// Constructor
-	public SensorController(Activity activity, Camera camera, SurfaceHolder holder){
+	public CommandFilter(Activity activity, Camera camera, SurfaceHolder holder){
 		this.activity = activity;
 		this.camera = camera;
 		this.manager = LocalBroadcastManager.getInstance(activity);
@@ -54,6 +54,95 @@ public class SensorController {
 	}
 	
 
+	
+	/**
+	 * Decodes the given String buffer into a {@link CommandPacket}
+	 * object, and adds it to the queue of commands.
+	 * @param buffer - the String to parse one or more CommandPacket
+	 * objects from
+	 */
+	public void parseCommand(String buffer){
+		
+		// get a new CommandPacket object from the string read by a RemoteConnection
+		CommandPacket[] packets = CommandPacket.parsePackets(buffer);
+		
+		if(packets != null){
+			
+			// if the packet is legitimate, add it to the queue
+			for(int i = 0; i < packets.length; i++){
+				if(packets[i] != null && packets[i].isCompleteCommand()){
+					
+					// high priority packets get executed immediately
+					if(packets[i].hasHighPriority()){
+						Log.d(TAG, "executing high priority command:\n" + packets[i].toString());
+						execute(packets[i]);
+						
+						// low priority packets get placed in queue
+					} else {
+						Log.d(TAG, "queueing command:\n" + packets[i].toString());
+						commandQueue.add(packets[i]);
+					}
+					
+					// packet is incomplete command, see if it is blank
+				} else if(packets[i] != null && !packets[i].isCompleteCommand()){
+					
+					if(!packets[i].isBlankCommand()){
+						Log.d(TAG, "partial command received");
+						
+						// TODO: hold and wait to stitch
+						
+					} else {
+						Log.e(TAG, "blank command recieved, no action performed");
+					}
+					
+				} else {
+					Log.e(TAG, "command " + i + " could not be parsed");
+				}
+			}
+			
+		} else {
+			Log.d(TAG, "resulting packet is null, returning to main");
+			notifyMain("command(s) not parsed, listening for new commands");
+		}
+	}
+	
+	
+	
+	
+	/**
+	 * Executes the next command in sequence.
+	 * If the command is for a process that is already running, this
+	 * method does nothing.
+	 */
+	public void executeNextCommand(){
+		
+		// if there are commands left in the queue to execute
+		if (!commandQueue.isEmpty()) {
+			
+			int taskID = commandQueue.get(0).getTaskID();
+			
+			// check to make sure command can be executed
+			if (isAvailableService(commandQueue.get(0).getCommand())) {
+				
+				// notify UI and log that a new task is starting - TODO: delete info updates
+				
+				String result = "executing command - taskID:" + taskID;
+				Log.d(TAG, result);
+				
+				// start the new task by filtering what kind of task it is
+				execute(commandQueue.get(0));
+				commandQueue.remove(0);
+				
+			} else {
+				Log.d(TAG, "service not available. TASK ID - " + taskID);
+			}
+		} else {
+			Log.d(TAG, "no more commands to execute in queue");
+			notifyMain("listening for commands");
+		}
+	}
+	
+	
 	
 	/**
 	 * This method acts as a filter for command packets that are sent in via
@@ -131,7 +220,8 @@ public class SensorController {
 	 */
 	private void startService(CommandPacket packet){
 		sensors[packet.getCommand()].setConnection(connection);
-		sensors[packet.getCommand()].startNewTask(packet.getTaskID(), packet.getIntParameters());
+		sensors[packet.getCommand()].startNewTask(packet.getTaskID(),
+				packet.getIntParameters());
 	}
 	
 	
@@ -223,25 +313,6 @@ public class SensorController {
 	}
 	
 	
-	/**
-	 * Helper method for finding int values in an array. This
-	 * method is more efficient than going through the commandQueue
-	 * multiple times with an iterator, as that would require
-	 * object creation on the iterator's part.
-	 * @param array - the array to search through for the given value
-	 * @param value - the value to search for in the given array
-	 * @return true if the value given was found in the given array,
-	 * false otherwise.
-	 */
-	public static boolean arrayContainsValue(int[] array, int value){
-		boolean hasValue = false;
-		for(int i = 0; i < array.length && !hasValue; i++){
-			hasValue = array[i] == value;
-		}
-		return hasValue;
-	}
-	
-	
 	
 	/**
 	 * Called if the given packet is a query for features of this device, so
@@ -258,37 +329,13 @@ public class SensorController {
 				switch(features[i]){
 				
 				case Constants.DataTypes.CAMERA:
-					
-					Log.d(TAG, "sending supported camera features to controller");
-					byte[] cameraFeatures = SupportedFeatures.getCameraFeatures(camera);
-					
-					if(cameraFeatures != null){
-						ResponsePacket rp = new ResponsePacket(packet.getTaskID(),
-								Constants.DataTypes.CAMERA, cameraFeatures);
-						ResponsePacket.sendResponse(rp, connection);
-					} else {
-						ResponsePacket.sendNotification(packet.getTaskID(), 
-								Constants.Notifications.SENSOR_NOT_SUPPORTED, 
-								Constants.DataTypes.CAMERA, connection);
-					}
-					
+					sendFeatures(packet.getTaskID(), Constants.DataTypes.CAMERA, 
+							SupportedFeatures.getCameraFeatures(camera));
 					break;
 					
 				case Constants.DataTypes.MICROPHONE:
-					
-					Log.d(TAG, "sending supported microphone features to controller");
-					byte[] micFeatures = SupportedFeatures.getMicrophoneFeatures();
-					
-					if(micFeatures != null){
-						ResponsePacket rp = new ResponsePacket(packet.getTaskID(),
-								Constants.DataTypes.MICROPHONE, micFeatures);
-						ResponsePacket.sendResponse(rp, connection);
-					} else {
-						ResponsePacket.sendNotification(packet.getTaskID(), 
-								Constants.Notifications.SENSOR_NOT_SUPPORTED,
-								Constants.DataTypes.MICROPHONE, connection);
-					}
-					
+					sendFeatures(packet.getTaskID(), Constants.DataTypes.MICROPHONE,
+							SupportedFeatures.getMicrophoneFeatures());
 					break;
 					
 					// TODO: add more sensors here
@@ -309,6 +356,22 @@ public class SensorController {
 					Constants.Notifications.TASK_ERRORED_OUT, connection);
 		}
 
+	}
+	
+	
+	// Supported features helper method
+	private void sendFeatures(int taskID, int sensorType, byte[] features){
+		
+		Log.d(TAG, "sending supported features to controller");
+		
+		if(features != null){
+			ResponsePacket rp = new ResponsePacket(taskID, sensorType, features);
+			ResponsePacket.sendResponse(rp, connection);
+		} else {
+			ResponsePacket.sendNotification(taskID, 
+					Constants.Notifications.SENSOR_NOT_SUPPORTED,
+					sensorType, connection);
+		}
 	}
 	
 	
@@ -341,6 +404,52 @@ public class SensorController {
 			}
 		}
 		commandQueue.clear();
+	}
+	
+	
+	
+	/**
+	 * Notification helper method - notifies the main activity.
+	 * This is used when both the sensors and the master cannot
+	 * update main and the responsibility for updating is left
+	 * to this class.
+	 * @param notifyType - the type of notification to send back to main
+	 */
+	private void notifyMain(String message){
+		Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
+		intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, message);
+		manager.sendBroadcast(intent);
+	}
+	
+	
+	
+	/**
+	 * Sets the connection for this responder object
+	 * @param connection - the connection to read and write with
+	 */
+	public void setConnection(RemoteConnection connection){
+		this.connection = connection;
+	}
+	
+	
+	
+	
+	/**
+	 * Helper method for finding int values in an array. This
+	 * method is more efficient than going through the commandQueue
+	 * multiple times with an iterator, as that would require
+	 * object creation on the iterator's part.
+	 * @param array - the array to search through for the given value
+	 * @param value - the value to search for in the given array
+	 * @return true if the value given was found in the given array,
+	 * false otherwise.
+	 */
+	public static boolean arrayContainsValue(int[] array, int value){
+		boolean hasValue = false;
+		for(int i = 0; i < array.length && !hasValue; i++){
+			hasValue = array[i] == value;
+		}
+		return hasValue;
 	}
 	
 	
@@ -380,10 +489,11 @@ public class SensorController {
 	
 	
 	/**
-	 * @param taskID - the task ID to check against all this controllers
+	 * @param sensorID - the task ID to check against all this controllers
 	 * current sensors.
-	 * @return the sensor which has a matching task ID to the one
-	 * given, or null if no sensor with the given task ID was found
+	 * @return the sensor which has a matching sensor ID to the one
+	 * given, or null if no sensor with the given ID was found
+	 * @see {@link Constants#DataTypes}
 	 */
 	public GenericDeviceSensor getSensor(int sensorID){
 		GenericDeviceSensor sensor;
@@ -402,6 +512,7 @@ public class SensorController {
 	}
 	
 	
+	
 	/**
 	 * Query for a reference to the activity which all the
 	 * sensors in this application use.
@@ -409,15 +520,6 @@ public class SensorController {
 	 */
 	public Activity getRelativeActivity(){
 		return activity;
-	}
-	
-	
-	/**
-	 * Sets the connection for this responder object
-	 * @param connection - the connection to read and write with
-	 */
-	public void setConnection(RemoteConnection connection){
-		this.connection = connection;
 	}
 	
 	
@@ -460,110 +562,6 @@ public class SensorController {
 	public boolean canExecuteNextCommand(){
 		return hasNewCommands() && sensorForNextCommandIsAvailable();
 	}
-	
-
-	
-	/**
-	 * Decodes the given String buffer into a {@link CommandPacket}
-	 * object, and adds it to the queue of commands.
-	 * @param buffer - the String to parse one or more CommandPacket
-	 * objects from
-	 */
-	public void parseCommand(String buffer){
-		
-		// get a new CommandPacket object from the string read by a RemoteConnection
-		CommandPacket[] packets = CommandPacket.parsePackets(buffer);
-		
-		if(packets != null){
-			
-			// if the packet is legitimate, add it to the queue
-			for(int i = 0; i < packets.length; i++){
-				if(packets[i] != null && packets[i].isCompleteCommand()){
-					
-					// high priority packets get executed immediately
-					if(packets[i].hasHighPriority()){
-						Log.d(TAG, "executing high priority command:\n" + packets[i].toString());
-						execute(packets[i]);
-						
-						// low priority packets get placed in queue
-					} else {
-						Log.d(TAG, "queueing command:\n" + packets[i].toString());
-						commandQueue.add(packets[i]);
-					}
-					
-					// packet is incomplete command, see if it is blank
-				} else if(packets[i] != null && !packets[i].isCompleteCommand()){
-					
-					if(!packets[i].isBlankCommand()){
-						Log.d(TAG, "partial command received");
-						
-						// TODO: hold and wait to stitch
-						
-					} else {
-						Log.e(TAG, "blank command recieved, no action performed");
-					}
-					
-				} else {
-					Log.e(TAG, "command " + i + " could not be parsed");
-				}
-			}
-			
-		} else {
-			Log.d(TAG, "resulting packet is null, returning to main");
-			notifyMain("command not parsed, listening for new commands");
-		}
-	}
-
-	
-	
-	
-	/**
-	 * Executes the next command in sequence.
-	 * If the command is for a process that is already running, this
-	 * method does nothing.
-	 */
-	public void executeNextCommand(){
-		
-		// if there are commands left in the queue to execute
-		if (!commandQueue.isEmpty()) {
-			
-			int taskID = commandQueue.get(0).getTaskID();
-			
-			// check to make sure command can be executed
-			if (isAvailableService(commandQueue.get(0).getCommand())) {
-				
-				// notify UI and log that a new task is starting - TODO: delete info updates
-				
-				String result = "executing command - taskID:" + taskID;
-				Log.d(TAG, result);
-				
-				// start the new task by filtering what kind of task it is
-				execute(commandQueue.get(0));
-				commandQueue.remove(0);
-				
-			} else {
-				Log.d(TAG, "service not available. TASK ID - " + taskID);
-			}
-		} else {
-			Log.d(TAG, "no more commands to execute in queue");
-			notifyMain("listening for commands");
-		}
-	}
-	
-	
-	/**
-	 * Notification helper method - notifies the main activity.
-	 * This is used when both the sensors and the master cannot
-	 * update main and the responsibility for updating is left
-	 * to this class.
-	 * @param notifyType - the type of notification to send back to main
-	 */
-	private void notifyMain(String message){
-		Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-		intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, message);
-		manager.sendBroadcast(intent);
-	}
-	
 
 	
 }

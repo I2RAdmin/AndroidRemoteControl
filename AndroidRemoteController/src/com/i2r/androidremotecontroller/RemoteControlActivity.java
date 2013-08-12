@@ -18,7 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
-import com.i2r.androidremotecontroller.sensors.SensorController;
+import com.i2r.androidremotecontroller.sensors.CommandFilter;
 
 /**
  * This class acts as a base starter for remote control
@@ -49,7 +49,7 @@ public class RemoteControlActivity extends Activity {
 	private BroadcastReceiver receiver;
 	private LocalBroadcastManager manager;
 	private RemoteControlMaster master;
-	private SensorController sensorController;
+	private CommandFilter sensorController;
 	private TextView action;
 	private Camera camera;
 	private boolean started;
@@ -164,7 +164,7 @@ public class RemoteControlActivity extends Activity {
 		// to mediate between the master and the device sensors
 		this.camera = Camera.open();
 		SurfaceView view = (SurfaceView) findViewById(R.id.preview);
-		this.sensorController = new SensorController(this, camera, view.getHolder());
+		this.sensorController = new CommandFilter(this, camera, view.getHolder());
 		try{
 			this.master = new RemoteControlMaster(sensorController, connectionType);
 			if(!started){

@@ -20,7 +20,7 @@ import com.i2r.androidremotecontroller.connections.RemoteConnection;
 /**
  * This abstract class models the implementation needed for a piece of hardware
  * on this device to be controlled remotely. Here, the context and taskID are
- * defined so that the {@link SensorController} can control each concrete
+ * defined so that the {@link CommandFilter} can control each concrete
  * implementation accordingly.
  * 
  * @author Josh Noel
