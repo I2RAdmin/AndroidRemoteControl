@@ -14,11 +14,16 @@ public class NoDeviceFoundException extends Exception {
 
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * @see {@link NoDeviceFoundException}
+	 */
 	public NoDeviceFoundException(){
 		super();
 	}
 	
-	
+	/**
+	 * @see {@link NoDeviceFoundException}
+	 */
 	public NoDeviceFoundException(String message){
 		super(message);
 	}

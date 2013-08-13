@@ -16,60 +16,69 @@ public interface Link<E> {
 	
 	
 	/**
-	 * Used for server side connecting. 
-	 * @requires this device supports server sockets for
-	 * connecting to.
-	 * @ensures nothing
-	 * @return a ConnectorThread object to use for listening
+	 * Used for server side connecting. This method
+	 * will typically block in concrete implementations,
+	 * and should be called in a separate worker thread.
+	 * @return a {@link RemoteConnection} to a controller
+	 * device if one was found, else returns null.
 	 */
 	public RemoteConnection listenForRemoteConnection();
 	
 	
 	/**
-	 * Used for client side connecting.
-	 * @param remote - the remote device to connect to
-	 * @requires the given remote object can be connected to
-	 * @ensures nothing
-	 * @return a RemoteConnection object if the connection
-	 * attempt was successful.
+	 * Used for client side connecting. This method
+	 * sends a request to a remote object to establish
+	 * a new connection. Unlike {@link #listenForRemoteConnection()},
+	 * this method will return immediately.
+	 * @param remote - the remote device to connect to.
+	 * @return a {@link RemoteConnection} to the remote
+	 * device if the device accepted this request, else
+	 * returns null.
 	 */
 	public RemoteConnection connectTo(E remote);
 
 	
 	/**
 	 * Perform a radial search for other devices in the immediate
-	 * area, to seek out all possible connections.
-	 * @requires this device can discover other devices and is discoverable
-	 * @ensures all available connections to this device will be found
+	 * area, to seek out all possible connections. This method
+	 * requires that this device is discoverable to other devices.
+	 * This method will return immediately, so {@link #isSearchingForLinks()}
+	 * should be used to wait for the search to be complete.
+	 * Afterwards, {@link #getLinks()} can be used to obtain a
+	 * list of devices to connect with.
 	 */
 	public void searchForLinks();
 	
 	
 	/**
 	 * Query for this link's searching state
-	 * @return true if this link is currently in the discovery process, false otherwise
+	 * @return true if this link is currently
+	 * in the discovery process, false otherwise
 	 */
 	public boolean isSearchingForLinks();
 	
 	
 	/**
-	 * Stops all connection searching processes currently active in this Link.
+	 * Stops all connection searching processes
+	 * currently active in this Link.
 	 */
 	public void haltConnectionDiscovery();
 	
 	
 	/**
 	 * The resulting list of available potential connections after
-	 * {@link #searchForLinks()} has been called.
+	 * {@link #searchForLinks()} has been called. This method may
+	 * return an empty list if {@link #searchForLinks()} was not
+	 * called prior to its invocation.
 	 * @return a new list of all possible connections for this device.
-	 * @requires searchForLinks() has been called at least once prior to invocation
-	 * @ensures a list of all the devices paired with this device will be returned
 	 */
 	public List<E> getLinks();
 	
 	
 	/**
 	 * Query about the listening state of this Link
+	 * @return true if this link is set to listen
+	 * for connections, false otherwise
 	 */
 	public boolean isServerLink();
 	
@@ -77,6 +86,8 @@ public interface Link<E> {
 	
 	/**
 	 * Query about the searching state of this Link
+	 * @return true if this link is set to search for
+	 * connections, false otherwise
 	 */
 	public boolean isClientLink();
 	

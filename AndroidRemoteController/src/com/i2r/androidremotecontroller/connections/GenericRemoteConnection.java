@@ -16,6 +16,7 @@ import com.i2r.androidremotecontroller.RemoteControlActivity;
  * The connection should be established prior to creating an instance
  * of this class, so that this class can handle the bulk of communication.
  * @author Josh Noel
+ * @see {@link RemoteConnection}
  */
 public class GenericRemoteConnection implements RemoteConnection {
 
@@ -23,15 +24,28 @@ public class GenericRemoteConnection implements RemoteConnection {
 	private static final String TAG = "GenericRemoteConnection";
 	
 	private LocalBroadcastManager manager;
-	private Context context;
 	private InputStream input;
 	private OutputStream output;
 	private boolean connected;
 	private int bytesRead;
 	private byte[] buffer;
 	
+	/**
+	 * Constructor<br>
+	 * takes an {@link InputStream} and an {@link OutputStream}
+	 * from a connection that was established prior to this
+	 * object's creation.
+	 * @param context - the context to send broadcasts to when
+	 * data is transferred on either the input or output stream.
+	 * @param input - the input stream to read incoming data with.
+	 * @param output - the output stream to write to whenever
+	 * result data for this application is available.
+	 * @see {@link ResponsePacket}
+	 * @see {@link RemoteControlActivity#ACTION_CONNECTION_READ}
+	 * @see {@link RemoteControlActivity#ACTION_CONNECTOR_RESPONDED}
+	 * @see {@link ConnectionManager}
+	 */
 	public GenericRemoteConnection(Context context, InputStream input, OutputStream output){
-		this.context = context;
 		this.manager = LocalBroadcastManager.getInstance(context);
 		this.input = input;
 		this.output = output;
@@ -90,21 +104,4 @@ public class GenericRemoteConnection implements RemoteConnection {
 		if(input != null){try{input.close();}catch(IOException e){}}
 		if(output != null){try{output.flush(); output.close();}catch(IOException e){}}
 	}
-
-	
-	public Context getContext(){
-		return context;
-	}
-
-	@Override
-	public InputStream getInputStream() {
-		return input;
-	}
-
-	@Override
-	public OutputStream getOutputStream() {
-		return output;
-	}
-	
-	
 }

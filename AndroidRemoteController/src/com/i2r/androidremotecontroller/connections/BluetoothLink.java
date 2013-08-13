@@ -32,13 +32,22 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	private String name;
 	private BluetoothServerSocket listener;
 	
-	// constructor
+	/**
+	 * Constructor<br>
+	 * creates a new BluetoothLink that accepts connections only with other
+	 * devices that have the UUID given.
+	 * @param adapter - the bluetooth adapter to start listening or seek connections with
+	 * @param uuid - the UUID to specify which connections to accept or search for
+	 * @param name - the name to display this device with when becoming visible to other devices
+	 * @param activity - a reference to the activity that made this link.
+	 * @throws ServiceNotFoundException if the given {@link BluetoothAdapter} is null.
+	 */
 	public BluetoothLink(BluetoothAdapter adapter, UUID uuid, String name, Activity activity)
 														throws ServiceNotFoundException {
 		
 		if(adapter == null){
 			// ABANDON SHIP!!!
-			throw new ServiceNotFoundException();
+			throw new ServiceNotFoundException("bluetooth adapter is null");
 		}
 		
 		this.uuid = uuid;

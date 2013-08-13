@@ -20,8 +20,13 @@ import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 
+/**
+ * This class models a {@link Link} implementation using WifiDirect.
+ * (currently not used)
+ * @author Josh Noel
+ */
 public class WifiDirectLink implements Link<WifiP2pDevice> {
-	
+
 	private WifiP2pManager manager;
 	private Channel channel;
 	private WifiChannelListener listener;
@@ -29,23 +34,38 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 	private GenericActionListener connectListener;
 	private Activity activity;
 	private boolean isServer, searchingForLinks;
-	
-	public WifiDirectLink(Activity activity, boolean isServer, WifiP2pManager manager) throws ServiceNotFoundException {
-		
-		if(manager == null){
-			throw new ServiceNotFoundException("wifiP2pManager is null on WifiDirectLink constructor");
+
+	/**
+	 * Constructor<br>
+	 * creates a new WifiDirectLink, using the given
+	 * {@link WifiP2pManager} to handle connections.
+	 * @param activity - the activity in which this
+	 * Link was created.
+	 * @param isServer - a flag for how this Link should act
+	 * (server = true/client = false)
+	 * @param manager - the WifiP2pManager to handle connections with
+	 * @throws ServiceNotFoundException if the given manager is null
+	 */
+	public WifiDirectLink(Activity activity, boolean isServer,
+			WifiP2pManager manager) throws ServiceNotFoundException {
+
+		if (manager == null) {
+			throw new ServiceNotFoundException(
+					"wifiP2pManager is null on WifiDirectLink constructor");
 		}
-		
+
 		this.activity = activity;
 		this.isServer = isServer;
 		this.manager = manager;
-		this.channel = manager.initialize(activity, activity.getMainLooper(), listener);
-		
+		this.channel = manager.initialize(activity, activity.getMainLooper(),
+				listener);
+
 		this.searchingForLinks = false;
 		this.listener = new WifiChannelListener();
 		this.peerListener = new WifiPeerListListener();
-		this.connectListener = new GenericActionListener(GenericActionListener.TYPE_CONNECTION);
-		
+		this.connectListener = new GenericActionListener(
+				GenericActionListener.TYPE_CONNECTION);
+
 	}
 
 	
@@ -56,37 +76,38 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 		try {
 			ServerSocket listener = new ServerSocket(Constants.Info.WIFI_PORT);
 			socket = listener.accept();
-			if(socket != null){
-				connection = new GenericRemoteConnection(activity, 
+			if (socket != null) {
+				connection = new GenericRemoteConnection(activity,
 						socket.getInputStream(), socket.getOutputStream());
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
-		} 
+		}
 		return connection;
 	}
 
 	
 	@Override
 	public RemoteConnection connectTo(WifiP2pDevice remote) {
-		
+
 		WifiP2pDevice device = (WifiP2pDevice) remote;
 		WifiP2pConfig config = new WifiP2pConfig();
 		config.deviceAddress = device.deviceAddress;
 		GenericRemoteConnection connection = null;
-		
+
 		try {
-			
-			Socket socket = new Socket(device.deviceName, Constants.Info.WIFI_PORT);
-			
-			if(socket != null){
-				connection = new  GenericRemoteConnection(activity, 
+
+			Socket socket = new Socket(device.deviceName,
+					Constants.Info.WIFI_PORT);
+
+			if (socket != null) {
+				connection = new GenericRemoteConnection(activity,
 						socket.getInputStream(), socket.getOutputStream());
-				
+
 				// TODO: figure out what to do with this
 				this.manager.connect(channel, config, connectListener);
 			}
-			
+
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -100,12 +121,12 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 	public void searchForLinks() {
 		peerListener.devices.clear();
 		searchingForLinks = true;
-		if(manager != null && channel != null){
+		if (manager != null && channel != null) {
 			manager.requestPeers(channel, peerListener);
 		}
 	}
-
 	
+
 	@Override
 	public void haltConnectionDiscovery() {
 		manager.stopPeerDiscovery(channel, null);
@@ -129,70 +150,75 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 	public boolean isClientLink() {
 		return !isServer;
 	}
-	
+
 	
 	@Override
 	public boolean isSearchingForLinks() {
 		return searchingForLinks;
 	}
+	
 
-	
-	//********************************************|
+	// ********************************************|
 	// IMPLEMENTED INTERFACES --------------------|
-	//********************************************|
-	
+	// ********************************************|
+
 	
 	/**
 	 * Lightweight class for responding to a channel being disconnected.
 	 * @author Josh Noel
 	 */
 	private class WifiChannelListener implements ChannelListener {
-		
+
 		public void onChannelDisconnected() {
 			channel = null;
 		}
 	} // end of WifiChannelListener class
-	
+
 	
 	/**
-	 * Lightweight class for storing a new list of available peers
-	 * whenever they become available.
+	 * Lightweight class for storing a new list of
+	 * available peers whenever they become available.
 	 * @author Josh Noel
 	 */
 	private class WifiPeerListListener implements PeerListListener {
-		
+
 		private ArrayList<WifiP2pDevice> devices;
-		
-		public WifiPeerListListener(){
+
+		public WifiPeerListListener() {
 			this.devices = new ArrayList<WifiP2pDevice>();
 		}
-		
+
 		@Override
 		public void onPeersAvailable(WifiP2pDeviceList peers) {
 			devices.addAll(peers.getDeviceList());
 			searchingForLinks = false;
 		}
-		
+
 	} // end of WifiPeerListListener class
+
 	
-	
+	/**
+	 * This class models a generic listener that
+	 * response to onSuccess() and onFailure(int) calls
+	 * @author Josh Noel
+	 */
 	private class GenericActionListener implements ActionListener {
 
 		private static final int TYPE_CONNECTION = 0;
-		
+
 		private int type;
-		
+
 		public GenericActionListener(int type) {
 			this.type = type;
 		}
-		
+
 		@Override
 		public void onFailure(int reason) {
 			switch (type) {
 			case TYPE_CONNECTION:
-				
+				// TODO: respond
 				break;
-			
+
 			default:
 				break;
 			}
@@ -202,15 +228,14 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 		public void onSuccess() {
 			switch (type) {
 			case TYPE_CONNECTION:
-				
+				// TODO: respond
 				break;
-			
+
 			default:
 				break;
 			}
 		}
-		
+
 	}
-	
-	
-} // end of WifiDirectLink class 
+
+} // end of WifiDirectLink class

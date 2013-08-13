@@ -17,30 +17,45 @@ public class ServiceNotFoundException extends Exception {
 
 	private int type;
 
+	/**
+	 * @see {@link ServiceNotFoundException}
+	 */
 	public ServiceNotFoundException(){
 		super();
 		this.type = 0;
 	}
 	
-	
+	/**
+	 * @see {@link ServiceNotFoundException}
+	 */
 	public ServiceNotFoundException(String message){
 		super(message);
 		this.type = 0;
 	}
 	
-	
+	/**
+	 * @see {@link ServiceNotFoundException}
+	 */
 	public ServiceNotFoundException(int type){
 		super();
 		this.type = type;
 	}
 	
-	
+	/**
+	 * @see {@link ServiceNotFoundException}
+	 */
 	public ServiceNotFoundException(String message, int type){
 		super(message);
 		this.type = type;
 	}
 	
 	
+	/**
+	 * gets the type of this exception
+	 * @return 0 if type was not set, else
+	 * returns the set type. Types can be
+	 * set for custom responses.
+	 */
 	public int getType(){
 		return type;
 	}

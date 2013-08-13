@@ -257,8 +257,8 @@ public class CommandPacket {
 	 * This static method parses the commands given in a byte array that is
 	 * retrieved from reading data on a {@link RemoteConnection} for this
 	 * application. The data is parsed based on the command
-	 * {@link Constants#TERMINATOR}, which indicates a command's end point.
-	 * If at any point a {@link Constants#PACKET_END} is found, the command packet
+	 * {@link PACKET_DELIMITER}, which indicates a command's end point.
+	 * If at any point a {@link PACKET_DELIMITER} is found, the command packet
 	 * is deemed complete. This process is repeated until the buffer's end is reached.
 	 * 
 	 * @param buffer - the String to parse commands from
@@ -269,8 +269,9 @@ public class CommandPacket {
 	 * delimited by the given delimiter (the delimiter needs to immediately follow this) or
 	 * they will not be interpreted correctly and will be skipped - this will most likely cause
 	 * parsing errors.
-	 * @return an ArrayList of ArrayLists of Integers. The latter ArrayList can be seen
+	 * @return an ArrayList of ArrayLists of Strings. The latter ArrayList can be seen
 	 * as an individual CommandPacket, while the former ArrayList is a container of packets.
+	 * @see {@link Constants#Delimiters}
 	 */
 	private static ArrayList<ArrayList<String>> decode(String buffer,
 							char delimiter, String fullPacketIdentifier) {

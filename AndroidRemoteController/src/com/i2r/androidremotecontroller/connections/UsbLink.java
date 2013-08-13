@@ -21,6 +21,13 @@ import android.util.Log;
 
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 
+/**
+ * This class models a {@link Link} implementation with USB connections.
+ * Since USBs are immediately known to be connected and not connected,
+ * this class only uses 
+ * @author jnoel
+ *
+ */
 public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 
 	private static final String TAG = "UsbLink";
@@ -101,9 +108,11 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	
 	
 	
-	// UsbAccessory = client, does not power bus (waiter)
-	// Host and Client are switched in this link for
-	// convenience purposes with the ConnectionManager
+	/**
+	 * UsbAccessory = client, does not power bus (waiter)
+	 * Host and Client are switched in this link for
+	 * convenience purposes with the ConnectionManager
+	 */
 	@Override
 	public RemoteConnection listenForRemoteConnection() {
 		RemoteConnection connection = null;
@@ -140,12 +149,14 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 
 
 	
-	// UsbDevice = host, powers bus (seeker)
-	// WARNING: this application is set be default
-	// to treat this android device as an accessory,
-	// treating it as a host will most likely not be
-	// as stable and will drain the batter much faster,
-	// as the host device is the one powering the bus
+	/**
+	 * UsbDevice = host, powers bus (seeker)<br>
+	 * WARNING: this application is set be default
+	 * to treat this android device as an accessory,
+	 * treating it as a host will most likely not be
+	 * as stable and will drain the batter much faster,
+	 * as the host device is the one powering the bus
+	 */
 	@Override
 	public RemoteConnection connectTo(UsbDevice remote) {
 		RemoteConnection connection = null;
@@ -222,14 +233,26 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	}
 
 	
-	
+	/**
+	 * Helper method for {@link #connectTo(UsbDevice)}
+	 * @param device - the device to test for
+	 * the correct parameters
+	 * @return true if this device holds true for
+	 * all the required parameters, false otherwise
+	 */
 	private boolean isCorrectDevice(UsbDevice device){
 		// TODO: add device inquiry here
 		return true;
 	}
 	
 	
-	
+	/**
+	 * Helper method for {@link #listenForRemoteConnection()}
+	 * @param accessory - the accessory to test for
+	 * the correct parameters
+	 * @return true if the accessory holds true for
+	 * all the reuqired parameters, false otherwise
+	 */
 	private boolean isCorrectAccessory(UsbAccessory accessory){
 		// TODO: add accessory inquiry here
 		return true;

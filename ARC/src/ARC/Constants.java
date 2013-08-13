@@ -23,9 +23,10 @@ public final class Constants {
 	 * across the connection.<br><br>
 	 * 
 	 * Constants:<br>
-	 * {@link #TASK_ID_INDEX}, {@link #COMMAND_INDEX}, {@link #PARAM_START_INDEX}, {@link #SUPPORTED_FEATURES},<br>
-	 * {@link #MODIFY}, {@link #KILL}, {@link #NO_COMMAND}, {@link #KILL_EVERYTHING},<br>
-	 * {@link #PICTURE}, {@link #RECORD_AUDIO}
+	 * {@link #TASK_ID_INDEX}, {@link #COMMAND_INDEX}, {@link #PARAM_START_INDEX},
+	 * {@link #SUPPORTED_FEATURES},<br> {@link #MODIFY}, {@link #KILL},
+	 * {@link #NO_COMMAND}, {@link #KILL_EVERYTHING},<br>
+	 * {@link #TAKE_PICTURE}, {@link #RECORD_AUDIO}
 	 ***************************************************************
 	 */
 	public static final class Commands {
@@ -101,7 +102,7 @@ public final class Constants {
 		 * int - maximum amount of pictures to be taken<br>
 		 * long - frequency of captures in milliseconds (captures per second)
 		 */
-		public static final int PICTURE = 0;
+		public static final int TAKE_PICTURE = 0;
 		
 		
 		/**
@@ -113,6 +114,16 @@ public final class Constants {
 		 * features while it is recording will do nothing.
 		 */
 		public static final int RECORD_AUDIO = 1;
+		
+		/**
+		 * Command to start sending data from the environment
+		 * sensors. If the duration for the sensors to send
+		 * back data has not been set prior to this call,
+		 * it is imperative that the task be manually killed
+		 * by the controller as soon as possible, or risk
+		 * draining the android device's power at a very high rate.
+		 */
+		public static final int LISTEN_TO_ENVIRONMENT_SENSORS = 2;
 
 	}// end Commands class
 
@@ -123,10 +134,12 @@ public final class Constants {
 	 * streams received on either client.<br><br>
 	 * 
 	 * Constants:<br>
-	 * {@link #ARG_NO_CHANGE}, {@link #ARG_NONE}, {@link #ARG_STRING_NO_CHANGE}, {@link #ARG_STRING_NONE},<br>
-	 * {@link #ARG_CHAR_NO_CHANGE}, {@link #ARG_CHAR_NONE}, {@link #CP_SENSOR_INDEX}, {@link #KEY_VALUE_START_INDEX},<br>
-	 * {@link #PICTURE_DEFAULT_FREQUENCY}, {@link #PICTURE_DEFAULT_TIME_ELAPSE}, {@link #PICTURE_DEFAULT_PICTURE_AMOUNT},
-	 * {@link #FREQUENCY_INDEX}, {@link #DURATION_INDEX}, {@link #AMOUNT_INDEX}
+	 * {@link #ARG_NO_CHANGE}, {@link #ARG_NONE}, {@link #ARG_STRING_NO_CHANGE},
+	 * {@link #ARG_STRING_NONE},<br>{@link #ARG_CHAR_NO_CHANGE}, {@link #ARG_CHAR_NONE},
+	 * {@link #CP_SENSOR_INDEX}, {@link #KEY_VALUE_START_INDEX},<br>
+	 * {@link #PICTURE_DEFAULT_FREQUENCY}, {@link #PICTURE_DEFAULT_TIME_ELAPSE},
+	 * {@link #PICTURE_DEFAULT_PICTURE_AMOUNT}, {@link #FREQUENCY_INDEX},
+	 * {@link #DURATION_INDEX}, {@link #AMOUNT_INDEX}
 	 * 
 	 *********************************************
 	 */
@@ -295,12 +308,6 @@ public final class Constants {
 		 */
 		public static final int NOTIFY = 0;
 		
-
-		/**
-		 * Image type - informs the controller that it's
-		 * receiving a picture
-		 */
-		public static final int IMAGE = 2;
 		
 		/**
 		 * Int type - informs the controller that
@@ -309,6 +316,7 @@ public final class Constants {
 		 */
 		public static final int INTEGER = 3;
 		
+		
 		/**
 		 * double type - informs the controller that
 		 * a certain part of this application
@@ -316,12 +324,14 @@ public final class Constants {
 		 */
 		public static final int DOUBLE = 4;
 		
+		
 		/**
 		 * String type - informs the controller that
 		 * a certain part of this application
 		 * expects String values as input
 		 */
 		public static final int STRING = 5;
+		
 		
 		/**
 		 * Range type - informs the controller that
@@ -332,12 +342,14 @@ public final class Constants {
 		 */
 		public static final int RANGE = 6;
 		
+		
 		/**
 		 * Set type - informs the controller that
 		 * it's about to receive a set of elements that
 		 * it can choose from as input parameters
 		 */
 		public static final int SET = 7;
+		
 		
 		/**
 		 * data type any - input is not specific
@@ -351,6 +363,13 @@ public final class Constants {
 		 * device for the camera's features
 		 */
 		public static final int CAMERA = 1;
+		
+		
+		/**
+		 * Image type - informs the controller that it's
+		 * receiving a picture
+		 */
+		public static final int IMAGE = 2;
 
 		
 		/**
@@ -369,19 +388,22 @@ public final class Constants {
 		
 
 		/**
-		 * Temperature data type - used when a request is received by the
-		 * android device for the phone's current temperature reading
-		 * of its surrounding environment
+		 * Environment sensors data type - used when informing
+		 * the controller about available environment sensors.
+		 * @see {@link Sensor} for types
 		 */
-		public static final int TEMPERATURE = 6;
-
+		public static final int ENVIRONMENT_SENSORS = 12;
+		
+		
 		/**
-		 * Pressure data type - used when a request is received by the
-		 * android device for the phone's current atmospheric pressure reading
-		 * of its surrounding environment
+		 * Environment data type - used when sending data
+		 * from some generic environment sensor. In order
+		 * to distinguish environment sensors when multiple
+		 * are being used to gather data, the name of the
+		 * sensor will be included in the sent packet along
+		 * with this data type. 
 		 */
-		public static final int PRESSURE = 7;
-
+		public static final int ENVIRONMENT_DATA = 13;
 		
 		
 	} // end of DataTypes class

@@ -27,19 +27,21 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 	private AudioRecord audio;
 	private RecordThread recorder;
 	private boolean taskCompleted, recording;
-	private long startTime;
 	
 	/**
 	 * Constructor
-	 * @param activity - the activity context in which this
-	 * ARC microphone sensor object was created.
+	 * creates a new blank audio sensor. The properties of this sensor can be changed
+	 * multiple times before its task is started, but once its task is started
+	 * its parameters must not be changed.
+	 * @param activity - the activity context in which this ARC microphone
+	 * sensor object was created.
 	 */
 	public MicrophoneSensor(Activity activity) {
 		super(activity);
 		this.taskCompleted = recording = false;
 		this.audio = null;
 		this.recorder = null;
-		this.startTime = 0;
+		createNewDuration("duration");
 	}
 
 
@@ -49,13 +51,15 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 		taskCompleted = true;
 		recording = false;
 		
-		if(audio != null && audio.getState() == AudioRecord.STATE_INITIALIZED){
-			if(audio.getRecordingState() == AudioRecord.RECORDSTATE_RECORDING){
+		if(audio != null && audio.getState() 
+				== AudioRecord.STATE_INITIALIZED){
+			
+			if(audio.getRecordingState() 
+					== AudioRecord.RECORDSTATE_RECORDING){
 				audio.stop();
 			}
 			audio.release();
 			audio = null;
-			sendTaskComplete();
 		} else {
 			sendTaskErroredOut();
 		}
@@ -73,29 +77,20 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 		setTaskID(taskID);
 		taskCompleted = false;
 		
-		modify(AudioKeys.RECORD_DURATION, String.valueOf(args[0]));
-		
 		if(audio == null){
 			createNewAudioRecorder();
 		}
 		
-		if(audio != null){
+		if(audio != null && audio.getState() 
+				== AudioRecord.STATE_INITIALIZED){
+			
 			try {
+				
 				recorder = new RecordThread();
-				
-				new Thread(new Runnable() { public void run() {
-				while(audio.getState() == AudioRecord.STATE_UNINITIALIZED){
-					try{
-						Thread.sleep(1000);
-					} catch (InterruptedException e){
-						// do nothing
-					}
-				}
-				
-				startRecording();
-				
-				}}).start();
-				
+				recording = true;
+				audio.startRecording();
+				recorder.start();
+				getDuration(0).setMax(args[0]).start();
 
 			} catch (IllegalStateException e) {
 				Log.e(TAG, "MediaRecorder illegal state: " + e.getMessage());
@@ -103,19 +98,10 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 			}
 		} else {
 			Log.e(TAG, "audio recorder is null after update, aborting task " + taskID);
+			killTask();
 		}
 	}
 	
-	
-	
-	private void startRecording(){
-		if(!recording){
-			startTime = System.currentTimeMillis();
-			recording = true;
-			audio.startRecording();
-			recorder.start();
-		}
-	}
 
 	
 	@Override
@@ -162,26 +148,40 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 	
 	/**
 	 * Copy pasta, the best kind of pasta.
+	 * 
+	 * TODO: may delete this if uses-permission works
+	 * ANOTHER TODO: test this with permission (already placed in)
 	 */
-	private static int[] mSampleRates = new int[] { 8000, 11025, 22050, 44100 };
-	public AudioRecord findAudioRecord() {
+	public static AudioRecord findAudioRecord() {
+		
+		int[] mSampleRates = new int[] { 8000, 11025, 22050, 44100 };
+		short[] formats = new short[] { AudioFormat.ENCODING_PCM_8BIT, AudioFormat.ENCODING_PCM_16BIT};
+		short[] channels = new short[] { AudioFormat.CHANNEL_IN_MONO, AudioFormat.CHANNEL_IN_STEREO};
+		
 	    for (int rate : mSampleRates) {
-	        for (short audioFormat : new short[] { AudioFormat.ENCODING_PCM_8BIT, AudioFormat.ENCODING_PCM_16BIT }) {
-	            for (short channelConfig : new short[] { AudioFormat.CHANNEL_IN_MONO, AudioFormat.CHANNEL_IN_STEREO }) {
+	        for (short audioFormat : formats) {
+	            for (short channelConfig : channels) {
+	            	
 	                try {
-	                    Log.d(TAG, "Attempting rate " + rate + "Hz, bits: " + audioFormat + ", channel: "
-	                            + channelConfig);
-	                    int bufferSize = AudioRecord.getMinBufferSize(rate, channelConfig, audioFormat);
+	                	
+	                    Log.d(TAG, "Attempting rate " + rate + "Hz, bits: "
+	                    		+ audioFormat + ", channel: " + channelConfig);
+	                    int bufferSize = AudioRecord
+	                    	.getMinBufferSize(rate, channelConfig, audioFormat);
 
 	                    if (bufferSize != AudioRecord.ERROR_BAD_VALUE) {
+	                    	
 	                        // check if we can instantiate and have a success
-	                        AudioRecord recorder = new AudioRecord(AudioSource.DEFAULT, rate, channelConfig, audioFormat, bufferSize);
+	                        AudioRecord recorder = new AudioRecord(AudioSource.DEFAULT,
+	                        		rate, channelConfig, audioFormat, bufferSize);
 
-	                        if (recorder.getState() == AudioRecord.STATE_INITIALIZED)
+	                        if (recorder.getState() == AudioRecord.STATE_INITIALIZED){
 	                            return recorder;
+	                        }
 	                    }
+	                    
 	                } catch (Exception e) {
-	                    Log.e(TAG, rate + "Exception, keep trying.",e);
+	                    Log.e(TAG, rate + "Exception, keep trying.", e);
 	                }
 	            }
 	        }
@@ -193,36 +193,58 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 	
 
 	/**
-	 * TODO: comment
+	 * Create a new AudioRecorder based on
+	 * the parameters in {@link #getProperties()}
+	 * This should only be called once per task.
 	 */
 	private void createNewAudioRecorder(){
 		try{
 			
 			// 44100 supported by all devices
-			int sampleRate = getIntProperty(AudioKeys.SAMPLING_RATE, 44100);
-			int audioSource = getIntProperty(AudioKeys.SOURCE, AudioSource.DEFAULT);
-			int channel = getIntProperty(AudioKeys.CHANNEL, AudioFormat.CHANNEL_IN_MONO);
-			int audioFormat = getIntProperty(AudioKeys.ENCODING, AudioFormat.ENCODING_PCM_16BIT);
-			int bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRate, channel, audioFormat) * 2;
+			int sampleRate = getIntProperty(
+					AudioKeys.SAMPLING_RATE, 44100);
+			int audioSource = getIntProperty(
+					AudioKeys.SOURCE, AudioSource.DEFAULT);
+			int channel = getIntProperty(
+					AudioKeys.CHANNEL, AudioFormat.CHANNEL_IN_MONO);
+			int audioFormat = getIntProperty(
+					AudioKeys.ENCODING, AudioFormat.ENCODING_PCM_16BIT);
+			
+			int bufferSizeInBytes = AudioRecord.getMinBufferSize(
+					sampleRate, channel, audioFormat) * 3;
+			
 			audio = new AudioRecord(audioSource, sampleRate,
 						channel, audioFormat, bufferSizeInBytes);
+			 
 		} catch (IllegalArgumentException e){
+			
 			audio = null;
-			Log.e(TAG, "failed to create audio object due to IllegalArgumentException: " + e.getMessage());
+			Log.e(TAG, 
+					"failed to create audio object due to IllegalArgumentException: "
+							+ e.getMessage());
+			
 			sendTaskErroredOut(e.getMessage());
 		}
 	}
 	
 	
+	/**
+	 * Query for the duration state of this microphone sensor
+	 * @return true if the duration property was not set by the controller or if
+	 * it was set and the current passed time is less than the set duration; false
+	 * if the current passed time is greater than the set duration.
+	 */
 	private boolean validDuration(){
-		int duration = getIntProperty(AudioKeys.RECORD_DURATION);
-		return duration == Constants.Args.ARG_NONE || System.currentTimeMillis() - startTime < duration;
+		return !getDuration(0).maxReached();
 	}
 	
 	
 	/**
-	 * TODO: comment
-	 * @author jnoel
+	 * This class models a worker thread that
+	 * reads data from this class's {@link AudioRecord}
+	 * object and sends the results wherever
+	 * the controller has specified them to be sent.
+	 * @author Josh Noel
 	 */
 	private class RecordThread extends Thread {
 		
@@ -233,20 +255,37 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 			this.buffer = new byte[BUFFER_SIZE];
 		}
 		
-		
+		@Override
 		public void run(){
 			while(recording && validDuration()){
+				
+				// read more data from audio recorder
 				int result = audio.read(buffer, 0, BUFFER_SIZE);
+				
+				// if there is still data to read
 				if(result > 0){
+					
+					// if controller specified to save this
+					// data to internal storage
 					if(saveResultDataToFile()){
-						saveDataToSD(buffer, Long.toString(System.currentTimeMillis()), ".wav");
+						saveDataToSD(buffer, 
+								Long.toString(System.currentTimeMillis()), ".wav");
+						
+						// the controller did not specify to save
+						// to internal storage
 					} else {
+						
+						// if this sensor currently has a valid connection
 						if(getConnection().isConnected()){
 							ResponsePacket packet = new ResponsePacket(getTaskID(),
 									Constants.DataTypes.AUDIO, buffer);
 							ResponsePacket.sendResponse(packet, getConnection());
+							
+							// if there is no valid connection,
+							// but the controller specified to keep recording
 						} else if(continueOnConnectionLost()){
-							saveDataToSD(buffer, Long.toString(System.currentTimeMillis()), ".wav");
+							saveDataToSD(buffer, 
+									Long.toString(System.currentTimeMillis()), ".wav");
 						} else {
 							killTask();
 						}
@@ -254,7 +293,10 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 				}
 			}
 			
+			// if loop ended because duration limit
+			// was reached, shutdown task and send task complete
 			if(!validDuration()){
+				sendTaskComplete();
 				killTask();
 			}
 		}

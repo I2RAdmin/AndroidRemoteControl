@@ -29,7 +29,17 @@ public class ConnectionManager<E> {
 	private Thread runningConnection;
 	private ConnectionFinder finder;
 	
-	// Constructor
+	/**
+	 * Constructor<br>
+	 * creates a new Connection manager which will use the given {@link Link}
+	 * interface to search for and create new connections with a remote controlling device.
+	 * @param linker - the linker to use when handling connections for this application's
+	 * {@link RemoteControlMaster}
+	 * @param isServer - the flag to assert what kind of connections this
+	 * manager should look for.
+	 * @param activity - a reference to the activity that created this connection manager.
+	 * @see {@link Link}
+	 */
 	public ConnectionManager(Link<E> linker, boolean isServer, Activity activity){
 		this.linker = linker;
 		this.isServer = isServer;
@@ -39,6 +49,12 @@ public class ConnectionManager<E> {
 	}
 	
 	
+	/**
+	 * Starts a side thread for device searching
+	 * and inquiry. The thread uses the {@link Link}
+	 * interface given upon this manager's creation
+	 * to find connections.
+	 */
 	public void findConnection(){
 		cancel();
 		Log.d(TAG, "starting connection search thread");
@@ -71,7 +87,9 @@ public class ConnectionManager<E> {
 	
 	
 	/**
-	 * Cancels any ongoing connection, if there is one.
+	 * Cancels any ongoing connection, if there is one,
+	 * and stops all this manager's side processes if
+	 * it currently has any running.
 	 */
 	public void cancel(){
 		
@@ -92,6 +110,8 @@ public class ConnectionManager<E> {
 	
 	/**
 	 * Query for the type of connection this manager is making.
+	 * @return true if this manager is set
+	 * to listen for other devices, false otherwise.
 	 */
 	public boolean isServerConnection(){
 		return isServer;
@@ -99,6 +119,8 @@ public class ConnectionManager<E> {
 	
 	/**
 	 * Query for the type of connection this manager is making.
+	 * @return true if this manager is set
+	 * to seek out other devices, false otherwise.
 	 */
 	public boolean isClientConnection(){
 		return !isServer;
@@ -106,6 +128,7 @@ public class ConnectionManager<E> {
 	
 	/**
 	 * Query for the Link this manager is using to make a connection.
+	 * @return a reference to this manager's current {@link Link} object.
 	 */
 	public Link<?> getLink(){
 		return  linker;
@@ -113,6 +136,10 @@ public class ConnectionManager<E> {
 	
 	/**
 	 * Query for the connection of this manager.
+	 * @return a reference to this manager's current connection,
+	 * or null if this manager does not currently have an
+	 * established connection.
+	 * @see {@link RemoteConnection}
 	 */
 	public RemoteConnection getConnection(){
 		return connection;
@@ -120,6 +147,9 @@ public class ConnectionManager<E> {
 	
 	/**
 	 * Query for the state of this manager's connection.
+	 * @return true if this manager currently has an
+	 * active and valid connection with a remote controlling
+	 * device, false otherwise.
 	 */
 	public boolean hasConnection(){
 		return connection != null && connection.isConnected();
@@ -129,7 +159,8 @@ public class ConnectionManager<E> {
 	
 	/**
 	 * Side thread for this connection manager to look for
-	 * connections with.
+	 * connections with. This is used so that waiting
+	 * for a connection does not block the main thread.
 	 * @author Josh Noel
 	 */
 	private class ConnectionFinder extends Thread {

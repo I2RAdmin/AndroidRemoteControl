@@ -1,8 +1,5 @@
 package com.i2r.androidremotecontroller.connections;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-
 
 /**
  * This interface models an active connection to another device.
@@ -17,13 +14,16 @@ public interface RemoteConnection extends Runnable {
 	
 	
 	/**
-	 * Sends the given bytes across the current connection.
+	 * Sends the given bytes across the current connection,
+	 * if the connection is available.
 	 */
 	public void write(byte[] bytes);
 	
 
 	/**
 	 * Query about this connection's state.
+	 * @return true if this connection is currently valid
+	 * and can be used to transfer data, false otherwise
 	 */
 	public boolean isConnected();
 	
@@ -35,21 +35,5 @@ public interface RemoteConnection extends Runnable {
 	 * called when all communication is complete.
 	 */
 	public void disconnect();
-	
-	
-	/**
-	 * Query for this connection's input stream
-	 * @return this connection's current input stream,
-	 * or null if there is no connection
-	 */
-	public InputStream getInputStream();
-	
-	
-	/**
-	 * Query for this connection's output stream
-	 * @return this connection's current output stream,
-	 * or null if there is no connection
-	 */
-	public OutputStream getOutputStream();
 	
 }

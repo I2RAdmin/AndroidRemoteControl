@@ -3,9 +3,12 @@ package com.i2r.androidremotecontroller.sensors;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import ARC.Constants;
+import ARC.Constants.Args;
+import ARC.Constants.Notifications;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -15,6 +18,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.i2r.androidremotecontroller.CommandFilter;
+import com.i2r.androidremotecontroller.RemoteControlActivity;
 import com.i2r.androidremotecontroller.ResponsePacket;
 import com.i2r.androidremotecontroller.SupportedFeatures;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
@@ -35,19 +39,79 @@ public abstract class GenericDeviceSensor {
 	private LocalBroadcastManager manager;
 	private Activity activity;
 	private HashMap<String, String> properties;
+	private ArrayList<DurationHandler> durations;
 	private RemoteConnection connection;
 	
 	
-	// Constructor
+	/**
+	 * Constructor<br>
+	 * constructs a generic sensor with a properties container,
+	 * a {@link LocalBroadcastManager} based on the activity given,
+	 * and a task ID set to {@link Args#ARG_NONE}
+	 * @param activity - the activity to sent result broadcasts
+	 * to whenever this sensor obtains new results.
+	 * @see {@link Constants#Args}
+	 */
 	public GenericDeviceSensor(Activity activity) {
 		this.activity = activity;
 		this.manager = LocalBroadcastManager.getInstance(activity);
 		this.properties = new HashMap<String, String>();
+		this.durations = new ArrayList<DurationHandler>();
 		this.connection = null;
 		this.taskID = Constants.Args.ARG_NONE;
 	}
 
-
+	
+	/**
+	 * Query for this generic sensor's {@link DurationHandler}.
+	 * @param index - the index to retrieve the handler from
+	 * in this generic sensor's container of DurationHandlers.
+	 * Since there can be multiple durations being accounted
+	 * for, there needs to be a container for these cases.
+	 * @return this generic sensor's duration handler.
+	 */
+	protected DurationHandler getDuration(int index){
+		return durations.get(index);
+	}
+	
+	
+	/**
+	 * Creates a new {@link DurationHandler}, adds it to
+	 * this generic sensor's container of handlers and
+	 * returns the the handler.
+	 * @param name - the name that uniquely identifies this handler.
+	 * @return a new {@link DurationHandler} with the given name
+	 * as its id.
+	 */
+	protected DurationHandler createNewDuration(String name){
+		DurationHandler temp = 
+				new DurationHandler(name, durations.size());
+		durations.add(temp);
+		return temp;
+	}
+	
+	
+	/**
+	 * Removes the current handler from this generic
+	 * sensor's handler container, assuming that
+	 * the given index exists for the container.
+	 * @param index - the index of the handler to
+	 * remove from this sensor's container of handlers.
+	 * @return true if handler was successfully removed,
+	 * false if the index does not exist and the
+	 * handler was not removed
+	 */
+	protected boolean removeDuration(int index){
+		boolean result = false;
+		try{
+			durations.remove(index);
+			result = true;
+		} catch (IndexOutOfBoundsException e){
+			// do nothing
+		}
+		return result;
+	}
+	
 	
 	/**
 	 * @return the properties data structure for this
@@ -69,18 +133,24 @@ public abstract class GenericDeviceSensor {
 	 * properties, and the value can be parsed to an integer.
 	 * If the given key is not in this sensor's map of properties,
 	 * this returns {@link ARG_NONE} as defined in {@link Constants#Args}
+	 * @see {@link #getIntProperty(String, int)}
 	 */
 	protected int getIntProperty(String key){
 		return getIntProperty(key, Constants.Args.ARG_NONE);
 	}
 	
 	
-	
 	/**
-	 * TODO: comment
-	 * @param key
-	 * @param defaultValue
-	 * @return
+	 * Query for the integer value of the property at the
+	 * specified key.
+	 * @param key - the key to obtain an integer value from
+	 * @param defaultValue - a value to return if the given
+	 * key did not exist in the properties structure, or the
+	 * key's value could not be parsed.
+	 * @return the int value of the key specified, or the
+	 * defaultValue parameter if the key was not found in
+	 * the properties data structure or the key's value could
+	 * not be parsed.
 	 */
 	protected int getIntProperty(String key, int defaultValue){
 		int result = defaultValue;
@@ -109,7 +179,6 @@ public abstract class GenericDeviceSensor {
 	protected String getProperty(String key){
 		return properties.get(key);
 	}
-	
 	
 	
 	/**
@@ -153,7 +222,8 @@ public abstract class GenericDeviceSensor {
 	
 	/**
 	 * Sets the ID for this capture object. Must be used only when this object's
-	 * task has been completed, in order to start a new task.
+	 * task has been completed, in order to start a new task. Only sensors
+	 * should set the task ID.
 	 * @param id - the task ID to give this object, to start a new task.
 	 */
 	protected void setTaskID(int id) {
@@ -162,14 +232,28 @@ public abstract class GenericDeviceSensor {
 
 	
 	/**
-	 * Use char Constants in {@link Constants} for this to notify remote PC of state changes
+	 * Uses {@link ResponsePacket#sendNotification(int, char, RemoteConnection)}
+	 * to notify the remote controller with the constant
+	 * {@link Notifications#TASK_COMPLETE}
+	 * @see {@link Constants#Notifications}
 	 */
 	protected void sendTaskComplete() {
+		Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
+		intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "task complete: " + taskID);
 		ResponsePacket.sendNotification(taskID,
 				Constants.Notifications.TASK_COMPLETE, connection);
+		manager.sendBroadcast(intent);
 	}
 	
 	
+	/**
+	 * Uses {@link ResponsePacket#sendNotification(int, String, String, RemoteConnection)}
+	 * to notify the remote controller with the constant
+	 * {@link Notifications#TASK_ERRORED_OUT}. Appends the given
+	 * info message to the notification so that the
+	 * remote controller can respond accordingly
+	 * @see {@link Constants#Notifications}
+	 */
 	protected void sendTaskErroredOut(String message){
 		ResponsePacket.sendNotification(taskID, 
 				Constants.Notifications.TASK_ERRORED_OUT,
@@ -178,7 +262,10 @@ public abstract class GenericDeviceSensor {
 	
 	
 	/**
-	 * Use String Constants in {@link Constants} for this to notify remote PC of state changes
+	 * Uses {@link ResponsePacket#sendNotification(int, char, RemoteConnection)}
+	 * to notify the remote controller with the constant
+	 * {@link Notifications#TASK_ERRORED_OUT}
+	 * @see {@link Constants#Notifications}
 	 */
 	protected void sendTaskErroredOut(){
 		ResponsePacket.sendNotification(taskID,
@@ -259,7 +346,6 @@ public abstract class GenericDeviceSensor {
 	}
 	
 	
-	
 	/**
 	 * Query for how any result data obtained from
 	 * this sensor should be treated during a running task
@@ -273,13 +359,17 @@ public abstract class GenericDeviceSensor {
 		return result != null && result.equals(SupportedFeatures.TRUE);
 	}
 	
-	
-	
+	/**
+	 * Query for if result data should continue to be stored
+	 * on the SD card after connection to the remote device has
+	 * been lost
+	 * @return true if the controller has set the parameter in the
+	 * properties to true, false otherwise
+	 */
 	public boolean continueOnConnectionLost(){
 		String result = properties.get(SupportedFeatures.KEY_CONTINUE_ON_CONNECTION_LOST);
 		return result != null && result.equals(SupportedFeatures.TRUE);
 	}
-	
 	
 	
 	/**
@@ -320,7 +410,6 @@ public abstract class GenericDeviceSensor {
 	 * false otherwise.
 	 */
 	public abstract boolean taskCompleted();
-	
 	
 	
 	/**

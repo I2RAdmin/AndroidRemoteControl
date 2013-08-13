@@ -6,27 +6,23 @@ import java.util.Iterator;
 
 import ARC.Constants;
 import android.app.Activity;
-import android.content.Intent;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.i2r.androidremotecontroller.SupportedFeatures;
-import com.i2r.androidremotecontroller.RemoteControlActivity;
 import com.i2r.androidremotecontroller.ResponsePacket;
 import com.i2r.androidremotecontroller.SupportedFeatures.CameraKeys;
 
 /**
- * This class models an android camera that responds to commands.
+ * This class models a camera sensor that responds to commands
+ * sent by a remote controller.
  * @author Josh Noel
  */
 public class CameraSensor extends GenericDeviceSensor {
 
 	private static final String TAG = "CameraSensor";
-	
-	@SuppressWarnings("unused")
-	private static final int MAX_QUALITY = 100;
 	private static final String JPEG = "jpeg";
 	
 	private SurfaceHolder holder;
@@ -34,8 +30,18 @@ public class CameraSensor extends GenericDeviceSensor {
 	private Surface surface;
 	private GenericPictureCallback pictureCallback;
 	private boolean waitingOnPicture, forceClose, started;
-	private long startTime, markedTime, pictureCount;
+	private long pictureCount;
 	
+	
+	/**
+	 * Constructor<br>
+	 * creates a new CameraSensor object with the given camera to use
+	 * for taking pictures, and the given surface holder to use as a
+	 * preview display (required by the API for taking pictures)
+	 * @param activity - the activity in which this sensor was created
+	 * @param camera - the camera passed from the main activity
+	 * @param holder - the surface holder passed from the main activity
+	 */
 	public CameraSensor(Activity activity, Camera camera, SurfaceHolder holder) {
 		super(activity);
 		
@@ -43,7 +49,7 @@ public class CameraSensor extends GenericDeviceSensor {
 		this.surface = new Surface();
 		this.pictureCallback = new GenericPictureCallback(JPEG);
 		this.waitingOnPicture = forceClose = started = false;
-		this.startTime = markedTime = pictureCount = 0;
+		this.pictureCount = 0;
 		this.camera = camera;
 		
 		// TODO: find display orientation before setting it
@@ -51,9 +57,8 @@ public class CameraSensor extends GenericDeviceSensor {
 		this.holder = holder;
 		this.holder.addCallback(surface);
 		
-		modify(SupportedFeatures.CameraKeys.FREQUENCY, Constants.Args.ARG_STRING_NONE);
-		modify(SupportedFeatures.CameraKeys.DURATION, Constants.Args.ARG_STRING_NONE);
-		modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, Constants.Args.ARG_STRING_NONE);
+		createNewDuration("frequency");
+		createNewDuration("duration");
 	}
 
 	
@@ -86,12 +91,20 @@ public class CameraSensor extends GenericDeviceSensor {
 		this.waitingOnPicture = forceClose = false;
 		this.started = true;
 		this.pictureCount = 0;
-		this.startTime = markedTime = System.currentTimeMillis();
+		
 		setTaskID(taskID);
-		modify(SupportedFeatures.CameraKeys.FREQUENCY, params[Constants.Args.FREQUENCY_INDEX]);
-		modify(SupportedFeatures.CameraKeys.DURATION, params[Constants.Args.DURATION_INDEX]);
-		modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, params[Constants.Args.AMOUNT_INDEX]);
+		
+		modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, 
+				params[Constants.Args.AMOUNT_INDEX]);
+		
 		updateSensorProperties();
+		
+		getDuration(Constants.Args.FREQUENCY_INDEX)
+			.setMax(params[Constants.Args.FREQUENCY_INDEX]).start();
+		
+		getDuration(Constants.Args.DURATION_INDEX)
+			.setMax(params[Constants.Args.DURATION_INDEX]).start();
+		
 		capture();
 	}
 
@@ -149,43 +162,92 @@ public class CameraSensor extends GenericDeviceSensor {
 	//******************************|
 	
 	
+	/**
+	 * Query for this sensor's ability to save data at
+	 * the current moment
+	 * @return true if all conditions set by the controller
+	 * are met at the current moment, false otherwise
+	 */
 	private boolean validToSave(){
-		long time = System.currentTimeMillis();
-		return validFrequency(time) && validDuration(time) && validPictureCount() && !forceClose && !waitingOnPicture;
+		return validFrequency() && validDuration() 
+				&& validPictureCount() && !forceClose && !waitingOnPicture;
 	}
 	
+	
+	/**
+	 * Query for the progress of this task.
+	 * @return true if the task has successfully
+	 * completed, false otherwise
+	 */
 	private boolean done(){
-		long time = System.currentTimeMillis();
-		return !validDuration(time) || !validPictureCount();
-	}
-	
-	private boolean validFrequency(long time){
-		int frequency = getIntProperty(SupportedFeatures.CameraKeys.FREQUENCY);
-		return frequency == Constants.Args.ARG_NONE || time - markedTime > frequency;
-	}
-	
-	private boolean validDuration(long time){
-		int duration = getIntProperty(SupportedFeatures.CameraKeys.DURATION);
-		return duration == Constants.Args.ARG_NONE || time - startTime < duration;
+		return !validDuration() || !validPictureCount();
 	}
 	
 	
+	/**
+	 * Query for the frequency state of this task.
+	 * with regard to the frequency set by the controller.
+	 * @param time - the time marker to compare to
+	 * @return true if the amount of time that has passed
+	 * is greater than or equal to the frequency set by the
+	 * controller; also returns true if the frequency was never set.
+	 * If the controller did set the frequency and the current amount
+	 * of time passed is less than the set frequency, returns false.
+	 */
+	private boolean validFrequency(){
+		return getDuration(Constants.Args.FREQUENCY_INDEX).maxReached();
+	}
+	
+	
+	/**
+	 * Query for the duration state of this task.
+	 * @param time - the amount of time elapsed
+	 * @return true if the current time subtracted
+	 * from the start time is less than the duration
+	 * set by the controller; also returns true if
+	 * the duration was not set by the controller.
+	 * If the duration was set and the current time
+	 * passed is greater than the set duration,
+	 * returns false. 
+	 */
+	private boolean validDuration(){
+		return !getDuration(Constants.Args.DURATION_INDEX).maxReached();
+	}
+	
+	
+	/**
+	 * Query about the current amount of
+	 * pictures taken since this task was started.
+	 * @return true if the current picture count
+	 * is less than the max picture count set by
+	 * the controller; also returns true if the
+	 * controller did not set the max picture count.
+	 * If the max picture count was set by the controller
+	 * and the current picture count is greater than that
+	 * value, this returns false.
+	 */
 	private boolean validPictureCount(){
 		int count = getIntProperty(SupportedFeatures.CameraKeys.PICTURE_AMOUNT);
 		return count == Constants.Args.ARG_NONE || pictureCount < count;
 	}
 	
 	
-	
+	/**
+	 * Main looping method for taking pictures.
+	 * This gets called by {@link #startNewTask(int, int[])}
+	 * and then subsequently by this class's
+	 * {@link GenericPictureCallback} until
+	 * {@link #done()} returns true.
+	 */
 	private void capture(){
 		
 		// wait for specified frequency
 		Log.d(TAG, "waiting for appropriate frequency...");
-		while(!validFrequency(System.currentTimeMillis())){
+		while(!validFrequency()){
 			try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {
-				e.printStackTrace();
+				// do nothing
 			}
 		} 
 		
@@ -193,7 +255,7 @@ public class CameraSensor extends GenericDeviceSensor {
 			
 			camera.takePicture(null, null, pictureCallback);
 			pictureCount++;
-			markedTime = System.currentTimeMillis();
+			getDuration(Constants.Args.FREQUENCY_INDEX).start();
 			waitingOnPicture = true;
 			Log.d(TAG, "picture taken, waiting on callback");
 			
@@ -205,17 +267,14 @@ public class CameraSensor extends GenericDeviceSensor {
 			status.append("\nvalid picture count: ");
 			status.append(validPictureCount());
 			status.append("\nvalid duration: ");
-			status.append(validDuration(System.currentTimeMillis()));
+			status.append(validDuration());
 			Log.d(TAG, status.toString());
 		}
 
 		
 		if (taskCompleted()) {
-			Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-			intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "task complete: " + getTaskID());
 			sendTaskComplete();
 			killTask();
-			getBroadcastManager().sendBroadcast(intent);
 		}
 	}
 	
@@ -294,19 +353,32 @@ public class CameraSensor extends GenericDeviceSensor {
 		}
 		
 		
+		/**
+		 * This figures out what to do with result data based on
+		 * {@link GenericDeviceSensor#saveResultDataToFile()}
+		 * and {@link GenericDeviceSensor#continueOnConnectionLost()}
+		 * @param data - the data to store/send across the current connection
+		 * @param saveToSD - the flag for saving to the SD card - only
+		 * saves to the SD card if this flag is true.
+		 */
 		private void saveData(final byte[] data, final boolean saveToSD){
+			
 			StringBuilder builder = new StringBuilder();
 			builder.append("write-picture-");
 			builder.append(getTaskID());
 			builder.append("-");
 			builder.append(pictureCount);
+			
 			new Thread(new Runnable() { public void run(){
+				
 				if(saveToSD){
 					saveDataToSD(data, Long.toString(System.currentTimeMillis()), ".jpg");
 				} else {
-					ResponsePacket packet = new ResponsePacket(getTaskID(), Constants.DataTypes.IMAGE, data);
+					ResponsePacket packet = new ResponsePacket(
+							getTaskID(), Constants.DataTypes.IMAGE, data);
 					ResponsePacket.sendResponse(packet, getConnection());
 				}
+				
 			}}, builder.toString()).start();
 		}
 

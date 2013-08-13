@@ -17,7 +17,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-/**
+/**************************************************
+ * ---- MAIN ENTRY POINT OF THIS APPLICATION -----
+ **************************************************
  * This class models an activity where the user can
  * select what type of connection they would like to
  * use (i.e., bluetooth, usb, wifi, etc) to communicate

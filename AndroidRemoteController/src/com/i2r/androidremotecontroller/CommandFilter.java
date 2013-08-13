@@ -5,8 +5,10 @@ import java.util.LinkedList;
 
 import ARC.Constants;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.hardware.Camera;
+import android.hardware.SensorManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -14,6 +16,7 @@ import android.view.SurfaceHolder;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
 import com.i2r.androidremotecontroller.sensors.CameraSensor;
 import com.i2r.androidremotecontroller.sensors.GenericDeviceSensor;
+import com.i2r.androidremotecontroller.sensors.GenericEnvironmentSensor;
 import com.i2r.androidremotecontroller.sensors.MicrophoneSensor;
 
 
@@ -34,7 +37,7 @@ public class CommandFilter {
 	private static final String TAG = "CommandFilter";
 	private static final int MAX_COMMAND_CAPACITY = 10;
 	
-	private static final int SENSOR_SIZE = 2;
+	private static final int SENSOR_SIZE = 3;
 	
 	private Activity activity;
 	private LocalBroadcastManager manager;
@@ -60,8 +63,9 @@ public class CommandFilter {
 		this.connection = null;
 		
 		this.sensors = new GenericDeviceSensor[SENSOR_SIZE];
-		this.sensors[Constants.Commands.PICTURE] = new CameraSensor(activity, camera, holder);
+		this.sensors[Constants.Commands.TAKE_PICTURE] = new CameraSensor(activity, camera, holder);
 		this.sensors[Constants.Commands.RECORD_AUDIO] = new MicrophoneSensor(activity);
+		this.sensors[Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS] = new GenericEnvironmentSensor(activity);
 	}
 	
 
@@ -102,10 +106,9 @@ public class CommandFilter {
 					// packet is incomplete command, see if it is blank
 				} else if(packets[i] != null && !packets[i].isCompleteCommand()){
 					
+					// TODO: hold partial command and wait to stitch
 					if(!packets[i].isBlankCommand()){
 						Log.d(TAG, "partial command received");
-						
-						// TODO: hold and wait to stitch
 						
 					} else {
 						Log.e(TAG, "blank command recieved, no action performed");
@@ -116,7 +119,9 @@ public class CommandFilter {
 				}
 			}
 			
+			// error parsing received data, revert back to main activity
 		} else {
+			
 			Log.d(TAG, "resulting packet is null, returning to main");
 			notifyMain("command(s) not parsed, listening for new commands");
 		}
@@ -141,8 +146,7 @@ public class CommandFilter {
 			// check to make sure command can be executed
 			if (isAvailableService(commandQueue.get(0).getCommand())) {
 				
-				// notify UI and log that a new task is starting - TODO: delete info updates
-				
+				// notify UI and log that a new task is starting
 				String result = "executing command - taskID:" + taskID;
 				Log.d(TAG, result);
 				
@@ -185,17 +189,23 @@ public class CommandFilter {
 		switch(packet.getCommand()){
 		
 		// command to take pictures
-		case Constants.Commands.PICTURE:
+		case Constants.Commands.TAKE_PICTURE:
 			// create a new imageCapture task
 			startService(packet);
 			break;
 			
-		// begin recording audio
+		// command to begin recording audio
 		case Constants.Commands.RECORD_AUDIO:
 			startService(packet);
 			break;
+			
+		// command to start sending data from the local
+		// environment sensors
+		case Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS:
+			startService(packet);
+			break;
 			 
-			// modify a currently running task
+		// modify a currently running task
 		case Constants.Commands.MODIFY:
 			modifyService(packet);
 			break;
@@ -211,11 +221,17 @@ public class CommandFilter {
 			killAllTasks(packet.getTaskID());
 			break;
 			
+		// query for supported features on a given sensor
 		case Constants.Commands.SUPPORTED_FEATURES:
 			findSupportedFeatures(packet);
 			break;
 			
+		// case is unknown, blow up in controller's face
 		default:
+			Log.e(TAG, "filter went to default case");
+			ResponsePacket.sendNotification(packet.getTaskID(),
+					Constants.Notifications.TASK_ERRORED_OUT,
+					"command is unknown", connection);
 			break;
 		}
 	}
@@ -227,7 +243,7 @@ public class CommandFilter {
 	
 	
 	/**
-	 * FILTER CASE #1:
+	 * FILTER CASE START TASK:
 	 * Called if a command to start a sensor service was received
 	 * from the controller PC.
 	 * @param packet - the packet containing the command to start
@@ -242,7 +258,7 @@ public class CommandFilter {
 	
 	
 	/**
-	 * FILTER CASE #2:
+	 * FILTER CASE MODIFY:
 	 * Called if a command to modify a service was
 	 * received from the controller PC
 	 * @param packet - the CommandPacket containing which
@@ -280,7 +296,7 @@ public class CommandFilter {
 	
 	
 	/**
-	 * FILTER CASE #3:
+	 * FILTER CASE KILL BY TASK ID:
 	 * Called if a command to kill specific services was recieved
 	 * from the controller PC. 
 	 * @param packet - the CommandPacket containing the services to kill
@@ -331,7 +347,7 @@ public class CommandFilter {
 	
 	
 	/**
-	 * FILTER CASE #4:
+	 * FILTER CASE KILL EVERYTHING:
 	 * Called if command to kill all processes is received from
 	 * the remote device.
 	 * @param taskID - the task ID of the kill all processes command,
@@ -347,7 +363,7 @@ public class CommandFilter {
 	
 	
 	/**
-	 * FILTER CASE #5:
+	 * FILTER CASE SUPPORTED FEATURES:
 	 * Called if the given packet is a query for features of this device, so
 	 * find out which feature descriptions the controller wants and send them.
 	 * @param packet - the packet containing a request for this device's features
@@ -356,30 +372,42 @@ public class CommandFilter {
 		
 		if(packet.hasExtraIntParameters()){
 			int[] features = packet.getIntParameters();
+			boolean wentToDefault = false;
 			
 			for(int i = 0; i < features.length; i++){
 				
 				switch(features[i]){
 				
 				case Constants.DataTypes.CAMERA:
-					sendFeatures(packet.getTaskID(), Constants.DataTypes.CAMERA, 
+					sendFeatures(packet.getTaskID(), features[i], 
 							SupportedFeatures.getCameraFeatures(camera));
 					break;
 					
 				case Constants.DataTypes.MICROPHONE:
-					sendFeatures(packet.getTaskID(), Constants.DataTypes.MICROPHONE,
+					sendFeatures(packet.getTaskID(), features[i],
 							SupportedFeatures.getMicrophoneFeatures());
 					break;
+					
+				case Constants.DataTypes.ENVIRONMENT_SENSORS:
+					sendFeatures(packet.getTaskID(), features[i],
+							SupportedFeatures.getEnvironmentSensorFeatures((SensorManager)
+								activity.getSystemService(Context.SENSOR_SERVICE)));
 					
 					// TODO: add more sensors here
 					
 				default:
 					Log.e(TAG, "supported features went to default case");
+					wentToDefault = true;
+					ResponsePacket.sendNotification(packet.getTaskID(),
+							Constants.Notifications.TASK_ERRORED_OUT, 
+							String.valueOf(features[i]), connection);
 					break;
 				}
 				
-				ResponsePacket.sendNotification(packet.getTaskID(),
-						Constants.Notifications.TASK_COMPLETE, connection);
+				if(!wentToDefault){
+					ResponsePacket.sendNotification(packet.getTaskID(),
+							Constants.Notifications.TASK_COMPLETE, connection);
+				}
 			}
 			
 		} else {
@@ -488,7 +516,7 @@ public class CommandFilter {
 	 */
 	public boolean isAvailableService(int service){
 		boolean result;
-		if(service == Constants.Commands.PICTURE ||
+		if(service == Constants.Commands.TAKE_PICTURE ||
 		   service == Constants.Commands.RECORD_AUDIO){
 			result = isServiceAvailable(sensors[service]);
 		} else {
@@ -523,7 +551,7 @@ public class CommandFilter {
 		GenericDeviceSensor sensor;
 		switch (sensorID){
 		case Constants.DataTypes.CAMERA:
-			sensor = sensors[Constants.Commands.PICTURE];
+			sensor = sensors[Constants.Commands.TAKE_PICTURE];
 			break;
 			
 		case Constants.DataTypes.MICROPHONE:

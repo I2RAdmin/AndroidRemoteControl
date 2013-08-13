@@ -6,8 +6,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import ARC.Constants;
+import ARC.Constants.Args;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.media.AudioFormat;
 import android.media.MediaRecorder.AudioSource;
 
@@ -162,16 +165,28 @@ public final class SupportedFeatures {
 		
 		// ENCODING OPTIONS
 		
+		
+		/**
+		 * Constants obtained from {@link AudioFormat}
+		 */
 		public static final int[] INTEGER_ENCODINGS = {
 			AudioFormat.ENCODING_PCM_16BIT, AudioFormat.ENCODING_PCM_8BIT
 		};
 		
+		
+		/**
+		 * Constant values:<br>
+		 * "encoding-pcm-16-bit", "encoding-pcm-8-bit"
+		 */
 		public static final String[] STRING_ENCODINGS = {
 			"encoding-pcm-16-bit", "encoding-pcm-8-bit"
 		};
 		
 		// RECORDING TYPE OPTIONS
 		
+		/**
+		 * constants obtained from {@link AudioSource}
+		 */
 		public static final int[] INTEGER_SOURCES = {
 			AudioSource.CAMCORDER, AudioSource.MIC,
 			AudioSource.VOICE_CALL, AudioSource.VOICE_COMMUNICATION,
@@ -179,28 +194,60 @@ public final class SupportedFeatures {
 			AudioSource.VOICE_RECOGNITION, AudioSource.DEFAULT
 		};
 		
-		
+		/**
+		 * Constant values:<br>
+		 * 	"camcorder", "mic", "voice-call", "voice-communication",
+			"voice-downlink", "voice-uplink", "voice-recognition", "default"
+		 */
 		public static final String[] STRING_SOURCES = {
 			"camcorder", "mic", "voice-call", "voice-communication",
 			"voice-downlink", "voice-uplink", "voice-recognition", "default"
 		};
 		
 		
+		/**
+		 * Constants obtained from {@link AudioFormat}
+		 */
 		public static final int[] INTEGER_CHANNELS = {
 			AudioFormat.CHANNEL_IN_MONO, AudioFormat.CHANNEL_IN_STEREO
 		};
 		
-		
+		/**
+		 * Constant values:<br>
+		 * "mono", "stereo"
+		 */
 		public static final String[] STRING_CHANNELS = {
 			"mono", "stereo"
 		};
 		
-		
+		/**
+		 * Constant values:<br>
+		 * "44100", "22050", "16000", "11025"
+		 */
 		public static final String[] BIT_RATE_SAMPLES = {
 			"44100", "22050", "16000", "11025"
 		};
 		
 	}
+	
+	
+	
+	public static final class EnvironmentKeys {
+		
+		public static final String DURATION = "recording-duration";
+		public static final String UPDATE_SPEED_SUFFIX = "-update-speed";
+		
+		public static final int[] INTEGER_UPDATE_RATES = {
+			SensorManager.SENSOR_DELAY_FASTEST, SensorManager.SENSOR_DELAY_NORMAL
+		};
+		
+		public static final String[] STRING_UPDATE_RATES = {
+			
+		};
+	}
+	
+	
+	
 
 	// common constants to all supported features
 	
@@ -384,6 +431,8 @@ public final class SupportedFeatures {
 					Constants.DataTypes.INTEGER, rotations));
 			
 			
+			// TODO: figure out how to send and set object collections
+			
 //			List<Size> sizes = params.getSupportedPictureSizes();
 //			builder.append(encodeCameraSpecialObject(params, 
 //					CameraKeys.PICTURE_SIZE, sizes.size(), 
@@ -473,12 +522,16 @@ public final class SupportedFeatures {
 			
 			builder.append(encodeSingle(CameraKeys.GPS_ALTITUDE, 
 					params.get(CameraKeys.GPS_ALTITUDE), Constants.DataTypes.DOUBLE));
+			
 			builder.append(encodeSingle(CameraKeys.GPS_LATITUDE, 
 					params.get(CameraKeys.GPS_LATITUDE), Constants.DataTypes.DOUBLE));
+			
 			builder.append(encodeSingle(CameraKeys.GPS_LONGITUDE, 
 					params.get(CameraKeys.GPS_LONGITUDE), Constants.DataTypes.DOUBLE));
+			
 			builder.append(encodeSingle(CameraKeys.GPS_PROCESSING_METHOD, 
 					params.get(CameraKeys.GPS_ALTITUDE), Constants.DataTypes.STRING));
+			
 			builder.append(encodeSingle(CameraKeys.GPS_TIMESTAMP, 
 					params.get(CameraKeys.GPS_TIMESTAMP), Constants.DataTypes.INTEGER));
 			
@@ -539,6 +592,35 @@ public final class SupportedFeatures {
 	
 	
 	
+	/**
+	 * @param manager - the {@link SensorManager} to obtain a list of
+	 * all this device's sensors from.
+	 * @return an encoded byte array of all the supported environment
+	 * sensors that this android device has to offer
+	 * @see {@link Sensor}
+	 */
+	public static byte[] getEnvironmentSensorFeatures(SensorManager manager){
+		byte[] result = null;
+		
+		if(manager != null){
+			StringBuilder builder = new StringBuilder();
+			List<Sensor> sensors = manager.getSensorList(Sensor.TYPE_ALL);
+			
+			for(int i = 0; i < sensors.size(); i++){
+				builder.append(encodeCollection(sensors.get(i).getName(), 
+						Constants.Args.ARG_STRING_NONE, Constants.DataTypes.STRING,
+						EnvironmentKeys.STRING_UPDATE_RATES.length,
+						encodeStringArray(EnvironmentKeys.STRING_UPDATE_RATES)));
+			}
+			
+			
+			result = builder.toString().getBytes();
+		}
+		
+		return result;
+	}
+	
+	// TODO: add location manager thing here
 	
 	// TODO: add other supported feature calls here
 	
@@ -553,8 +635,10 @@ public final class SupportedFeatures {
 	
 	
 	/**
-	 * TODO: comment
-	 * @return
+	 * Returns available options for manipulating how a sensor stores or
+	 * sends its data.
+	 * @return a string encoded representation of how the controller
+	 * can manipulate the way in which a sensor handles its data.
 	 */
 	public static String sdOptions(){
 		StringBuilder builder = new StringBuilder();
@@ -565,11 +649,17 @@ public final class SupportedFeatures {
 	
 	
 	/**
-	 * 
-	 * @param name
-	 * @param value
-	 * @param dataType
-	 * @return
+	 * Constructs the given parameters into a set of size 1, which follows the
+	 * general ordering defined for this class.
+	 * @param name - the name that the controller should use when referencing
+	 * this set of 1.
+	 * @param value - the value that this set of 1 is currently set to.
+	 * @param dataType - the data type that this set of 1 expects back from
+	 * the controller.
+	 * @return a string encoded representation of a set of size 1 with the
+	 * following parameters that follows the SupportedFeatures ordering rules.
+	 * @see {@link SupportedFeatures}
+	 * @see {@link Constants#DataTypes}
 	 */
 	public static String encodeSingle(String name, String value, int dataType){
 		StringBuilder builder = new StringBuilder();
@@ -619,6 +709,7 @@ public final class SupportedFeatures {
 	 * @param max - the maximum value of this range (inclusive)
 	 * @return an encoded String representation of this range to
 	 * be sent to the controller for interpretation.
+	 * @see {@link Constants#DataTypes}
 	 */
 	public static String encodeRange(String rangeName, String currentValue, int dataType, String min, String max){
 		return encodeSize2Set(rangeName, currentValue, dataType, Constants.DataTypes.RANGE, min, max);
@@ -627,14 +718,20 @@ public final class SupportedFeatures {
 	
 	
 	/**
-	 * TODO: comment
-	 * @param name
-	 * @param currentValue
-	 * @param dataType
-	 * @param limiter
-	 * @param first
-	 * @param second
-	 * @return
+	 * Encodes a set of size 2 to be sent to a controlling device.
+	 * This encoding method follows the {@link SupportedFeatures}
+	 * encoding rules.
+	 * @param name - the name for the controller to use when referencing this
+	 * set of size 2.
+	 * @param currentValue - the current value that this parameter is set to.
+	 * @param dataType - the data type that this application expects back from
+	 * @param limiter - the limiting type of this collection (set, range, switch,
+	 * property, etc..)
+	 * @param first - the first element of this size 2 set
+	 * @param second - the second element of this size 2 set
+	 * @return an encoded string representation of a size 2 set of values to send
+	 * to the remote controller.
+	 * @see {@link Constants#DataTypes}
 	 */
 	private static String encodeSize2Set(String name, String currentValue, int dataType, 
 								int limiter, String first, String second){
@@ -665,20 +762,8 @@ public final class SupportedFeatures {
 	
 	/**
 	 * Encodes a collection to be sent to the controller PC, to inform
-	 * it of a list (or range) of available choices.
-	 * Collections sent to the controller PC have the following format:<br>
-	 * 
-	 * <ol>
-	 * <li>Name of collection 
-	 * (how controller should refer to it in communicating back)</li>
-	 * <li>type of data that this application expects from the controller
-	 * when referencing this collection</li>
-	 * <li>the limiting type of this collection - range or set of values</li>
-	 * <li>the size of the collection (element count)</li>
-	 * <li>the actual collection elements, in the order that they are definied
-	 * in the collection</li>
-	 * <ol><br>
-	 * 
+	 * it of a list (or range) of available choices. This method follows
+	 * the {@link SupportedFeatures} encoding rules.
 	 * @param elements - the collection of elements to send to the controller PC
 	 * @param delimiter - the delimiter to use for separating all information sent
 	 * @param collectionName - the String id of the collection being sent
@@ -713,6 +798,7 @@ public final class SupportedFeatures {
 	 * @param encodedItems - the already encoded feature set
 	 * @return the encoded representation of the given collection, following the
 	 * specified parameters that define it.
+	 * @see {@link Constants#DataTypes}
 	 */
 	private static String encodeCollection(String collectionName, String currentValue,
 												int dataType, int size, String encodedItems){
@@ -740,7 +826,7 @@ public final class SupportedFeatures {
 	 * only to be used for objects who's toString() method has
 	 * been correctly implemented to represent that object
 	 * @param collection - the collection of objects to encode
-	 * to be sent to the remote PC
+	 * to be sent to the remote controller
 	 * @return the encoded String representation of this collection
 	 */
 	private static String encodeCollection(Collection<?> collection){
@@ -767,7 +853,7 @@ public final class SupportedFeatures {
 	 * string array which the remote controller can parse into
 	 * meaningful information
 	 */
-	private static String encodeStringArray(String[] collection){
+	public static String encodeStringArray(String[] collection){
 		StringBuilder builder = new StringBuilder();
 		
 		for(int i = 0; i < collection.length; i++){
@@ -783,34 +869,134 @@ public final class SupportedFeatures {
 	//|-------------------- EXCHANGE HELPER METHODS -----------------------------|
 	
 	
+	
+	public static int exchangeUpdateRate(String updateRate){
+		return exchangeFormat(updateRate, EnvironmentKeys.STRING_UPDATE_RATES,
+				EnvironmentKeys.INTEGER_UPDATE_RATES);
+	}
+	
+	
+	public static String exchangeUpdateRate(int updateRate){
+		return exchangeFormat(updateRate, EnvironmentKeys.INTEGER_UPDATE_RATES,
+				EnvironmentKeys.STRING_UPDATE_RATES);
+	}
+	
+	
+	// AUDIO CHANNEL SWITCHES
+	
+	/**
+	 * Exchange a value from {@link AudioKeys#STRING_CHANNELS} with a value
+	 * from {@link AudioKeys#INTEGER_CHANNELS}
+	 * @param format - the string value to look for in {@link AudioKeys#STRING_CHANNELS}
+	 * @return the integer value of the given string, if the string exists in
+	 * {@link AudioKeys#STRING_CHANNELS}. If it is not in that string array,
+	 * {@link Args#ARG_STRING_NONE} is returned.
+	 * @see {@link Constants#Args}
+	 */
 	public static int exchangeAudioChannel(String format){
 		return exchangeFormat(format, AudioKeys.STRING_CHANNELS, AudioKeys.INTEGER_CHANNELS);
 	}
 	
+	
+	/**
+	 * Exchange a value from {@link AudioKeys#INTEGER_CHANNELS} with a value
+	 * from {@link AudioKeys#STRING_CHANNELS}
+	 * @param format - the string value to look for in {@link AudioKeys#INTEGER_CHANNELS}
+	 * @return the integer value of the given string, if the string exists in
+	 * {@link AudioKeys#INTEGER_CHANNELS}. If it is not in that string array,
+	 * {@link Args#ARG_NONE} is returned.
+	 * @see {@link Constants#Args}
+	 */
 	public static String exchangeAudioChannel(int format){
 		return exchangeFormat(format, AudioKeys.INTEGER_CHANNELS, AudioKeys.STRING_CHANNELS);
 	}
 	
+	
+	// AUDIO SOURCE SWITCHES
+	
+	/**
+	 * Exchange a value from {@link AudioKeys#STRING_SOURCES} with a value
+	 * from {@link AudioKeys#INTEGER_SOURCES}
+	 * @param format - the string value to look for in {@link AudioKeys#STRING_SOURCES}
+	 * @return the integer value of the given string, if the string exists in
+	 * {@link AudioKeys#STRING_SOURCES}. If it is not in that string array,
+	 * {@link Args#ARG_STRING_NONE} is returned.
+	 * @see {@link Constants#Args}
+	 */
 	public static int exchangeAudioSourceFormat(String format){
 		return exchangeFormat(format, AudioKeys.STRING_SOURCES, AudioKeys.INTEGER_SOURCES);
 	}
 	
+	
+	/**
+	 * Exchange a value from {@link AudioKeys#INTEGER_SOURCES} with a value
+	 * from {@link AudioKeys#STRING_SOURCES}
+	 * @param format - the string value to look for in {@link AudioKeys#INTEGER_SOURCES}
+	 * @return the integer value of the given string, if the string exists in
+	 * {@link AudioKeys#INTEGER_SOURCES}. If it is not in that string array,
+	 * {@link Args#ARG_NONE} is returned.
+	 * @see {@link Constants#Args}
+	 */
 	public static String exchangeAudioSourceFormat(int format){
 		return exchangeFormat(format, AudioKeys.INTEGER_SOURCES, AudioKeys.STRING_SOURCES);
 	}
 	
+	
+	// AUDIO ENCODING SWITCHES
+	
+	/**
+	 * Exchange a value from {@link AudioKeys#STRING_ENCODINGS} with a value
+	 * from {@link AudioKeys#INTEGER_ENCODINGS}
+	 * @param encoding - the string value to look for in {@link AudioKeys#STRING_ENCODINGS}
+	 * @return the integer value of the given string, if the string exists in
+	 * {@link AudioKeys#STRING_ENCODINGS}. If it is not in that string array,
+	 * {@link Args#ARG_STRING_NONE} is returned.
+	 * @see {@link Constants#Args}
+	 */
 	public static int exchangeAudioEncodingFormat(String encoding){
 		return exchangeFormat(encoding, AudioKeys.STRING_ENCODINGS, AudioKeys.INTEGER_ENCODINGS);
 	}
 	
+	
+	/**
+	 * Exchange a value from {@link AudioKeys#INTEGER_ENCODINGS} with a value
+	 * from {@link AudioKeys#STRING_ENCODINGS}
+	 * @param encoding - the string value to look for in {@link AudioKeys#INTEGER_ENCODINGS}
+	 * @return the integer value of the given string, if the string exists in
+	 * {@link AudioKeys#INTEGER_ENCODINGS}. If it is not in that string array,
+	 * {@link Args#ARG_NONE} is returned.
+	 * @see {@link Constants#Args}
+	 */
 	public static String exchangeAudioEncodingFormat(int encoding){
 		return exchangeFormat(encoding, AudioKeys.INTEGER_ENCODINGS, AudioKeys.STRING_ENCODINGS);
 	}
 	
+	
+	// IMAGE FORMAT SWITCHES
+	
+	/**
+	 * Exchange a value from {@link AudioKeys#STRING_IMAGE_FORMATS} with a value
+	 * from {@link AudioKeys#INTEGER_IMAGE_FORMATS}
+	 * @param format - the string value to look for in {@link AudioKeys#STRING_IMAGE_FORMATS}
+	 * @return the integer value of the given string, if the string exists in
+	 * {@link AudioKeys#STRING_IMAGE_FORMATS}. If it is not in that string array,
+	 * {@link Args#ARG_STRING_NONE} is returned.
+	 * @see {@link Constants#Args}
+	 */
 	public static int exhangeImageFormat(String format){
 		return exchangeFormat(format, CameraKeys.STRING_IMAGE_FORMATS, CameraKeys.INTEGER_IMAGE_FORMATS);
 	}
 	
+	
+	/**
+	 * Exchange a value from {@link AudioKeys#INTEGER_IMAGE_FORMATS} with a value
+	 * from {@link AudioKeys#STRING_IMAGE_FORMATS}
+	 * @param format - the string value to look for in {@link AudioKeys#INTEGER_IMAGE_FORMATS}
+	 * @return the integer value of the given string, if the string exists in
+	 * {@link AudioKeys#INTEGER_IMAGE_FORMATS}. If it is not in that string array,
+	 * {@link Args#ARG_NONE} is returned.
+	 * @see {@link Constants#Args}
+	 */
 	public static String exchangeImageFormat(int format){
 		return exchangeFormat(format, CameraKeys.INTEGER_IMAGE_FORMATS, CameraKeys.STRING_IMAGE_FORMATS);
 	}
