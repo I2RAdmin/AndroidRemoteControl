@@ -36,7 +36,7 @@ import com.i2r.androidremotecontroller.SupportedFeatures;
  * @see {@link Sensor}
  * @see {@link SensorManager#registerListener(SensorEventListener, Sensor, int)}
  */
-public class GenericEnvironmentSensor extends
+public class EnvironmentSensorPool extends
 				GenericDeviceSensor implements SensorEventListener {
 
 	private static final String TAG = "GenericEnvironmentSensor";
@@ -60,7 +60,7 @@ public class GenericEnvironmentSensor extends
 	 * also the activity that this object's {@link SensorManager} will be
 	 * obtained from.
 	 */
-	public GenericEnvironmentSensor(Activity activity) {
+	public EnvironmentSensorPool(Activity activity) {
 		super(activity);
 		this.manager = (SensorManager) activity.getSystemService(Context.SENSOR_SERVICE);
 		this.sensors  = manager.getSensorList(Sensor.TYPE_ALL);

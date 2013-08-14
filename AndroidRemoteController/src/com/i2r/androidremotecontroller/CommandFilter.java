@@ -16,7 +16,7 @@ import android.view.SurfaceHolder;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
 import com.i2r.androidremotecontroller.sensors.CameraSensor;
 import com.i2r.androidremotecontroller.sensors.GenericDeviceSensor;
-import com.i2r.androidremotecontroller.sensors.GenericEnvironmentSensor;
+import com.i2r.androidremotecontroller.sensors.EnvironmentSensorPool;
 import com.i2r.androidremotecontroller.sensors.MicrophoneSensor;
 
 
@@ -65,7 +65,7 @@ public class CommandFilter {
 		this.sensors = new GenericDeviceSensor[SENSOR_SIZE];
 		this.sensors[Constants.Commands.TAKE_PICTURE] = new CameraSensor(activity, camera, holder);
 		this.sensors[Constants.Commands.RECORD_AUDIO] = new MicrophoneSensor(activity);
-		this.sensors[Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS] = new GenericEnvironmentSensor(activity);
+		this.sensors[Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS] = new EnvironmentSensorPool(activity);
 	}
 	
 
