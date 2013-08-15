@@ -14,10 +14,6 @@ import org.apache.log4j.Logger;
 import com.i2r.ARC.PCControl.DataManager.ARCDataManager;
 import com.i2r.ARC.PCControl.DataManager.DataManager;
 import com.i2r.ARC.PCControl.DataManager.DataParser;
-import com.i2r.ARC.PCControl.Loadable.LoadableDataManager;
-import com.i2r.ARC.PCControl.Loadable.LoadablePacket;
-import com.i2r.ARC.PCControl.Loadable.LoadableTask;
-import com.i2r.ARC.PCControl.Loadable.LoadableTaskStack;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 import com.i2r.ARC.PCControl.link.RemoteLink;
 
@@ -43,7 +39,7 @@ public class RemoteClient {
 	DataManager<Task, byte[]> dataManager;
 	String connectionURL;
 	Map<Sensor, Capabilities> supportedSensors;
-	
+	Map<Sensor, Map<String, String>> currentSensorValues;
 	
 	Map<Task, DataResponse> responseMap;
 	TaskStack deviceTasks;
@@ -56,6 +52,7 @@ public class RemoteClient {
 		deviceTasks = new TaskStack();
 		
 		supportedSensors = new EnumMap<Sensor, Capabilities>(Sensor.class);
+		currentSensorValues = new EnumMap<Sensor, Map<String, String>>(Sensor.class);
 		
 		retrievedCapabilities = new AtomicBoolean(false);
 		
@@ -76,14 +73,40 @@ public class RemoteClient {
 		}
 	}
 		
-	public void sendTask(ARCCommand command){
-		int commandHeader = command.getHeader();
+	public void sendTask(ARCCommand command) throws UnsupportedValueException{
+		CommandHeader commandHeader = command.getHeader();
 		
 		Task newTask = deviceTasks.createTask(command);
 		
 		//if the task in question requires us to do something, do it here
-		if(commandHeader == ARCCommand.KILL){
+		switch(commandHeader){
+		case KILL_TASK:
 			this.deviceTasks.removeTask(Integer.parseInt(command.getArguments().get(ARCCommand.KILL_TASK_INDEX)));
+			break;
+		case MODIFY_SENSOR:
+			Sensor sensor = Sensor.get(Integer.parseInt(command.getArguments().get(0)));
+			int i = 1;
+			while(i < command.getArguments().size()){
+				String featureName = command.getArguments().get(i);
+				i++;
+				String featureValue = command.getArguments().get(i);
+				i++;
+				
+				this.currentSensorValues.get(sensor).put(featureName, featureValue);
+			}
+			break;
+		case TAKE_PICTURE:
+			if(!this.supportedSensors.containsKey(Sensor.CAMERA)){
+				throw new UnsupportedValueException(Sensor.CAMERA.getAlias() + " is not a valid sensor for this device.");
+			}
+			break;
+		case RECORD_AUDIO:
+			if(!this.supportedSensors.containsKey(Sensor.MICROPHONE)){
+				throw new UnsupportedValueException(Sensor.MICROPHONE.getAlias() + " is not a valid sensor for this device.");
+			}
+			break;
+		default:
+			break;
 		}
 		
 		dataManager.write(newTask);
@@ -96,6 +119,7 @@ public class RemoteClient {
 		if(cap == null){
 			cap = new Capabilities();
 			supportedSensors.put(sensor, cap);
+			currentSensorValues.put(sensor, new HashMap<String, String>());
 		}
 		
 		cap.addFeature(featureName, type, limit, args);
@@ -104,5 +128,11 @@ public class RemoteClient {
 	
 	public String checkSingleArg(Sensor sensor, String key, String string) throws UnsupportedValueException {
 		 return supportedSensors.get(sensor).checkArg(key, string);
+	}
+
+	public void setCurrentValue(Sensor sensor, String featureName,
+			String currentValue) {
+		currentSensorValues.get(sensor).put(featureName, currentValue);
+		
 	}
 }

@@ -95,7 +95,7 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 		StringBuilder sb = new StringBuilder();
 		sb.append(dataElement.getId());
 		sb.append(SEND_PACKET_DELIMITER);
-		sb.append(dataElement.getCommand().getHeader());
+		sb.append(dataElement.getCommand().getHeader().getType());
 		sb.append(SEND_PACKET_DELIMITER);
 		for(String arg : dataElement.getCommand().getArguments()){
 			sb.append(arg);
@@ -163,10 +163,10 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 						//trim the array down to the number of bytes read
 						byte[] cleanArray = new byte[bytesRead];
 						System.arraycopy(readBuffer, 0, cleanArray, 0, cleanArray.length);
-					
+						
 						logger.debug("Read " + cleanArray.length + " bytes from the connection.");
-					
-						//pass the trimmed to the parser to parse it
+						
+						//pass a copy of the trimmed data to parse it
 						threadParser.parseData(cleanArray);
 					}else if(bytesRead == -1){
 						threadIn.close();

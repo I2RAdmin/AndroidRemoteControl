@@ -4,14 +4,11 @@
 package com.i2r.ARC.PCControl;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
-
-import com.i2r.ARC.PCControl.Loadable.LoadablePacket;
 
 /**
  * The {@link Capabilities} class is a how we define what type of parameters we can change for a particular sensor
@@ -106,7 +103,7 @@ public class Capabilities {
 		//LOGGING LOOOOOOOP
 		logger.debug("Adding feature: ");
 		logger.debug("	" + featureName);
-		logger.debug("	" + type.getType());
+		logger.debug("	" + type.getAlias());
 		logger.debug("	" + limit.getType());
 		for(String arg : args){
 			logger.debug("	" + arg);
@@ -154,7 +151,7 @@ public class Capabilities {
 		//check to see if the value could be interpeted as the data type for this feature
 		if(!checkType(type, value)){
 			//it can't, log and throw an error
-			throw new UnsupportedValueException("Data for " + key + " was of the incorrect type (needed to be: " + type.getType() + ")");
+			throw new UnsupportedValueException("Data for " + key + " was of the incorrect type (needed to be: " + type.getAlias() + ")");
 		}
 		
 		//it can!
@@ -190,7 +187,7 @@ public class Capabilities {
 		switch(limit){
 		//if the limit is ANY
 		case ANY:
-			//allways return true.
+			//always return true.
 			return true;
 		//if the limit is a range
 		case RANGE:
@@ -248,8 +245,9 @@ public class Capabilities {
 			//the value was never found in the set of limit values, return false
 			return false;
 		//if the limiter is something else
+		case CONST:
 		default:
-			//return false, as we're officially in weirdness town
+			//constants can't be changed, and if we see anything else, it isn't supported.
 			return false;
 		}
 	}
@@ -279,6 +277,7 @@ public class Capabilities {
 		//if the data type is a file or stream
 		case FILE:
 		case STREAM:
+		case ANY:
 			//return true.  These data types accept any value
 			return true;
 		//otherwise

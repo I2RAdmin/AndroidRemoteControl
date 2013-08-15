@@ -6,12 +6,13 @@ package com.i2r.ARC.PCControl;
 import org.apache.log4j.Logger;
 
 /**
- * This error is thrown when an value can not be set to a feature because it is not correct according to that feature's 
- * sensor's {@link Capabilities} class.
+ * This is a general purpose exception thrown whenever some value is incorrect, somewhere.
+ * This exception probably does a bit too much right now, getting thrown when I want to convert an unchecked exception
+ * to a checked one, when I get invalid data from the user, when I need to flag a strange case in running... etc.
  * 
- * Or, maybe more susiccntly: whenever an argument fails a check against a {@link Capabilities}
- * 
+ * TODO: Split this into several exceptions, so that we can have some more flexibility
  * @author Johnathan Pagnutti
+ *
  *
  */
 public class UnsupportedValueException extends Exception {

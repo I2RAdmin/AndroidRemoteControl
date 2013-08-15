@@ -92,6 +92,7 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 		
 		private StreamUIReadRunnable(T inStream){
 			readScan = new Scanner(inStream);
+			readScan.useDelimiter(" ");
 		}
 		
 		@Override
@@ -107,17 +108,43 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 					break;
 				}
 
+				int remoteDeviceIndex = -2;
+				try{
+					
+					remoteDeviceIndex = Integer.valueOf(line.substring(0, line.indexOf(' ')));
+				
+				}catch(NumberFormatException e){
+					try {
+						dest.write("Malformed Command, could not get a Remote Device or local reference.".getBytes());
+						logger.error(e.getMessage(), e);
+						continue;
+					} catch (IOException e1) {
+						logger.error(e1.getMessage(), e1);
+						continue;
+					}
+				}
+				
 				try {
-					RemoteClient dev = cntrl.getDevice(Integer.valueOf(line.substring(0, line.indexOf(' '))));
-					cntrl.send(dev, ARCCommand.fromString(dev, line.substring(line.indexOf(' '))));
+					if(remoteDeviceIndex > -1){
+						RemoteClient dev = cntrl.getDevice(remoteDeviceIndex);
+						cntrl.send(dev, ARCCommand.fromString(dev, line.substring(line.indexOf(' '))));
+					}else if (remoteDeviceIndex == -1){
+						logger.debug("Command: ");
+						logger.debug(line.substring(line.indexOf(' ')));
+						cntrl.performLocal(ARCCommand.fromString(line.substring(line.indexOf(' '))));
+					}else{
+						throw new UnsupportedValueException("Invalid Remote Device Specified (given: " + remoteDeviceIndex + ").");
+					}
 				} catch (UnsupportedValueException e) {
 					logger.error(e.getMessage(), e);
 					String uiMessage = "Invalid Command Arguments.\n";
 					
 					try {
 						dest.write(uiMessage.getBytes());
+						dest.write(e.getMessage().getBytes());
 					} catch (IOException e1) {
 						logger.error(e1.getMessage(), e1);
+						continue;
 					}
 				}
 			}

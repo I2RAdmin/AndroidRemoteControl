@@ -27,12 +27,9 @@ public class Main {
 		Controller cntrl = Controller.getInstance();
 		cntrl.initalize();
 		
-		//cntrl.runWithFileUI(args[0]);
-		//cntrl.trialRun();
-		//cntrl.runSendOnly();
 		cntrl.genericRun();
 		
-		System.exit(0);
+		System.exit(0); //shuts down any pending threads.
 	}
 
 }

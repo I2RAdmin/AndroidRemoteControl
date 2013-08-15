@@ -167,7 +167,7 @@ public class ARCDataParser implements DataParser<byte []> {
 			//log loop
 			StringBuilder sb = new StringBuilder();
 			for(byte b : dataToParse){
-				sb.append(b);
+				sb.append((int)((char)b)); //Low level byte fun in Java!
 				sb.append(" ");
 			}
 			logger.debug(sb.toString());
@@ -210,16 +210,8 @@ public class ARCDataParser implements DataParser<byte []> {
 			 this.rawData = new ArrayList<Byte>();
 			rawData.addAll(Arrays.asList(ArrayUtils.toObject(bytesToParse)));
 			 
-			//blocking any threads waiting on parse lock
-			logger.debug("Parsing bytes: ");
-				
-			//log loop
-			StringBuilder sb = new StringBuilder();
-			for(Byte b : rawData){
-				sb.append(b);
-				sb.append(" ");
-			}
-			logger.debug(sb.toString());
+			//LOGING
+			logger.debug("Passed " + rawData.size() + " bytes to the parsing thread.");
 		 }
 		 
 		 /**
@@ -273,8 +265,12 @@ public class ARCDataParser implements DataParser<byte []> {
 			}
 			
 			//release the lock
-			lockAquired.compareAndSet(true, false);
-			logger.debug("Released Outer Lock");
+			if(lockAquired.compareAndSet(true, false)){
+				logger.debug("Released Outer Lock");
+			}else{
+				//Something really bad has happened
+				logger.error("WHERE IS YOUR GOD NOW?!");
+			}
 		}
 
 		private void parseArgumentType() {

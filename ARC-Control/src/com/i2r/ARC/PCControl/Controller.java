@@ -124,14 +124,12 @@ public class Controller{
 	}
 	
 	public List<String> aquiredConnections(){
-		//logger.debug("requesting info on connections");
 		List<String> validConns = link.currentConnections();
 		
 		if(validConns == null){
 			logger.debug("No valid Connections found-dizzle");
 			return validConns;
 		}else if(validConns.get(0).equals("STILL_SEARCHING")){
-			//logger.debug("Still searching");
 			return validConns;
 		}else{
 			logger.debug("Found " + validConns.size() + " valid connections.");
@@ -193,7 +191,7 @@ public class Controller{
 			searchForConnections();
 			boolean foundConnections = false;
 			
-			ui.write("Searching for Bluetooth connection...");
+			ui.write("Searching for Bluetooth connections...");
 			while(!foundConnections){
 				connectionURLs = aquiredConnections();
 				if(connectionURLs != null && !connectionURLs.isEmpty()){
@@ -208,7 +206,7 @@ public class Controller{
 						foundConnections = true;
 					}
 				}else if(connectionURLs == null){
-					ui.write("No Valid bluetooth connections were found.");
+					ui.write("No valid bluetooth connections were found.");
 					logger.debug("No valid bluetooth connections could be found.");
 					break;
 				}
@@ -232,6 +230,8 @@ public class Controller{
 			return;
 		}
 		
+		ui.write("For local commands, use index -1");
+		
 		RemoteClient dev = devices.get(0);
 		logger.debug("Using device " + dev);
 		
@@ -246,7 +246,6 @@ public class Controller{
 		}
 		
 		//establish the in side of the UI (from user)
-		//we don't need to use the generic streams anymore, I have them this way for convience, really.
 		ui.read();
 		
 		ui.write("Enter Commands: ");
@@ -266,16 +265,68 @@ public class Controller{
 		ui.close();
 	}
 
-	public void send(RemoteClient dev, ARCCommand newCommand) {
-		if(devices.contains(dev)){
-			dev.sendTask(newCommand);
-		}else{
-			logger.error("Device not found.");
-			//TODO: THROW ERROR
+	public void send(RemoteClient dev, ARCCommand newCommand) throws UnsupportedValueException {
+		
+		switch(newCommand.getHeader()){
+		case LIST_DEVICES:
+		case LIST_DEVICE_SENSORS:
+			throw new UnsupportedValueException(newCommand.getHeader() + " is not a valid remote command.");
+		default:
+			if(devices.contains(dev)){
+				dev.sendTask(newCommand);
+			}else{
+				throw new UnsupportedValueException(dev + " was not found in the master list.");
+			}
+			break;
 		}
 	}
 
-	public RemoteClient getDevice(Integer deviceIndex) {
+	public RemoteClient getDevice(Integer deviceIndex) throws UnsupportedValueException {
+		if(deviceIndex == null){
+			throw new UnsupportedValueException("Device index null!");
+		}
+		if(deviceIndex > devices.size()){
+			throw new UnsupportedValueException("Device at " + deviceIndex + " not found.");
+		}
+		logger.debug("Getting device at index " + deviceIndex.intValue());
 		return devices.get(deviceIndex);
+	}
+
+	public void performLocal(ARCCommand arcCommand) throws UnsupportedValueException{
+		//do a local command
+		switch(arcCommand.getHeader()){
+		case LIST_DEVICES:
+			ui.write("Current Remote Devices: ");
+			for(int i = 0; i < devices.size(); i++){
+				ui.write(String.valueOf(i));
+			}
+			ui.write("-1");
+			break;
+		case LIST_DEVICE_SENSORS:
+			ui.write("Current Sensors on device " + arcCommand.getArguments().get(0));
+			RemoteClient dev = this.devices.get(Integer.parseInt(arcCommand.getArguments().get(0)));
+			for(Sensor sensor : dev.supportedSensors.keySet()){
+				ui.write(sensor.getAlias());
+			}
+			break;
+		case HELP:
+			ui.write("Help document is currently being written.");
+			break;
+		case PAUSE:
+			RemoteClient devToPause = getDevice(Integer.parseInt(arcCommand.getArguments().get(0)));
+			
+			if(arcCommand.getArguments().size() > 1){
+				while(devToPause.deviceTasks.hasTask(Integer.parseInt(arcCommand.getArguments().get(1)))){
+					//WHEEEEEEEEEEEEEEEEEEEEEEEEEE
+				}
+			}else{
+				while(devToPause.deviceTasks.tasksRemaining()){
+					//WHEEEEEEEEEEEEEEEEEEEEEEEEEE
+				}
+			}
+			break;
+		default:
+			throw new UnsupportedValueException(arcCommand.getHeader().getAlias() + " is not a valid local command.");
+		}
 	}
 }

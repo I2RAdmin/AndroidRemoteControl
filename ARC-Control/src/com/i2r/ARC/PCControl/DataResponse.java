@@ -20,16 +20,26 @@ import org.apache.log4j.Logger;
  */
 public class DataResponse {
 	public static final int DATA_TYPE_NOTIFY = 0;
-	public static final int DATA_TYPE_JPEG = 2;
-	public static final int DATA_TYPE_YUV = 127;
 	
 	public static final int DATA_TYPE_CAMERA_ARGS = 1;
+	public static final int DATA_TYPE_MICROPHONE_ARGS = 10;
+	public static final int DATA_TYPE_ENVIRONMENT_ARGS = 12;
+	
+	public static final int DATA_TYPE_IMAGE = 2;
+	public static final int DATA_TYPE_AUDIO = 11;
+	public static final int DATA_TYPE_ENVIRONMENT = 13;
 	
 	public static final String REMOVE_TASK_ARGUMENT = "#";
+	public static final String TASK_ERRORED_ARGUMENT = "!";
+	public static final String UNSUPPORTED_SENSOR = "@";
 	
 	public static int REMOVE_TASK = 0;
 	public static int SAVE_FILE = 1;
+	public static int STREAM = 2;
 	public static int CAMERA_ARGS = 4;
+	public static int MICROPHONE_ARGS = 5;
+	public static int ENVIRONMENT_ARGS = 6;
+	
 	
 	/**
 	 * The taskID.  This marks which task the response should be associated with.
@@ -79,10 +89,11 @@ public class DataResponse {
 	
 	public DataResponse(int taskID, int dataType, byte[] data){
 		logger.debug("Creating a Response for task " + taskID);
+		
 		//taskID will always be set.
 		this.taskID = taskID;
 		this.argType = dataType;
-				
+		
 		//figure out what was in the passed block
 		interpet(data);
 	}
@@ -92,41 +103,77 @@ public class DataResponse {
 	 * @param data
 	 */
 	private void interpet(byte[] data) {
-		if(argType == DATA_TYPE_NOTIFY){
+		
+		switch(argType){
+		case(DATA_TYPE_NOTIFY):
 			//create a string from the data
-			String tempDataString = new String(data);
+			String fullData = new String(data);
+			String controlString;
+			String message = null;
+			if(fullData.contains("\n")){
+				controlString = fullData.substring(0, fullData.indexOf("\n"));
+				message = fullData.substring(fullData.indexOf("\n"));
+			}else{
+				controlString = fullData;
+			}
 			
-			if(tempDataString.equals(REMOVE_TASK_ARGUMENT)){
+			if(controlString.equals(REMOVE_TASK_ARGUMENT) || controlString.equals(TASK_ERRORED_ARGUMENT) || 
+					controlString.equals(UNSUPPORTED_SENSOR)){
 				//remove the task from the task stack
 				logger.debug("Remove Task Response created.");
 				this.type = REMOVE_TASK;
 				
 				otherArgs = new ArrayList<String>(1);
-				this.otherArgs.add(tempDataString);
+				this.otherArgs.add(controlString);
+				
+				if(message != null){
+					this.otherArgs.add(message);
+				}
 				
 			}else{
 				logger.debug("Could not interpet response packet: ");
-				logger.debug(tempDataString);
+				logger.debug(controlString);
+			}
+			break;
+			
+		case(DATA_TYPE_MICROPHONE_ARGS):
+		case(DATA_TYPE_CAMERA_ARGS):
+		case (DATA_TYPE_ENVIRONMENT_ARGS):
+			if(argType == DATA_TYPE_MICROPHONE_ARGS){
+				this.type = MICROPHONE_ARGS;
+			}else if (argType == DATA_TYPE_CAMERA_ARGS){
+				this.type = CAMERA_ARGS;
+			}else if (argType == DATA_TYPE_ENVIRONMENT_ARGS){
+				this.type = ENVIRONMENT_ARGS;
 			}
 		
-		}else if(argType == DATA_TYPE_CAMERA_ARGS){
-			logger.debug("Set Camera Parameters task created.");			
-			this.type = CAMERA_ARGS;
-			String[] camArgs = new String(data).split("&");
-			
-			logger.debug("Setting " + camArgs.length + " features.");
-			otherArgs = new ArrayList<String>(camArgs.length);
-			
-			for(String argLine : camArgs){
+			String[] micArgs = new String(data).split("&");
+		
+			logger.debug("Seting " + micArgs.length + " features.");
+			otherArgs = new ArrayList<String>(micArgs.length);
+		
+			for(String argLine : micArgs){
 				otherArgs.add(argLine);
 			}
-			
-		}else{
-			//Save it as a file
+			break;
+		
+		case(DATA_TYPE_AUDIO):
+		case(DATA_TYPE_ENVIRONMENT):
+			//send the audio to an audio buffer
+			logger.debug("Stream task created.");
+			this.type = STREAM;
+			this.fileSize = data.length;
+			this.fileData = data;
+			break;
+		case (DATA_TYPE_IMAGE):
+			//Save the image as a file
 			logger.debug("Save file task created.");
 			this.type = SAVE_FILE;
 			this.fileSize = data.length;
 			this.fileData = data;
+			break;
+		default:
+			logger.error("This argument type is not supported: " + argType);
 		}
 	}
 }

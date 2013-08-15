@@ -12,33 +12,48 @@ import java.util.Map;
  *
  */
 public enum DataType {
-	INTEGER(3), 
-	DOUBLE(4),  
-	FILE(9),
-	STRING(5),
-	STREAM(10);
+	INTEGER(3, "integer"), 
+	DOUBLE(4, "double"),  
+	FILE(10, "file"),
+	STRING(5, "string"),
+	STREAM(11, "stream"),
+	ANY(8, "any");
 	
-	private static final Map<Integer, DataType> lookup = new HashMap<Integer, DataType>();
-	private static final Map<DataType, String> readableName = new HashMap<DataType, String>();
+	private static final Map<Integer, DataType> dataType = new HashMap<Integer, DataType>();
+	private static final Map<String, DataType> dataAlias = new HashMap<String, DataType>();
 	
 	static{
 		for(DataType t : EnumSet.allOf(DataType.class)){
-			lookup.put(t.getType(), t);
+			dataType.put(t.getType(), t);
+		}
+		
+		for(DataType t : EnumSet.allOf(DataType.class)){
+			dataAlias.put(t.getAlias(), t);
 		}
 	}
 	
 	private Integer type;
+	private String alias;
 	
-	private DataType(Integer type){
+	private DataType(Integer type, String alias){
 		this.type = type;
+		this.alias = alias;
 	}
 	
 	public Integer getType(){
 		return type;
 	}
 	
-	public static DataType get(Integer status){
-		return lookup.get(status);
+	public String getAlias(){
+		return alias;
+	}
+	
+	public static DataType get(Integer type){
+		return dataType.get(type);
+	}
+	
+	public static DataType get(String alias){
+		return dataAlias.get(alias);
 	}
 	
 }
