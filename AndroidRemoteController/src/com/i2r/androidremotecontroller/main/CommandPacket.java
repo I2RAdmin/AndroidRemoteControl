@@ -1,12 +1,10 @@
-package com.i2r.ARC.Main;
+package com.i2r.androidremotecontroller.main;
 
 import java.util.ArrayList;
 
 import ARC.Constants;
 import ARC.Constants.Args;
 import android.util.Log;
-
-import com.i2r.ARC.Connections.RemoteConnection;
 
 
 /**

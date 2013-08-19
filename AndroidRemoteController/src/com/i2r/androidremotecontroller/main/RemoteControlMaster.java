@@ -1,4 +1,4 @@
-package com.i2r.ARC.Main;
+package com.i2r.androidremotecontroller.main;
 
 import java.io.File;
 import java.util.UUID;
@@ -15,12 +15,12 @@ import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Environment;
 import android.util.Log;
 
-import com.i2r.ARC.Connections.BluetoothLink;
-import com.i2r.ARC.Connections.ConnectionManager;
-import com.i2r.ARC.Connections.RemoteConnection;
-import com.i2r.ARC.Connections.UsbLink;
-import com.i2r.ARC.Connections.WifiDirectLink;
-import com.i2r.ARC.Exceptions.ServiceNotFoundException;
+import com.i2r.androidremotecontroller.connections.BluetoothLink;
+import com.i2r.androidremotecontroller.connections.ConnectionManager;
+import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.connections.UsbLink;
+import com.i2r.androidremotecontroller.connections.WifiDirectLink;
+import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 
 /**
  * This class models the master to pivot all sub-operations of this application
@@ -143,6 +143,7 @@ public class RemoteControlMaster {
 		Log.d(TAG, "connection manager created with USB link");
 	}
 
+	
 	/**
 	 * Initializer used by {@link RemoteControlActivity}
 	 */

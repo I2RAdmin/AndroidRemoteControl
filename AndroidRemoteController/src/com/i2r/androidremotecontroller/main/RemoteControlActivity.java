@@ -1,4 +1,4 @@
-package com.i2r.ARC.Main;
+package com.i2r.androidremotecontroller.main;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -17,8 +17,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.i2r.ARC.Exceptions.ServiceNotFoundException;
 import com.i2r.androidremotecontroller.R;
+import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 
 /**
  * This class acts as a base starter for remote control of an android device.
@@ -92,7 +92,7 @@ public class RemoteControlActivity extends Activity {
 
 		// create a receiver for the BluetoothConnectionManager to send to
 		this.receiver = new BroadcastReceiver() {
-			public void onReceive(Context context, Intent intent) {
+			public void onReceive(Context context, final Intent intent) {
 
 				// if the source of the intent was a remote connection reading
 				// more commands
@@ -100,8 +100,7 @@ public class RemoteControlActivity extends Activity {
 
 					Log.d(TAG, "update broadcast from connection recieved");
 					action.setText("pasring command");
-					master.updateByRemoteControl(intent
-							.getStringExtra(EXTRA_COMMAND));
+					master.updateByRemoteControl(intent.getStringExtra(EXTRA_COMMAND));
 
 					// if the source of the intent was a new connection
 				} else if (intent.getAction()
@@ -143,14 +142,6 @@ public class RemoteControlActivity extends Activity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-
-		// add an IntentFilter to receive updates from bluetooth manager
-		IntentFilter filter = new IntentFilter();
-		filter.addAction(ACTION_TASK_COMPLETE);
-		filter.addAction(ACTION_CONNECTOR_RESPONDED);
-		filter.addAction(ACTION_CONNECTION_READ);
-		manager.registerReceiver(receiver, filter);
-
 		startMaster(getIntent().getStringExtra(
 				ConnectionTypeSelectionActivity.EXTRA_CONNECTION_TYPE));
 	}
@@ -161,6 +152,7 @@ public class RemoteControlActivity extends Activity {
 		stopMaster();
 	}
 
+	
 	/**
 	 * Begins main execution of this remote control application. This creates a
 	 * new RemoteControlMaster to control the phone remotely by taking in
@@ -174,8 +166,15 @@ public class RemoteControlActivity extends Activity {
 	 *            {@link ConnectionTypeSelectionActivity}
 	 */
 	private void startMaster(String connectionType) {
-		Log.d(TAG, "Setting current SurfaceHolder to SensorController");
 
+		// add an IntentFilter to receive updates from bluetooth manager
+		IntentFilter filter = new IntentFilter();
+		filter.addAction(ACTION_TASK_COMPLETE);
+		filter.addAction(ACTION_CONNECTOR_RESPONDED);
+		filter.addAction(ACTION_CONNECTION_READ);
+		manager.registerReceiver(receiver, filter);
+
+		
 		// creates a new master to control remote command flow, and a new
 		// responder
 		// to mediate between the master and the device sensors
@@ -184,11 +183,10 @@ public class RemoteControlActivity extends Activity {
 		this.sensorController = new CommandFilter(this, camera,
 				view.getHolder());
 		try {
-			this.master = new RemoteControlMaster(sensorController,
-					connectionType);
+			this.master = new RemoteControlMaster(sensorController, connectionType);
 			if (!started) {
 				started = true;
-				action.setText("remote control started, listening for connection...");
+				action.setText("listening for connection to remote device...");
 				Log.d(TAG, "remote control started");
 				master.start();
 			}
@@ -200,11 +198,19 @@ public class RemoteControlActivity extends Activity {
 			Toast.makeText(
 					this,
 					"connection service for remote control not found, shutting down app",
-					Toast.LENGTH_SHORT).show();
+					Toast.LENGTH_LONG).show();
+			
+			if(master != null){
+				master.stop();
+				master = null;
+			}
+			
+			
 			finish();
 		}
 	}
 
+	
 	/**
 	 * Stops this application's progress, and kills this activity, reverting
 	 * back to the {@link ConnectionTypeSelectionActivity} that started this
@@ -224,6 +230,7 @@ public class RemoteControlActivity extends Activity {
 
 		if (master != null) {
 			master.stop();
+			master = null;
 		}
 
 		action.setText("remote control stopped, finishing...");

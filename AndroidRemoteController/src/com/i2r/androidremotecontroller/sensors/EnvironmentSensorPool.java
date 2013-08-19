@@ -1,4 +1,4 @@
-package com.i2r.ARC.Sensors;
+package com.i2r.androidremotecontroller.sensors;
 
 import java.util.List;
 
@@ -9,9 +9,12 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.util.Log;
 
-import com.i2r.ARC.Main.ResponsePacket;
-import com.i2r.ARC.Main.SupportedFeatures;
+import com.i2r.androidremotecontroller.main.ResponsePacket;
+import com.i2r.androidremotecontroller.main.SupportedFeatures;
+import com.i2r.androidremotecontroller.main.SupportedFeatures.EnvironmentKeys;
+
 
 /**
  * <p>This class models a generic sensor that, when
@@ -28,8 +31,6 @@ import com.i2r.ARC.Main.SupportedFeatures;
  * task as soon as they have the data they need, or they will
  * risk running this android device's power down at an exceedingly
  * high rate.</p>
- * 
- * TODO: same thing as this class with LocationManager
  * 
  * @author Josh Noel
  * @see {@link SensorEventListener}
@@ -71,7 +72,7 @@ public class EnvironmentSensorPool extends
 
 	@Override
 	public void releaseSensor() {
-		manager.unregisterListener(this);
+		// do nothing
 	}
 
 	@Override
@@ -85,6 +86,8 @@ public class EnvironmentSensorPool extends
 		setTaskID(taskID);
 		taskCompleted = false;
 		
+		Log.d(TAG, "preparing sensors");
+		
 		// iterate through all available sensors
 		for(Sensor sensor : sensors){
 			
@@ -94,50 +97,45 @@ public class EnvironmentSensorPool extends
 			// specifically asked for
 			if(rate != Constants.Args.ARG_NONE){
 				manager.registerListener(this, sensor, rate);
+				Log.d(TAG, "registering " + sensor.getName() 
+						+ " with a rate of " + rate);
 			}
 		}
 		
 		// start this sensor's data gathering timer
-		getDuration(0).setMax(args[0]).start();
-		
-		// wait in a separate thread to kill this task
-		new Thread( new Runnable(){public void run(){
-			
-			// don't need to do anything here since
-			// data transfer is controlled by callbacks
-			while(validToSave()){
-				try{
-					Thread.sleep(1000);
-				} catch(InterruptedException e){}
-			}
-			
-			if(!taskCompleted){
-				killTask();
-			}
-			
-			sendTaskComplete();
-			
-		}}).start();
-		
+		if(args != null){
+			getDuration(0).setMax(args[0]).start();
+			waitForCompletion();
+		} else {
+			sendTaskErroredOut("duration for listening was not set");
+			killTask();
+		}
 	}
+	
 
 	@Override
 	public boolean taskCompleted() {
 		return taskCompleted;
 	}
+	
 
 	@Override
 	public String getName() {
 		return TAG;
 	}
+	
 
 	@Override
-	public void updateSensorProperties() {
-		for(int i = 0; i < sensors.size(); i++){
-			String result = getProperty(sensors.get(i).getName());
-			if(result != null){
-				int rate = SupportedFeatures.exchangeUpdateRate(result);
-				modify(result, String.valueOf(rate));
+	public void updateSensorProperties(int taskID) {
+		for(Sensor sensor : sensors){
+			
+			String sensorName = sensor.getName();
+			int result = SupportedFeatures.exchange(
+					EnvironmentKeys.UPDATE_SPEED, getProperty(sensorName));
+			
+			if(result != Constants.Args.ARG_NONE){
+				Log.d(TAG, "modifying " + sensorName + "with value: " + result);
+				modify(sensorName, result);
 			}
 		}
 	}
@@ -179,4 +177,31 @@ public class EnvironmentSensorPool extends
 	private boolean validToSave(){
 		return !taskCompleted && !getDuration(0).maxReached();
 	}
+	
+	
+	
+	private synchronized void waitForCompletion(){
+		
+		Log.d(TAG, "waiting for environment sensing completion...");
+		
+		// wait in a separate thread to kill this task
+		new Thread( new Runnable(){public void run(){
+			
+			// don't need to do anything here since
+			// data transfer is controlled by callbacks
+			while(validToSave()){
+				try{
+					Thread.sleep(1000);
+				} catch(InterruptedException e){}
+			}
+			
+			if(!taskCompleted){
+				killTask();
+			}
+			
+			sendTaskComplete();
+			
+		}}).start();
+	}
+	
 }

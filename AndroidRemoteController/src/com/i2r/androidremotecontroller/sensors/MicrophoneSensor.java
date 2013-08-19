@@ -1,4 +1,4 @@
-package com.i2r.ARC.Sensors;
+package com.i2r.androidremotecontroller.sensors;
 
 import ARC.Constants;
 import android.app.Activity;
@@ -7,9 +7,9 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder.AudioSource;
 import android.util.Log;
 
-import com.i2r.ARC.Main.ResponsePacket;
-import com.i2r.ARC.Main.SupportedFeatures;
-import com.i2r.ARC.Main.SupportedFeatures.AudioKeys;
+import com.i2r.androidremotecontroller.main.ResponsePacket;
+import com.i2r.androidremotecontroller.main.SupportedFeatures;
+import com.i2r.androidremotecontroller.main.SupportedFeatures.AudioKeys;
 
 
 /**
@@ -29,7 +29,7 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 	private boolean taskCompleted, recording;
 	
 	/**
-	 * Constructor
+	 * Constructor<br>
 	 * creates a new blank audio sensor. The properties of this sensor can be changed
 	 * multiple times before its task is started, but once its task is started
 	 * its parameters must not be changed.
@@ -58,11 +58,10 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 					== AudioRecord.RECORDSTATE_RECORDING){
 				audio.stop();
 			}
+			
 			audio.release();
 			audio = null;
-		} else {
-			sendTaskErroredOut();
-		}
+		} 
 	}
 
 	
@@ -76,21 +75,23 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 	public void startNewTask(int taskID, int[] args) {
 		setTaskID(taskID);
 		taskCompleted = false;
-		
-		if(audio == null){
-			createNewAudioRecorder();
-		}
+		createNewAudioRecorder();
 		
 		if(audio != null && audio.getState() 
 				== AudioRecord.STATE_INITIALIZED){
 			
 			try {
 				
-				recorder = new RecordThread();
-				recording = true;
-				audio.startRecording();
-				recorder.start();
-				getDuration(0).setMax(args[0]).start();
+				if(args != null){
+					recorder = new RecordThread();
+					recording = true;
+					audio.startRecording();
+					recorder.start();
+					getDuration(0).setMax(args[0]).start();
+				} else {
+					sendTaskErroredOut("invalid microphone parameters");
+					killTask();
+				}
 
 			} catch (IllegalStateException e) {
 				Log.e(TAG, "MediaRecorder illegal state: " + e.getMessage());
@@ -117,40 +118,76 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 
 	
 	@Override
-	public void updateSensorProperties() {
+	public void updateSensorProperties(int taskID) {
 		
-		String result = getProperty(AudioKeys.ENCODING);
+		int result = SupportedFeatures.exchange(
+				AudioKeys.ENCODING, getProperty(AudioKeys.ENCODING));
 				
-		
-		if(result != null){
-			int temp = SupportedFeatures.exchangeAudioEncodingFormat(result);
-			modify(AudioKeys.ENCODING, temp);
+		if(result != Constants.Args.ARG_NONE){
+			modify(AudioKeys.ENCODING, result);
 			
 		} 
 		
-		result = getProperty(AudioKeys.CHANNEL);
-		if(result != null){
-			int temp = SupportedFeatures.exchangeAudioChannel(result);
-			modify(AudioKeys.CHANNEL, temp);
+		result = SupportedFeatures.exchange(
+				AudioKeys.CHANNEL, getProperty(AudioKeys.CHANNEL));
+		
+		if(result != Constants.Args.ARG_NONE){
+			modify(AudioKeys.CHANNEL, result);
 			
 		} 
 		
-		result = getProperty(AudioKeys.SOURCE);
-		if(result != null){
-			int temp = SupportedFeatures.exchangeAudioSourceFormat(result);
-			modify(AudioKeys.SOURCE, temp);
+		result = SupportedFeatures.exchange(
+				AudioKeys.SOURCE, getProperty(AudioKeys.SOURCE));
+		
+		if(result != Constants.Args.ARG_NONE){
+			modify(AudioKeys.SOURCE, result);
 			
+		}
+	}
+
+	
+
+	/**
+	 * Create a new AudioRecorder based on
+	 * the parameters in {@link #getProperties()}
+	 * This should only be called once per task.
+	 */
+	private void createNewAudioRecorder(){
+		try{
+			
+			// 44100 supported by all devices
+			int sampleRate = getIntProperty(
+					AudioKeys.SAMPLING_RATE, 44100);
+			int audioSource = getIntProperty(
+					AudioKeys.SOURCE, AudioSource.DEFAULT);
+			int channel = getIntProperty(
+					AudioKeys.CHANNEL, AudioFormat.CHANNEL_IN_MONO);
+			int audioFormat = getIntProperty(
+					AudioKeys.ENCODING, AudioFormat.ENCODING_PCM_16BIT);
+			
+			int bufferSizeInBytes = AudioRecord.getMinBufferSize(
+					sampleRate, channel, audioFormat) * 3;
+			
+			audio = new AudioRecord(audioSource, sampleRate,
+						channel, audioFormat, bufferSizeInBytes);
+			 
+		} catch (IllegalArgumentException e){
+			
+			audio = null;
+			Log.e(TAG, 
+					"failed to create audio object due to IllegalArgumentException: "
+							+ e.getMessage());
+			
+			sendTaskErroredOut(e.getMessage());
 		}
 	}
 	
 	
 	
-	
 	/**
 	 * Copy pasta, the best kind of pasta.
-	 * 
-	 * TODO: may delete this if uses-permission works
-	 * ANOTHER TODO: test this with permission (already placed in)
+	 * Iterates through all the possible combinations
+	 * to find one that will work on the current device.
 	 */
 	public static AudioRecord findAudioRecord() {
 		
@@ -191,42 +228,6 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 	
 	
 	
-
-	/**
-	 * Create a new AudioRecorder based on
-	 * the parameters in {@link #getProperties()}
-	 * This should only be called once per task.
-	 */
-	private void createNewAudioRecorder(){
-		try{
-			
-			// 44100 supported by all devices
-			int sampleRate = getIntProperty(
-					AudioKeys.SAMPLING_RATE, 44100);
-			int audioSource = getIntProperty(
-					AudioKeys.SOURCE, AudioSource.DEFAULT);
-			int channel = getIntProperty(
-					AudioKeys.CHANNEL, AudioFormat.CHANNEL_IN_MONO);
-			int audioFormat = getIntProperty(
-					AudioKeys.ENCODING, AudioFormat.ENCODING_PCM_16BIT);
-			
-			int bufferSizeInBytes = AudioRecord.getMinBufferSize(
-					sampleRate, channel, audioFormat) * 3;
-			
-			audio = new AudioRecord(audioSource, sampleRate,
-						channel, audioFormat, bufferSizeInBytes);
-			 
-		} catch (IllegalArgumentException e){
-			
-			audio = null;
-			Log.e(TAG, 
-					"failed to create audio object due to IllegalArgumentException: "
-							+ e.getMessage());
-			
-			sendTaskErroredOut(e.getMessage());
-		}
-	}
-	
 	
 	/**
 	 * Query for the duration state of this microphone sensor
@@ -257,7 +258,7 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 		
 		@Override
 		public void run(){
-			while(recording && validDuration()){
+			while(!taskCompleted && recording && validDuration()){
 				
 				// read more data from audio recorder
 				int result = audio.read(buffer, 0, BUFFER_SIZE);

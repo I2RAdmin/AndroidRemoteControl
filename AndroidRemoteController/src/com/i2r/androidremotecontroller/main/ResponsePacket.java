@@ -1,4 +1,4 @@
-package com.i2r.ARC.Main;
+package com.i2r.androidremotecontroller.main;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -6,7 +6,7 @@ import java.io.IOException;
 import ARC.Constants;
 import android.util.Log;
 
-import com.i2r.ARC.Connections.RemoteConnection;
+import com.i2r.androidremotecontroller.connections.RemoteConnection;
 
 /**
  * This class models a response that the android device can build and send
@@ -545,7 +545,6 @@ public class ResponsePacket {
 		if (packet != null && packet.isValid() && connection != null && connection.isConnected()) {
 			result = encodePacket(packet, Constants.Delimiters.PACKET_DELIMITER);
 			if (result != null) {
-				Log.d(TAG, "sending response:\n" + packet.toString());
 				connection.write(result);
 			} else {
 				Log.e(TAG, "could not send response because encodedPacket returned null");

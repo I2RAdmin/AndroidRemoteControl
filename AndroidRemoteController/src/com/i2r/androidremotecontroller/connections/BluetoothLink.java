@@ -1,4 +1,4 @@
-package com.i2r.ARC.Connections;
+package com.i2r.androidremotecontroller.connections;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,7 +15,7 @@ import android.content.Intent;
 import android.os.ParcelUuid;
 import android.util.Log;
 
-import com.i2r.ARC.Exceptions.ServiceNotFoundException;
+import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 
 /**
  * This class models a Linker object to pair (but not necessarily connect)
@@ -59,9 +59,8 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	
 	
 	//**********************************************************************|
-	// See {@link Link} for documentation of these overrides ---------------|
+	// See the Link interface for documentation of these overrides ---------|
 	//**********************************************************************|
-	
 	
 	
 	@Override

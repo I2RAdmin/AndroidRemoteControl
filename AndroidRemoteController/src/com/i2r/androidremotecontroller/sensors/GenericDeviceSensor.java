@@ -1,4 +1,4 @@
-package com.i2r.ARC.Sensors;
+package com.i2r.androidremotecontroller.sensors;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -17,11 +17,11 @@ import android.os.Environment;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.i2r.ARC.Connections.RemoteConnection;
-import com.i2r.ARC.Main.CommandFilter;
-import com.i2r.ARC.Main.RemoteControlActivity;
-import com.i2r.ARC.Main.ResponsePacket;
-import com.i2r.ARC.Main.SupportedFeatures;
+import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.main.CommandFilter;
+import com.i2r.androidremotecontroller.main.RemoteControlActivity;
+import com.i2r.androidremotecontroller.main.ResponsePacket;
+import com.i2r.androidremotecontroller.main.SupportedFeatures;
 
 /**
  * This abstract class models the implementation needed for a piece of hardware
@@ -161,11 +161,67 @@ public abstract class GenericDeviceSensor {
 			try{
 				result = Integer.parseInt(properties.get(key));
 			} catch (NumberFormatException e){
-				
+				// key doesn't exist in map or value isn't an integer
 			}
 		}
 		return result;
 	}
+	
+	
+	
+	/**
+	 * Get a double property defined by the given key
+	 * from this sensor's map of properties
+	 * @param key - the key defining the property to be
+	 * retrieved.
+	 * @return the value of the key given in its double form,
+	 * given that the key exists in this sensor's map of
+	 * properties, and the value can be parsed to a double.
+	 * If the given key is not in this sensor's map of properties,
+	 * this returns {@link ARG_DOUBLE_NONE} as defined in
+	 * {@link Constants#Args}
+	 * @see {@link #getDoubleProperty(String, int)}
+	 */
+	protected double getDoubleProperty(String key){
+		return getDoubleProperty(key, Constants.Args.ARG_DOUBLE_NONE);
+	}
+	
+	
+	
+	/**
+	 * Query for the double value of the property at the
+	 * specified key.
+	 * @param key - the key to obtain an double value from
+	 * @param defaultValue - a value to return if the given
+	 * key did not exist in the properties structure, or the
+	 * key's value could not be parsed.
+	 * @return the double value of the key specified, or the
+	 * defaultValue parameter if the key was not found in
+	 * the properties data structure or the key's value could
+	 * not be parsed.
+	 */
+	protected double getDoubleProperty(String key, double defaultValue){
+		double result = defaultValue;
+		try{
+			result = Double.parseDouble(properties.get(key));
+		} catch(NumberFormatException e){
+			// key doesn't exist in map or value isn't a double
+		}
+		return result;
+	}
+	
+	
+	/**
+	 * Query for a boolean property of this sensor
+	 * @param key - the key of the boolean property
+	 * @return true if the value of the given key is
+	 * equal to "true", false if the value is anything
+	 * else or if the key does not exist in the properties map.
+	 */
+	protected boolean getBooleanProperty(String key){
+		return Boolean.parseBoolean(properties.get(key));
+	}
+	
 	
 	
 	/**
@@ -431,8 +487,10 @@ public abstract class GenericDeviceSensor {
 	 * procedure, and should only be called when this
 	 * object's HashMap is considered to be stable and
 	 * rarely changing.
+	 * @param taskID the task ID of the command that was sent
+	 * to modify this sensor
 	 */
-	public abstract void updateSensorProperties();
+	public abstract void updateSensorProperties(int taskID);
 	
 	
 }

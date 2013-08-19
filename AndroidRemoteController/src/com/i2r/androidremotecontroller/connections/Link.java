@@ -1,4 +1,4 @@
-package com.i2r.ARC.Connections;
+package com.i2r.androidremotecontroller.connections;
 
 import java.util.List;
 

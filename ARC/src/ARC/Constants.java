@@ -159,6 +159,20 @@ public final class Constants {
 		 */
 		public static final int ARG_NONE = -1;
 		
+		
+		/**
+		 * argument to keep the specified parameter at
+		 * its current value.
+		 */
+		public static final double ARG_DOUBLE_NO_CHANGE = -2D;
+		
+		
+		/**
+		 * argument specifying that a parameter has no value
+		 */
+		public static final double ARG_DOUBLE_NONE = -1D;
+		
+		
 		/**
 		 * argument to keep the specified parameter at
 		 * its current value.

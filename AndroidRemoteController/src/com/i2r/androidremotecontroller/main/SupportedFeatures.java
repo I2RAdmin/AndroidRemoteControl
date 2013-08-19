@@ -1,7 +1,9 @@
-package com.i2r.ARC.Main;
+package com.i2r.androidremotecontroller.main;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -11,10 +13,13 @@ import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
+import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.media.AudioFormat;
 import android.media.MediaRecorder.AudioSource;
+import android.util.Log;
 
-/**
+/******************************************************************************
  * This class defines a static way to obtain all the information that the
  * controller needs to know about this android device, in order to properly
  * manipulate its sensors. General rule for sending an individual feature for a
@@ -41,15 +46,19 @@ import android.media.MediaRecorder.AudioSource;
  * (such as {@link CAMERA_SENSOR}, {@link MIC_SENSOR} etc...)
  * 
  * @author Josh Noel
+ ******************************************************************************
  */
 public final class SupportedFeatures {
 
+	private static final String TAG = "SupportedFeatures";
 
-	/**
+	/***************************************
 	 * Key constants for the camera sensor
 	 * @author Josh Noel
+	 ***************************************
 	 */
 	public static final class CameraKeys {
+		
 		
 		// conversion arrays - these are used so the formats make sense
 		// to the controller PC as well as the user
@@ -61,6 +70,11 @@ public final class SupportedFeatures {
 		public static final int[] INTEGER_IMAGE_FORMATS = {
 			ImageFormat.JPEG, ImageFormat.NV21, ImageFormat.NV16, 
 			ImageFormat.RGB_565, ImageFormat.YUY2, ImageFormat.YV12
+		};
+		
+		
+		public static final String[] ROTATIONS = {
+			"0", "90", "180", "270"
 		};
 		
 		// Camera HashMap KEY VALUES -------------------------|
@@ -144,16 +158,14 @@ public final class SupportedFeatures {
 		
 		public static final String EMPTY_AREA = "(0,0,0,0,0)";
 		public static final String EMPTY_SIZE = "(0,0)";
-		
-		public static final String SIZE_DELIMITER = ",";
-		public static final String AREA_DELIMITER = "),(";
 
 	}
 	
 	
-	/**
+	/**********************************************
 	 * Key constants for the microphone sensor
 	 * @author Josh Noel
+	 **********************************************
 	 */
 	public static final class AudioKeys {
 		
@@ -231,25 +243,231 @@ public final class SupportedFeatures {
 	}
 	
 	
-	
+	/*********************************************
+	 * Key constants for the Environment Sensors
+	 * @author Josh Noel
+	 *********************************************
+	 */
 	public static final class EnvironmentKeys {
 		
 		public static final String DURATION = "recording-duration";
-		public static final String UPDATE_SPEED_SUFFIX = "-update-speed";
+		public static final String UPDATE_SPEED = "update-speed";
 		
 		public static final int[] INTEGER_UPDATE_RATES = {
-			SensorManager.SENSOR_DELAY_FASTEST, SensorManager.SENSOR_DELAY_NORMAL
+			SensorManager.SENSOR_DELAY_FASTEST, SensorManager.SENSOR_DELAY_NORMAL,
+			SensorManager.SENSOR_DELAY_GAME, SensorManager.SENSOR_DELAY_UI
 		};
 		
 		public static final String[] STRING_UPDATE_RATES = {
-			
+			"update-fastest", "update-normal", "update-slow", "update-slowest"
 		};
 	}
 	
 	
+	/**************************************
+	 * Key constants for location sensors
+	 * @author Josh Noel
+	 **************************************
+	 */
+	public static final class LocationKeys {
+		
+		public static final String PROXIMITY_ALERT = "proximity-alert";
+		public static final String PROXIMITY_ALERT_LATITUDE = "proximity-alert-latitude";
+		public static final String PROXIMITY_ALERT_LONGITUDE = "proximity-alert-longitude";
+		public static final String PROXIMITY_ALERT_RADIUS = "proximity-alert-radius";
+		public static final String PROXIMITY_ALERT_EXPIRATION = "proximity-alert-expiration";
+		
+		
+	}
 	
+	
+	
+	
+	/******************************************************
+	 * Static mapping of int arrays to string arrays with
+	 * their name referral being the key.<br>
+	 * (Totally stole this idea from Johnathan Pagnutti)<br><br>
+	 * 
+	 * Current available keys to get exhangers with:<br>
+	 * {@link CameraKeys#PICTURE_FORMAT}
+	 * {@link AudioKeys#ENCODING}
+	 * {@link AudioKeys#SOURCE}
+	 * {@link AudioKeys#CHANNEL}
+	 * {@link EnvironmentKeys#UPDATE_SPEED}
+	 * @author Josh Noel
+	 * @see {@link FormatExchanger#getExchanger(String)}
+	 ******************************************************
+	 */
+	public enum FormatExchanger {
+		
+		// ENUM SET
+		
+		// CAMERA SENSOR
+		CM_IMAGE(CameraKeys.PICTURE_FORMAT,
+				CameraKeys.INTEGER_IMAGE_FORMATS,
+				CameraKeys.STRING_IMAGE_FORMATS),
+		
+		// AUDIO SENSOR
+		AU_ENCODING(AudioKeys.ENCODING, 
+				AudioKeys.INTEGER_ENCODINGS,
+				AudioKeys.STRING_ENCODINGS),
+				
+		AU_SOURCE(AudioKeys.SOURCE,
+				AudioKeys.INTEGER_SOURCES,
+				AudioKeys.STRING_SOURCES),
+				
+		AU_CHANNEL(AudioKeys.CHANNEL,
+				AudioKeys.INTEGER_CHANNELS,
+				AudioKeys.STRING_CHANNELS),
+		
+		// ENVIRONMENT SENSORS
+		ENV_UPDATE_SPEED(EnvironmentKeys.UPDATE_SPEED,
+				EnvironmentKeys.INTEGER_UPDATE_RATES,
+				EnvironmentKeys.STRING_UPDATE_RATES);
 
-	// common constants to all supported features
+		
+		   // the map to store all these enums in
+	       private static final HashMap<String, FormatExchanger>
+	       		arrayMappings = new HashMap<String, FormatExchanger>();
+	       
+	       // create map at compile time so it can be statically accessed
+	       static{
+	           for(FormatExchanger fe : EnumSet.allOf(FormatExchanger.class)){
+	        	   arrayMappings.put(fe.getName(), fe);
+	           }
+	       }
+	       
+	       private String key;
+	       private int[] intValues;
+	       private String[] stringValues;
+	       
+	       
+	    /**
+		 * Constructor<br>
+		 * creates a new version of this enum that is gets mapped by its key
+		 * parameter into this enum definition's HashMap of enums.
+		 * 
+		 * The map is used to obtain this enum, and the {@link #get(int)} and
+		 * {@link #get(String)} methods are used to exchange values.
+		 * 
+		 * @param key - the key to map this enum by
+		 * @param intValues - the values defining the given key in integer format
+		 * @param stringValues - the values defining the given key in string format
+		 * @throws IllegalArgumentException if any pair of arrays do not map correctly
+		 */
+	       private FormatExchanger(String key, int[] intValues, String[] stringValues)
+	       													throws IllegalArgumentException {
+	    	   
+	    	   if(intValues.length != stringValues.length){
+	    		   StringBuilder b = new StringBuilder();
+	    		   b.append("ERROR - lengths do not match: ");
+	    		   b.append("key: ");
+	    		   b.append(key);
+	    		   b.append(" int array length: ");
+	    		   b.append(intValues.length);
+	    		   b.append(" string array length: ");
+	    		   b.append(stringValues.length);
+	    		   
+	    		   Log.e(TAG, b.toString());
+	    		   throw new IllegalArgumentException(
+	    		"int array length and string array length must be equal to map values correctly");
+	    	   }
+	    	   
+	    	   this.key = key;
+	    	   this.intValues = intValues;
+	    	   this.stringValues = stringValues;
+
+	       }
+	       
+	       
+	       /**
+	        * Query for the int representation of the given
+	        * string key
+	        * @param key - the string key to echange with its
+	        * int counterpart.
+	        * @return the int representation of the string key
+	        * given if it exists in this enum, or {@link Args#ARG_NONE}
+	        * if the key was not found.
+	        * @see {@link Constants#Args}
+	        */
+	       public int get(String key){
+	    	   int index = getIndex(key);
+	    	   int result = index == Constants.Args.ARG_NONE ? 
+	    			   Constants.Args.ARG_NONE : intValues[index];
+	               return result;
+	       }
+	       
+	       
+	       /**
+	        * Query for the string representation of the
+	        * given int key
+	        * @param key - the int key to echange with
+	        * its string counterpart.
+	        * @return the string representation of the given
+	        * int key if it exists in this enum, or null
+	        * if the key was not found.
+	        */
+	       public String get(int key){
+	    	   int index = getIndex(key);
+	    	   String result = index == Constants.Args.ARG_NONE ? 
+	    			   null : stringValues[index];
+	               return result;
+	       }
+	       
+	       
+	       /**
+	        * Query for this enum's key identifier
+	        * @return this enum's string name that
+	        * was given to it upon creation.
+	        */
+	       public String getName(){
+	    	   return key;
+	       }
+	       
+	       
+	       /**
+	        * Query for an enum echanger that deals with an android
+	        * device's supported features
+	        * @param key - the name of the enum exchanger
+	        * @return the enum found at the specified key, or null
+	        * if the key was not found in the enum mapping.
+	        */
+	       public static FormatExchanger getExchanger(String key){
+	               return arrayMappings.get(key);
+	       }
+	       
+	       
+	       // finding indices from the int array
+	       private int getIndex(int key){
+	    	   int i;
+	    	   for(i = 0; i < intValues.length && intValues[i] != key; i++);
+	    	   if(i >= intValues.length){
+	    		   i = Constants.Args.ARG_NONE;
+	    	   }
+	    	   return i;
+	       }
+	       
+	       
+	       // finding indices from the string array
+	       private int getIndex(String key){
+	    	   int i = Constants.Args.ARG_NONE;
+	    	   if(key != null){
+		    	   for(i = 0; i < stringValues.length 
+		    			   && !stringValues[i].equals(key); i++);
+		    	   if(i >= stringValues.length){
+		    		   i = Constants.Args.ARG_NONE;
+		    	   }
+	    	   }
+	    	   return i;
+	       }
+	       
+	} // end of FormatExchanges enum
+	
+	
+	
+	// *********************************************************************************
+	// |---------------- COMMON CONSTANTS TO ALL SUPPORTED FEATURES -------------------|
+	// *********************************************************************************
 	
 	public static final String KEY_SAVE_TO_SD = "save-to-sd";
 	public static final String KEY_CONTINUE_ON_CONNECTION_LOST = "continue-on-connection-lost";
@@ -366,15 +584,14 @@ public final class SupportedFeatures {
 			if (pictureFormats != null) {
 				ArrayList<String> stringFormats = new ArrayList<String>();
 				Iterator<Integer> iter = pictureFormats.iterator();
+				FormatExchanger e = FormatExchanger.getExchanger(CameraKeys.PICTURE_FORMAT);
 				
 				while(iter.hasNext()){
-					stringFormats.add(exchangeFormat(iter.next().intValue(), 
-							CameraKeys.INTEGER_IMAGE_FORMATS, 
-							CameraKeys.STRING_IMAGE_FORMATS));
+					stringFormats.add(e.get(iter.next().intValue()));
 				}
 				
 				builder.append(encodeCollection(CameraKeys.PICTURE_FORMAT,
-						exchangeImageFormat(params.getPictureFormat()),
+						e.get(params.getPictureFormat()),
 						Constants.DataTypes.STRING, stringFormats));
 			}
 			
@@ -383,13 +600,14 @@ public final class SupportedFeatures {
 			if (previewFormats != null) {
 				ArrayList<String> stringFormats = new ArrayList<String>();
 				Iterator<Integer> iter = previewFormats.iterator();
+				FormatExchanger e = FormatExchanger.getExchanger(CameraKeys.PICTURE_FORMAT);
 				
 				while(iter.hasNext()){
-					stringFormats.add(exchangeImageFormat(iter.next()));
+					stringFormats.add(e.get(iter.next().intValue()));
 				}
 				
 				builder.append(encodeCollection(CameraKeys.PREVIEW_FORMAT,
-						exchangeImageFormat(params.getPreviewFormat()),
+						e.get(params.getPreviewFormat()),
 						Constants.DataTypes.STRING, stringFormats));
 			}
 			
@@ -412,6 +630,8 @@ public final class SupportedFeatures {
 			}
 			
 			
+			// TODO: check parameters object for how it stores areas
+			
 			
 			if(params.isZoomSupported()){
 				List<Integer> zooms = params.getZoomRatios();
@@ -421,41 +641,40 @@ public final class SupportedFeatures {
 			}
 			
 			
-			ArrayList<Integer> rotations = new ArrayList<Integer>(4);
-			rotations.add(0);
-			rotations.add(90);
-			rotations.add(180);
-			rotations.add(270);
 			builder.append(encodeCollection(CameraKeys.ROTATION,
 					params.get(CameraKeys.ROTATION), 
-					Constants.DataTypes.INTEGER, rotations));
+					Constants.DataTypes.INTEGER, CameraKeys.ROTATIONS.length, 
+					encodeStringArray(CameraKeys.ROTATIONS)));
 			
 			
-			// TODO: figure out how to send and set object collections
 			
-//			List<Size> sizes = params.getSupportedPictureSizes();
-//			builder.append(encodeCameraSpecialObject(params, 
-//					CameraKeys.PICTURE_SIZE, sizes.size(), 
-//					CameraKeys.SIZE_DELIMITER));
+			List<Camera.Size> pictureSizes = params.getSupportedPictureSizes();
+			builder.append(encodeCollection(CameraKeys.PICTURE_SIZE,
+					params.get(CameraKeys.PICTURE_SIZE), Constants.DataTypes.STRING,
+					pictureSizes.size(), encodeSizes(pictureSizes)));
 
+			
+			
+			List<Camera.Size> previewSizes = params.getSupportedPreviewSizes();
+			builder.append(encodeCollection(CameraKeys.PREVIEW_SIZE,
+					params.get(CameraKeys.PREVIEW_SIZE), Constants.DataTypes.STRING,
+					previewSizes.size(), encodeSizes(previewSizes)));
 		
 			
-//			List<Size> thumbnail = params.getSupportedJpegThumbnailSizes();
-//			builder.append(encodeCameraSpecialObject(params, 
-//					CameraKeys.JPEG_THUMBNAIL_SIZE, thumbnail.size(),
-//					CameraKeys.SIZE_DELIMITER));
+			
+			List<Camera.Size> thumbnailSizes = params.getSupportedJpegThumbnailSizes();
+			builder.append(encodeCollection(CameraKeys.JPEG_THUMBNAIL_SIZE,
+					params.get(CameraKeys.JPEG_THUMBNAIL_SIZE), Constants.DataTypes.STRING,
+					thumbnailSizes.size(), encodeSizes(thumbnailSizes)));
 
 			
-//			List<int[]> fpsRanges = params.getSupportedPreviewFpsRange();
-//			builder.append(encodeCameraSpecialObject(params, 
-//					CameraKeys.PREVIEW_FPS_RANGE, fpsRanges.size(), 
-//					CameraKeys.AREA_DELIMITER));
-
 			
-//			List<Size> previewSizes = params.getSupportedPreviewSizes();
-//			builder.append(encodeCameraSpecialObject(params, 
-//					CameraKeys.PREVIEW_SIZE, previewSizes.size(), 
-//					CameraKeys.SIZE_DELIMITER));
+			List<int[]> fpsRanges = params.getSupportedPreviewFpsRange();
+			builder.append(encodeCollection(CameraKeys.PREVIEW_FPS_RANGE,
+					params.get(CameraKeys.PREVIEW_FPS_RANGE), Constants.DataTypes.STRING,
+					fpsRanges.size(), encodeFpsRanges(fpsRanges)));
+			
+
 			
 			
 			// ***********************************|
@@ -485,34 +704,42 @@ public final class SupportedFeatures {
 					String.valueOf(params.getFocalLength()),
 					Constants.DataTypes.DOUBLE));
 			
+			
 			builder.append(encodeSingle(CameraKeys.HORIZONTAL_VIEW_ANGLE,
 					String.valueOf(params.getHorizontalViewAngle()),
 					Constants.DataTypes.DOUBLE));
+			
 			
 			builder.append(encodeSingle(CameraKeys.VERTICAL_VIEW_ANGLE,
 					String.valueOf(params.getVerticalViewAngle()),
 					Constants.DataTypes.DOUBLE));
 			
+			
 			builder.append(encodeSingle(CameraKeys.EXPOSURE_COMPENSATION_STEP,
 					String.valueOf(params.getExposureCompensationStep()),
 					Constants.DataTypes.DOUBLE));
+			
 			
 			builder.append(encodeSingle(CameraKeys.PREFERRED_PREVIEW_SIZE_FOR_VIDEO,
 					String.valueOf(params.getPreferredPreviewSizeForVideo()),
 					Constants.DataTypes.STRING));
 			
+			
 			builder.append(encodeSingle(CameraKeys.FOCUS_DISTANCES,
 					params.get(CameraKeys.FOCUS_DISTANCES), Constants.DataTypes.STRING));
+			
 			
 			if(params.getMaxNumMeteringAreas() > 0){
 				builder.append(encodeSingle(CameraKeys.METERING_AREAS, 
 						params.get(CameraKeys.METERING_AREAS), Constants.DataTypes.STRING));
 			}
 			
+			
 			if(params.getMaxNumFocusAreas() > 0){
 				builder.append(encodeSingle(CameraKeys.FOCUS_AREAS, 
 						params.get(CameraKeys.FOCUS_AREAS), Constants.DataTypes.STRING));
 			}
+			
 			
 			
 			// ******************************************|
@@ -521,21 +748,32 @@ public final class SupportedFeatures {
 			
 			
 			builder.append(encodeSingle(CameraKeys.GPS_ALTITUDE, 
-					params.get(CameraKeys.GPS_ALTITUDE), Constants.DataTypes.DOUBLE));
+					params.get(CameraKeys.GPS_ALTITUDE), Constants.DataTypes.ANY,
+					Constants.DataTypes.DOUBLE));
+			
 			
 			builder.append(encodeSingle(CameraKeys.GPS_LATITUDE, 
-					params.get(CameraKeys.GPS_LATITUDE), Constants.DataTypes.DOUBLE));
+					params.get(CameraKeys.GPS_LATITUDE), Constants.DataTypes.ANY,
+					Constants.DataTypes.DOUBLE));
+			
 			
 			builder.append(encodeSingle(CameraKeys.GPS_LONGITUDE, 
-					params.get(CameraKeys.GPS_LONGITUDE), Constants.DataTypes.DOUBLE));
+					params.get(CameraKeys.GPS_LONGITUDE), Constants.DataTypes.ANY,
+					Constants.DataTypes.DOUBLE));
+			
 			
 			builder.append(encodeSingle(CameraKeys.GPS_PROCESSING_METHOD, 
-					params.get(CameraKeys.GPS_ALTITUDE), Constants.DataTypes.STRING));
+					params.get(CameraKeys.GPS_ALTITUDE), Constants.DataTypes.ANY,
+					Constants.DataTypes.STRING));
+			
 			
 			builder.append(encodeSingle(CameraKeys.GPS_TIMESTAMP, 
-					params.get(CameraKeys.GPS_TIMESTAMP), Constants.DataTypes.INTEGER));
+					params.get(CameraKeys.GPS_TIMESTAMP), Constants.DataTypes.ANY,
+					Constants.DataTypes.INTEGER));
+			
 			
 			builder.append(sdOptions());
+			
 			
 			result = builder.toString().getBytes();
 			
@@ -606,13 +844,55 @@ public final class SupportedFeatures {
 			StringBuilder builder = new StringBuilder();
 			List<Sensor> sensors = manager.getSensorList(Sensor.TYPE_ALL);
 			
-			for(int i = 0; i < sensors.size(); i++){
-				builder.append(encodeCollection(sensors.get(i).getName(), 
-						Constants.Args.ARG_STRING_NONE, Constants.DataTypes.STRING,
-						EnvironmentKeys.STRING_UPDATE_RATES.length,
-						encodeStringArray(EnvironmentKeys.STRING_UPDATE_RATES)));
+			if(sensors != null){
+				for(int i = 0; i < sensors.size(); i++){
+					builder.append(encodeCollection(sensors.get(i).getName(), 
+							Constants.Args.ARG_STRING_NONE, Constants.DataTypes.STRING,
+							EnvironmentKeys.STRING_UPDATE_RATES.length,
+							encodeStringArray(EnvironmentKeys.STRING_UPDATE_RATES)));
+				}
+				
+				
+				result = builder.toString().getBytes();
+			}
+		}
+		
+		return result;
+	}
+	
+	
+	
+	
+	/**
+	 * Query for the supported features found in the given {@link LocationManager}
+	 * @param manager - the manager to obtain supported features information from
+	 * @return a listing of all LocationProviders (and their properties) that
+	 * can be obtained from the given LocationManager.
+	 * 
+	 * TODO: finish this
+	 */
+	public static byte[] getLocationSupportedFeatures(LocationManager manager){
+		byte[] result = null;
+		
+		if(manager != null){
+			
+			StringBuilder builder = new StringBuilder();
+			
+			
+			List<String> providers = manager.getAllProviders();
+			
+			Iterator<String> iter = providers.iterator();
+			
+			while(iter.hasNext()){
+				LocationProvider p = manager.getProvider(iter.next());
+				p.getAccuracy();
+				p.getName();
+				p.getPowerRequirement();
+				p.hasMonetaryCost();
 			}
 			
+			
+			builder.append(sdOptions());
 			
 			result = builder.toString().getBytes();
 		}
@@ -620,9 +900,8 @@ public final class SupportedFeatures {
 		return result;
 	}
 	
-	// TODO: add location manager thing here
 	
-	// TODO: add other supported feature calls here
+	
 	
 	//|********************************************************************|
 	//|********************************************************************|
@@ -649,11 +928,29 @@ public final class SupportedFeatures {
 	
 	
 	/**
+	 * Convenience method, see {@link #encodeSingle(String, String, int, int)}
+	 * for details.
+	 * @param name - the name that the controller should use when referencing
+	 * this set of 1.
+	 * @param value - the value that this set of 1 is currently set to.
+	 * dataType - the data type that this set of 1 expects back from
+	 * the controller.
+	 * @return a string encoded representation of a set of size 1 with the
+	 * following parameters that follows the SupportedFeatures ordering rules.
+	 */
+	public static String encodeSingle(String name, String value, int dataType){
+		return encodeSingle(name, value, Constants.DataTypes.SET, dataType);
+	}
+	
+	
+	
+	/**
 	 * Constructs the given parameters into a set of size 1, which follows the
 	 * general ordering defined for this class.
 	 * @param name - the name that the controller should use when referencing
 	 * this set of 1.
 	 * @param value - the value that this set of 1 is currently set to.
+	 * @param limiter - the limiting type of this collection
 	 * @param dataType - the data type that this set of 1 expects back from
 	 * the controller.
 	 * @return a string encoded representation of a set of size 1 with the
@@ -661,7 +958,7 @@ public final class SupportedFeatures {
 	 * @see {@link SupportedFeatures}
 	 * @see {@link Constants#DataTypes}
 	 */
-	public static String encodeSingle(String name, String value, int dataType){
+	public static String encodeSingle(String name, String value, int limiter, int dataType){
 		StringBuilder builder = new StringBuilder();
 		
 		builder.append(name);
@@ -866,195 +1163,72 @@ public final class SupportedFeatures {
 	
 	
 	
-	//|-------------------- EXCHANGE HELPER METHODS -----------------------------|
-	
-	
-	
-	public static int exchangeUpdateRate(String updateRate){
-		return exchangeFormat(updateRate, EnvironmentKeys.STRING_UPDATE_RATES,
-				EnvironmentKeys.INTEGER_UPDATE_RATES);
-	}
-	
-	
-	public static String exchangeUpdateRate(int updateRate){
-		return exchangeFormat(updateRate, EnvironmentKeys.INTEGER_UPDATE_RATES,
-				EnvironmentKeys.STRING_UPDATE_RATES);
-	}
-	
-	
-	// AUDIO CHANNEL SWITCHES
-	
 	/**
-	 * Exchange a value from {@link AudioKeys#STRING_CHANNELS} with a value
-	 * from {@link AudioKeys#INTEGER_CHANNELS}
-	 * @param format - the string value to look for in {@link AudioKeys#STRING_CHANNELS}
-	 * @return the integer value of the given string, if the string exists in
-	 * {@link AudioKeys#STRING_CHANNELS}. If it is not in that string array,
-	 * {@link Args#ARG_STRING_NONE} is returned.
+	 * Exchanges a string value for its integer representation from a specified
+	 * map.<br>
+	 * This is a convenience method that is short-hand for getting a
+	 * {@link FormatExchanger} via {@link FormatExchanger#getExchanger(String)}
+	 * and then calling {@link FormatExchanger#get(String)} on the
+	 * FormatExchanger obtained.
+	 * 
+	 * @param mapKey - the mapkey to use in {@link FormatExchanger#getExchanger(String)}
+	 * @param value - the value to get an int version of by calling 
+	 * 		  {@link FormatExchanger#get(String)}
+	 * @return the int representation of the string value given from the map
+	 *         given, assuming the map contains the string value. If either
+	 *         argument is null or the given map does not contain the given
+	 *         value, this returns {@link ARG_NONE}.
+	 * @see {@link FormatExchanger}
 	 * @see {@link Constants#Args}
+	 * @see Sorcery
 	 */
-	public static int exchangeAudioChannel(String format){
-		return exchangeFormat(format, AudioKeys.STRING_CHANNELS, AudioKeys.INTEGER_CHANNELS);
-	}
-	
-	
-	/**
-	 * Exchange a value from {@link AudioKeys#INTEGER_CHANNELS} with a value
-	 * from {@link AudioKeys#STRING_CHANNELS}
-	 * @param format - the string value to look for in {@link AudioKeys#INTEGER_CHANNELS}
-	 * @return the integer value of the given string, if the string exists in
-	 * {@link AudioKeys#INTEGER_CHANNELS}. If it is not in that string array,
-	 * {@link Args#ARG_NONE} is returned.
-	 * @see {@link Constants#Args}
-	 */
-	public static String exchangeAudioChannel(int format){
-		return exchangeFormat(format, AudioKeys.INTEGER_CHANNELS, AudioKeys.STRING_CHANNELS);
-	}
-	
-	
-	// AUDIO SOURCE SWITCHES
-	
-	/**
-	 * Exchange a value from {@link AudioKeys#STRING_SOURCES} with a value
-	 * from {@link AudioKeys#INTEGER_SOURCES}
-	 * @param format - the string value to look for in {@link AudioKeys#STRING_SOURCES}
-	 * @return the integer value of the given string, if the string exists in
-	 * {@link AudioKeys#STRING_SOURCES}. If it is not in that string array,
-	 * {@link Args#ARG_STRING_NONE} is returned.
-	 * @see {@link Constants#Args}
-	 */
-	public static int exchangeAudioSourceFormat(String format){
-		return exchangeFormat(format, AudioKeys.STRING_SOURCES, AudioKeys.INTEGER_SOURCES);
-	}
-	
-	
-	/**
-	 * Exchange a value from {@link AudioKeys#INTEGER_SOURCES} with a value
-	 * from {@link AudioKeys#STRING_SOURCES}
-	 * @param format - the string value to look for in {@link AudioKeys#INTEGER_SOURCES}
-	 * @return the integer value of the given string, if the string exists in
-	 * {@link AudioKeys#INTEGER_SOURCES}. If it is not in that string array,
-	 * {@link Args#ARG_NONE} is returned.
-	 * @see {@link Constants#Args}
-	 */
-	public static String exchangeAudioSourceFormat(int format){
-		return exchangeFormat(format, AudioKeys.INTEGER_SOURCES, AudioKeys.STRING_SOURCES);
-	}
-	
-	
-	// AUDIO ENCODING SWITCHES
-	
-	/**
-	 * Exchange a value from {@link AudioKeys#STRING_ENCODINGS} with a value
-	 * from {@link AudioKeys#INTEGER_ENCODINGS}
-	 * @param encoding - the string value to look for in {@link AudioKeys#STRING_ENCODINGS}
-	 * @return the integer value of the given string, if the string exists in
-	 * {@link AudioKeys#STRING_ENCODINGS}. If it is not in that string array,
-	 * {@link Args#ARG_STRING_NONE} is returned.
-	 * @see {@link Constants#Args}
-	 */
-	public static int exchangeAudioEncodingFormat(String encoding){
-		return exchangeFormat(encoding, AudioKeys.STRING_ENCODINGS, AudioKeys.INTEGER_ENCODINGS);
-	}
-	
-	
-	/**
-	 * Exchange a value from {@link AudioKeys#INTEGER_ENCODINGS} with a value
-	 * from {@link AudioKeys#STRING_ENCODINGS}
-	 * @param encoding - the string value to look for in {@link AudioKeys#INTEGER_ENCODINGS}
-	 * @return the integer value of the given string, if the string exists in
-	 * {@link AudioKeys#INTEGER_ENCODINGS}. If it is not in that string array,
-	 * {@link Args#ARG_NONE} is returned.
-	 * @see {@link Constants#Args}
-	 */
-	public static String exchangeAudioEncodingFormat(int encoding){
-		return exchangeFormat(encoding, AudioKeys.INTEGER_ENCODINGS, AudioKeys.STRING_ENCODINGS);
-	}
-	
-	
-	// IMAGE FORMAT SWITCHES
-	
-	/**
-	 * Exchange a value from {@link AudioKeys#STRING_IMAGE_FORMATS} with a value
-	 * from {@link AudioKeys#INTEGER_IMAGE_FORMATS}
-	 * @param format - the string value to look for in {@link AudioKeys#STRING_IMAGE_FORMATS}
-	 * @return the integer value of the given string, if the string exists in
-	 * {@link AudioKeys#STRING_IMAGE_FORMATS}. If it is not in that string array,
-	 * {@link Args#ARG_STRING_NONE} is returned.
-	 * @see {@link Constants#Args}
-	 */
-	public static int exhangeImageFormat(String format){
-		return exchangeFormat(format, CameraKeys.STRING_IMAGE_FORMATS, CameraKeys.INTEGER_IMAGE_FORMATS);
-	}
-	
-	
-	/**
-	 * Exchange a value from {@link AudioKeys#INTEGER_IMAGE_FORMATS} with a value
-	 * from {@link AudioKeys#STRING_IMAGE_FORMATS}
-	 * @param format - the string value to look for in {@link AudioKeys#INTEGER_IMAGE_FORMATS}
-	 * @return the integer value of the given string, if the string exists in
-	 * {@link AudioKeys#INTEGER_IMAGE_FORMATS}. If it is not in that string array,
-	 * {@link Args#ARG_NONE} is returned.
-	 * @see {@link Constants#Args}
-	 */
-	public static String exchangeImageFormat(int format){
-		return exchangeFormat(format, CameraKeys.INTEGER_IMAGE_FORMATS, CameraKeys.STRING_IMAGE_FORMATS);
-	}
-	
-	
-	
-	/**
-	 * Finds the integer representation of the string image format given
-	 * @param format - the format to get an integer representation of
-	 * @param stringFormats - the string representation of the intFormats
-	 * @param intFormats - the int array to search for the given format in.
-	 * Once the index of the string format is found in the string array,
-	 * it can be directly mapped to the int array
-	 * @return the integer representation of the given string format,
-	 * or {@link ARG_NONE} if the format was not found.
-	 * @see {@link ImageFormat}
-	 * @see {@link Constants#Args}
-	 */
-	private static int exchangeFormat(String format, String[] stringFormats, int[] intFormats){
+	public static int exchange(String mapKey, String value){
 		int result = Constants.Args.ARG_NONE;
-		if (stringFormats != null && intFormats != null
-				&& stringFormats.length == intFormats.length) {
-			for (int i = 0; i < stringFormats.length; i++) {
-				if (stringFormats[i].equals(format)) {
-					result = intFormats[i];
-					break;
-				}
-			}
-		}
+		if(mapKey != null && value != null){
+			FormatExchanger e = FormatExchanger.getExchanger(mapKey);
+			if(e != null){
+				result = e.get(value);
+			} 
+		} 
 		return result;
 	}
 	
 	
 	
 	/**
-	 * Finds the string representation of the int image format given
-	 * @param format - the format to get a string representation of
-	 * @param intFormats - the int array to search for the given format in
-	 * @param stringFormats - the string representation of the intFormats. Once
-	 * the index of the int format is found in the int array, it can be directly
-	 * mapped to the string array
-	 * @return the string representation of the given int format,
-	 * or {@link ARG_STRING_NONE} if the format was not found.
-	 * @see {@link ImageFormat}
-	 * @see {@link Constants#Args}
+	 * Helper method for camera parameters.
+	 * @param sizes - the sizes to encode
+	 * @return the encoded string representation of the
+	 * given list of sizes.
 	 */
-	private static String exchangeFormat(int format, int[] intFormats, String[] stringFormats){
-		String result = Constants.Args.ARG_STRING_NONE;
-		if (stringFormats != null && intFormats != null
-				&& stringFormats.length == intFormats.length) {
-			for (int i = 0; i < intFormats.length; i++) {
-				if (intFormats[i] == format) {
-					result = stringFormats[i];
-					break;
-				}
-			}
+	private static String encodeSizes(List<Camera.Size> sizes){
+		StringBuilder builder = new StringBuilder();
+		for(Camera.Size s : sizes){
+			builder.append(s.width);
+			builder.append('x');
+			builder.append(s.height);
+			builder.append(Constants.Delimiters.PACKET_DELIMITER);
 		}
-		return result;
+		return builder.toString();
 	}
-
+	
+	
+	/**
+	 * Helper method for camera parameters.
+	 * @param ranges - the ranges to encode
+	 * @return a string encoded representation of the given
+	 * list of FPS ranges.
+	 */
+	private static String encodeFpsRanges(List<int[]> ranges){
+		StringBuilder builder = new StringBuilder();
+		for(int[] range : ranges){
+			builder.append(range[0]);
+			builder.append(',');
+			builder.append(range[1]);
+			builder.append(Constants.Delimiters.PACKET_DELIMITER);
+		}
+		return builder.toString();
+	}
+	
+	
 }

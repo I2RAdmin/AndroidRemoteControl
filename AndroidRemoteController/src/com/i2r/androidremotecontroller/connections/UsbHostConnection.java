@@ -1,6 +1,6 @@
-package com.i2r.ARC.Connections;
+package com.i2r.androidremotecontroller.connections;
 
-import com.i2r.ARC.Main.RemoteControlActivity;
+import com.i2r.androidremotecontroller.main.RemoteControlActivity;
 
 import android.content.Context;
 import android.content.Intent;

@@ -1,4 +1,4 @@
-package com.i2r.ARC.Sensors;
+package com.i2r.androidremotecontroller.sensors;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -11,9 +11,9 @@ import android.hardware.Camera.PictureCallback;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
-import com.i2r.ARC.Main.ResponsePacket;
-import com.i2r.ARC.Main.SupportedFeatures;
-import com.i2r.ARC.Main.SupportedFeatures.CameraKeys;
+import com.i2r.androidremotecontroller.main.ResponsePacket;
+import com.i2r.androidremotecontroller.main.SupportedFeatures;
+import com.i2r.androidremotecontroller.main.SupportedFeatures.CameraKeys;
 
 /**
  * This class models a camera sensor that responds to commands
@@ -94,18 +94,21 @@ public class CameraSensor extends GenericDeviceSensor {
 		
 		setTaskID(taskID);
 		
-		modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, 
-				params[Constants.Args.AMOUNT_INDEX]);
-		
-		updateSensorProperties();
-		
-		getDuration(Constants.Args.FREQUENCY_INDEX)
-			.setMax(params[Constants.Args.FREQUENCY_INDEX]).start();
-		
-		getDuration(Constants.Args.DURATION_INDEX)
-			.setMax(params[Constants.Args.DURATION_INDEX]).start();
-		
-		capture();
+		if(params != null){
+			modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, 
+					params[Constants.Args.AMOUNT_INDEX]);
+			
+			getDuration(Constants.Args.FREQUENCY_INDEX)
+				.setMax(params[Constants.Args.FREQUENCY_INDEX]).start();
+			
+			getDuration(Constants.Args.DURATION_INDEX)
+				.setMax(params[Constants.Args.DURATION_INDEX]).start();
+			
+			capture();
+		} else {
+			sendTaskErroredOut("invalid parameters for camera");
+			killTask();
+		}
 	}
 
 	
@@ -122,12 +125,20 @@ public class CameraSensor extends GenericDeviceSensor {
 	
 	
 	@Override
-	public void updateSensorProperties(){
+	public void updateSensorProperties(int taskID){
 		
-		String sTemp = getProperty(CameraKeys.PICTURE_FORMAT);
-		if(sTemp != null){
-			int iTemp = SupportedFeatures.exhangeImageFormat(sTemp);
-			modify(CameraKeys.PICTURE_FORMAT, iTemp);
+		int result = SupportedFeatures.exchange(
+				CameraKeys.PICTURE_FORMAT, getProperty(CameraKeys.PICTURE_FORMAT));
+		
+		if(result != Constants.Args.ARG_NONE){
+			modify(CameraKeys.PICTURE_FORMAT, result);
+		}
+		
+		result = SupportedFeatures.exchange(
+				CameraKeys.PREVIEW_FORMAT, getProperty(CameraKeys.PREVIEW_FORMAT));
+		
+		if(result != Constants.Args.ARG_NONE){
+			modify(CameraKeys.PREVIEW_FORMAT, result);
 		}
 		
 		if(camera != null){
@@ -142,7 +153,14 @@ public class CameraSensor extends GenericDeviceSensor {
 				params.set(next.getKey(), next.getValue());
 			}
 			
-			camera.setParameters(params);
+			try{
+				camera.setParameters(params);
+			} catch (RuntimeException e){
+				ResponsePacket.getNotificationPacket(
+						taskID, Constants.Notifications.TASK_ERRORED_OUT,
+						e.getMessage()).send(getConnection());
+			}
+			
 			
 			if(started){
 				camera.startPreview();
@@ -154,8 +172,6 @@ public class CameraSensor extends GenericDeviceSensor {
 	}
 
 
-
-	
 	
 	//******************************|
 	// QUIRIES FOR CAPTURING -------|
@@ -195,7 +211,8 @@ public class CameraSensor extends GenericDeviceSensor {
 	 * of time passed is less than the set frequency, returns false.
 	 */
 	private boolean validFrequency(){
-		return getDuration(Constants.Args.FREQUENCY_INDEX).maxReached();
+		return !getDuration(Constants.Args.FREQUENCY_INDEX).hasMax() ||
+				getDuration(Constants.Args.FREQUENCY_INDEX).maxReached();
 	}
 	
 	
@@ -208,10 +225,11 @@ public class CameraSensor extends GenericDeviceSensor {
 	 * the duration was not set by the controller.
 	 * If the duration was set and the current time
 	 * passed is greater than the set duration,
-	 * returns false. 
+	 * returns false.
 	 */
 	private boolean validDuration(){
-		return !getDuration(Constants.Args.DURATION_INDEX).maxReached();
+		return !getDuration(Constants.Args.DURATION_INDEX).hasMax() 
+				|| !getDuration(Constants.Args.DURATION_INDEX).maxReached();
 	}
 	
 	

@@ -1,6 +1,5 @@
-package com.i2r.ARC.Connections;
+package com.i2r.androidremotecontroller.connections;
 
-import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
@@ -17,9 +16,12 @@ import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
+import android.os.ParcelFileDescriptor;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.i2r.ARC.Exceptions.ServiceNotFoundException;
+import com.i2r.androidremotecontroller.main.RemoteControlActivity;
+
 
 /**
  * This class models a {@link Link} implementation with USB connections.
@@ -34,11 +36,11 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	private static final String USB_DEVICE_REQUEST = "i2r_usb_device_request";
 	private static final String USB_ACCESSORY_REQUEST = "i2r_usb_accessory_request";
 	
-	private static final int IN_ENDPOINT = 0;
-	private static final int OUT_ENDPOINT = 1;
-	
 	private Context context;
+	private LocalBroadcastManager broadcastManager;
 	private UsbManager usbManager;
+	private UsbAccessory accessory;
+	private UsbDevice device;
 	private IntentFilter usbFilter;
 	private boolean isServer, listeningForConnection;
 	private int[] endpointAddresses, interfaceIds;
@@ -49,16 +51,11 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * device when an instance of this class is created.<br>
 	 * Currently used by this application.
 	 * @param context - the context in which this link was created.
-	 * @throws ServiceNotFoundException if no connected USB device is detected
 	 */
-	public UsbLink(Context context) throws ServiceNotFoundException {
+	public UsbLink(Context context) {
 		
 		this.usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-		
-		if(usbManager.getAccessoryList() == null && usbManager.getDeviceList().isEmpty()){
-			throw new ServiceNotFoundException("no usb device detected");
-		}
-		
+		this.broadcastManager = LocalBroadcastManager.getInstance(context);
 		this.isServer = true;
 		this.endpointAddresses = null;
 		this.interfaceIds = null;
@@ -66,6 +63,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		this.usbFilter = new IntentFilter();
 		usbFilter.addAction(UsbManager.ACTION_USB_ACCESSORY_ATTACHED);
 		usbFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+		usbFilter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+		usbFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
 		usbFilter.addAction(USB_DEVICE_REQUEST);
 		usbFilter.addAction(USB_ACCESSORY_REQUEST);
 		context.registerReceiver(this, usbFilter);
@@ -100,6 +99,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		this.usbFilter = new IntentFilter();
 		usbFilter.addAction(UsbManager.ACTION_USB_ACCESSORY_ATTACHED);
 		usbFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+		usbFilter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+		usbFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
 		usbFilter.addAction(USB_DEVICE_REQUEST);
 		usbFilter.addAction(USB_ACCESSORY_REQUEST);
 		context.registerReceiver(this, usbFilter);
@@ -116,37 +117,57 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	@Override
 	public RemoteConnection listenForRemoteConnection() {
 		RemoteConnection connection = null;
-		if(usbManager.getAccessoryList() != null){
-			UsbAccessory[] accessories = usbManager.getAccessoryList();
-			UsbAccessory accessory = null;
-			
-			for(int i = 0; i < accessories.length; i++){
-				if(isCorrectAccessory(accessories[i])){
-					accessory = accessories[i];
-					break;
-				}
-			}
-		
+		if(accessory != null){
 
-			if(accessory != null && usbManager.hasPermission(accessory)){
-				
-				FileDescriptor descriptor = usbManager.openAccessory(accessory).getFileDescriptor();
-				FileInputStream input = new FileInputStream(descriptor);
-				FileOutputStream output = new FileOutputStream(descriptor);
-				
-				connection = new GenericRemoteConnection(context, input, output);
+			if(usbManager.hasPermission(accessory)){
+				connection = getConnectionFromAccessory(accessory);
 				
 			} else {
-				
-				usbManager.requestPermission(accessory,
-						PendingIntent.getBroadcast(context, 0,
-								new Intent(USB_ACCESSORY_REQUEST), 0));
-				
+				PendingIntent intent = PendingIntent.getBroadcast(context, 0,
+						new Intent(USB_ACCESSORY_REQUEST), 0);
+				usbManager.requestPermission(accessory, intent);
+			}
+			
+		} else {
+			Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
+			intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE,
+					"no USB device detected, please connect a USB device...");
+			broadcastManager.sendBroadcast(intent);
+			
+			while(accessory == null){
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
+		
 		return connection;
 	}
 
+	
+	/**
+	 * Helper method to listen for PC connection via usb 
+	 * @param accessory - the accessory to open a connection with
+	 * @return a {@link RemoteConnection} with input and output streams
+	 * that were obtained from the given accessory, or null if no connection
+	 * with the given accessory could be created.
+	 */
+	private RemoteConnection getConnectionFromAccessory(UsbAccessory accessory){
+		RemoteConnection connection = null;
+		ParcelFileDescriptor d = usbManager.openAccessory(accessory);
+		
+		if(d != null){
+			Log.d(TAG, "creating streams from accessory descriptor");
+			FileInputStream input = new FileInputStream(d.getFileDescriptor());
+			FileOutputStream output = new FileOutputStream(d.getFileDescriptor());
+			connection = new GenericRemoteConnection(context, input, output);
+		} else {
+			Log.e(TAG, "error opening file descriptor");
+		}
+		return connection;
+	}
 
 	
 	/**
@@ -167,7 +188,7 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 				UsbEndpoint[] points = getEndpoints(interfaces, endpointAddresses);
 				UsbDeviceConnection usbConnection = usbManager.openDevice(remote);
 				connection = new UsbHostConnection(context, interfaces[0], 
-						usbConnection, points[IN_ENDPOINT], points[OUT_ENDPOINT]);
+						usbConnection, points[0], points[0]);
 				
 			} else {
 				usbManager.requestPermission(remote, 
@@ -203,8 +224,6 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 			Log.d(TAG, "canceling UsbLink services");
 			context.unregisterReceiver(this);
 			listeningForConnection = false;
-		} else {
-			Log.e(TAG, "UsbLink is already listening for usb connections");
 		}
 	}
 	
@@ -240,7 +259,7 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * @return true if this device holds true for
 	 * all the required parameters, false otherwise
 	 */
-	private boolean isCorrectDevice(UsbDevice device){
+	public boolean isCorrectDevice(UsbDevice device){
 		// TODO: add device inquiry here
 		return true;
 	}
@@ -253,7 +272,7 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * @return true if the accessory holds true for
 	 * all the reuqired parameters, false otherwise
 	 */
-	private boolean isCorrectAccessory(UsbAccessory accessory){
+	public boolean isCorrectAccessory(UsbAccessory accessory){
 		// TODO: add accessory inquiry here
 		return true;
 	}
@@ -266,10 +285,23 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		String action = intent.getAction();
 		
 		if(action.equals(UsbManager.ACTION_USB_ACCESSORY_ATTACHED)){
-			listenForRemoteConnection();
+			
+			Log.d(TAG, "accessory attatched");
+			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
+			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "accessory attached");
+			broadcastManager.sendBroadcast(ui);
+			
+			this.accessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
 			
 		} else if(action.equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)){
-			UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+			
+			Log.d(TAG, "device attached");
+			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
+			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "device attached");
+			broadcastManager.sendBroadcast(ui);
+			
+			device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+			
 			if(device != null){
 				if(intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)){
 					connectTo(device);
@@ -280,9 +312,22 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 				Log.d(TAG, "received USB device is null, no action performed");
 			}
 			
-		}  else if(action.equals(USB_DEVICE_REQUEST)){
+		} else if(action.equals(UsbManager.ACTION_USB_ACCESSORY_DETACHED)){
+		
+			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
+			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "accessory detached");
+			broadcastManager.sendBroadcast(ui);
+		
+		} else if(action.equals(UsbManager.ACTION_USB_DEVICE_DETACHED)) {
+			
+			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
+			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "device detached");
+			broadcastManager.sendBroadcast(ui);
+		
+		} else if(action.equals(USB_DEVICE_REQUEST)){
 			
 			boolean success = intent.getBooleanExtra (UsbManager.EXTRA_PERMISSION_GRANTED, false);
+			Log.d(TAG, "custom request received. result: " + Boolean.toString(success));
 			
 			if(success){
 				// TODO: do things with accessory

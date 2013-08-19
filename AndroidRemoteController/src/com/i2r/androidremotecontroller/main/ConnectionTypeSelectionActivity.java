@@ -1,13 +1,10 @@
-package com.i2r.ARC.Main;
-
-import com.i2r.androidremotecontroller.R;
+package com.i2r.androidremotecontroller.main;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -18,10 +15,12 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.i2r.androidremotecontroller.R;
 
-/**************************************************
- * ---- MAIN ENTRY POINT OF THIS APPLICATION -----
- **************************************************
+
+/*********************************************************
+ * -------- MAIN ENTRY POINT OF THIS APPLICATION ---------
+ *********************************************************
  * This class models an activity where the user can
  * select what type of connection they would like to
  * use (i.e., bluetooth, usb, wifi, etc) to communicate
@@ -31,6 +30,7 @@ import android.widget.Toast;
  * the {@link RemoteControlActivity} class.
  * 
  * @author Josh Noel
+ *********************************************************
  */
 public class ConnectionTypeSelectionActivity extends Activity implements DialogInterface.OnClickListener {
 	
@@ -110,7 +110,10 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 					  ensureSelection(CONNECTION_TYPES[position - 1]);
 				  }
 			  }
-			}); 
+			});
+		
+		
+
 		
 	}
 	
@@ -248,9 +251,7 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 					BluetoothAdapter.ACTION_REQUEST_ENABLE),BLUETOOTH_CODE);
 			
 		} else {
-			
 			inform("no bluetooth found on this device");
-			finish();
 		}
 	}
 	
@@ -262,19 +263,10 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	 * control with this connection type.
 	 */
 	private void setupUsb(){
-		UsbManager manager = (UsbManager) getSystemService(USB_SERVICE);
-		if(manager.getAccessoryList() != null || !manager.getDeviceList().isEmpty()){
-			
-			Log.d(TAG, "usb connected, starting remote control");
-	        Intent intent = new Intent(this, RemoteControlActivity.class);
-	        intent.putExtra(EXTRA_CONNECTION_TYPE, EXTRA_USB);
-	        startActivity(intent);
-			
-		} else {
-			Log.d(TAG, "no usb detected, resetting selection list");
-			inform("No USB detected, please connect to a PC with the PC-client" + 
-			"software for this application via USB to use this mode.");
-		}
+		Log.d(TAG, "usb connected, starting remote control");
+	    Intent intent = new Intent(this, RemoteControlActivity.class);
+	    intent.putExtra(EXTRA_CONNECTION_TYPE, EXTRA_USB);
+	    startActivity(intent);
 	}
 	
 	

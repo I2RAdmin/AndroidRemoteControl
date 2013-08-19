@@ -1,4 +1,4 @@
-package com.i2r.ARC.Connections;
+package com.i2r.androidremotecontroller.connections;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -18,7 +18,7 @@ import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 
-import com.i2r.ARC.Exceptions.ServiceNotFoundException;
+import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 
 /**
  * This class models a {@link Link} implementation using WifiDirect.

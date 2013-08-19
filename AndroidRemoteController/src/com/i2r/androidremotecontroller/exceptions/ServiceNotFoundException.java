@@ -1,4 +1,4 @@
-package com.i2r.ARC.Exceptions;
+package com.i2r.androidremotecontroller.exceptions;
 
 
 /**

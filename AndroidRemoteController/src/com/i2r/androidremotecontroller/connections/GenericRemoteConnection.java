@@ -1,4 +1,4 @@
-package com.i2r.ARC.Connections;
+package com.i2r.androidremotecontroller.connections;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,7 +9,7 @@ import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.i2r.ARC.Main.RemoteControlActivity;
+import com.i2r.androidremotecontroller.main.RemoteControlActivity;
 
 /**
  * This class models a generic connection with a controller device.

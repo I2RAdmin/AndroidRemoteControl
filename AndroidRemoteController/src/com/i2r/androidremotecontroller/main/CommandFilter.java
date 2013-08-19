@@ -1,4 +1,4 @@
-package com.i2r.ARC.Main;
+package com.i2r.androidremotecontroller.main;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -13,11 +13,11 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.SurfaceHolder;
 
-import com.i2r.ARC.Connections.RemoteConnection;
-import com.i2r.ARC.Sensors.CameraSensor;
-import com.i2r.ARC.Sensors.EnvironmentSensorPool;
-import com.i2r.ARC.Sensors.GenericDeviceSensor;
-import com.i2r.ARC.Sensors.MicrophoneSensor;
+import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.sensors.CameraSensor;
+import com.i2r.androidremotecontroller.sensors.EnvironmentSensorPool;
+import com.i2r.androidremotecontroller.sensors.GenericDeviceSensor;
+import com.i2r.androidremotecontroller.sensors.MicrophoneSensor;
 
 
 /**
@@ -81,7 +81,7 @@ public class CommandFilter {
 	 * @see {@link CommandPacket#isCompleteCommand()}
 	 * @see {@link CommandPacket#isCompleteCommand()}
 	 */
-	public void parseCommand(String buffer){
+	public void parseCommand(final String buffer){
 		
 		// get a new CommandPacket object from the string read by a RemoteConnection
 		CommandPacket[] packets = CommandPacket.parsePackets(buffer);
@@ -125,6 +125,7 @@ public class CommandFilter {
 			Log.d(TAG, "resulting packet is null, returning to main");
 			notifyMain("command(s) not parsed, listening for new commands");
 		}
+		
 	}
 	
 	
@@ -280,16 +281,22 @@ public class CommandFilter {
 					sensor.modify(params[i], params[i+1]);
 				}
 				
-				sensor.updateSensorProperties();
+				sensor.updateSensorProperties(packet.getTaskID());
 				
 				ResponsePacket.getNotificationPacket(packet.getTaskID(),
 						Constants.Notifications.TASK_COMPLETE).send(connection);
+				
+			} else {
+				ResponsePacket.getNotificationPacket(packet.getTaskID(),
+						Constants.Notifications.TASK_ERRORED_OUT, 
+						"sensor not found").send(connection);
 			}
 			
 		} else {
-			Log.e(TAG, "correct parameters not found in command");
+			String result = "correct parameters not found in command";
+			Log.e(TAG, result);
 			ResponsePacket.getNotificationPacket(packet.getTaskID(),
-					Constants.Notifications.TASK_ERRORED_OUT).send(connection);
+					Constants.Notifications.TASK_ERRORED_OUT, result).send(connection);
 		}
 	}
 	
@@ -392,6 +399,7 @@ public class CommandFilter {
 					sendFeatures(packet.getTaskID(), features[i],
 							SupportedFeatures.getEnvironmentSensorFeatures((SensorManager)
 								activity.getSystemService(Context.SENSOR_SERVICE)));
+					break;
 					
 					// TODO: add more sensors here
 					
@@ -426,11 +434,8 @@ public class CommandFilter {
 		Log.d(TAG, "sending supported features to controller: " + sensorType);
 		
 		if(features != null){
-			
 			new ResponsePacket(taskID, sensorType, features).send(connection);
-			
 		} else {
-			
 			ResponsePacket.getNotificationPacket(taskID, 
 					Constants.Notifications.SENSOR_NOT_SUPPORTED,
 					String.valueOf(sensorType)).send(connection);
@@ -517,14 +522,7 @@ public class CommandFilter {
 	 * @see {@link Constants#Commands}
 	 */
 	public boolean isAvailableService(int service){
-		boolean result;
-		if(service == Constants.Commands.TAKE_PICTURE ||
-		   service == Constants.Commands.RECORD_AUDIO){
-			result = isServiceAvailable(sensors[service]);
-		} else {
-			result = true;
-		}
-		return result;
+		return service >= 0 || isAvailableService(sensors[service]);
 		
 	}
 
@@ -535,7 +533,7 @@ public class CommandFilter {
 	 * @return true if the sensor is not null and either its current
 	 * task is complete or it has not started any tasks yet, false otherwise.
 	 */
-	private static boolean isServiceAvailable(GenericDeviceSensor sensor){
+	public static boolean isAvailableService(GenericDeviceSensor sensor){
 		return sensor != null && (sensor.taskCompleted() || 
 				sensor.getTaskID() == Constants.Args.ARG_NONE);
 	}
@@ -559,9 +557,16 @@ public class CommandFilter {
 		case Constants.DataTypes.MICROPHONE:
 			sensor = sensors[Constants.Commands.RECORD_AUDIO];
 			break;
+			
+		case Constants.DataTypes.ENVIRONMENT_SENSORS:
+			sensor = sensors[Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS];
+			break;
+			
 		default:
 			sensor = null;
+			break;
 		}
+		
 		return sensor;
 	}
 	

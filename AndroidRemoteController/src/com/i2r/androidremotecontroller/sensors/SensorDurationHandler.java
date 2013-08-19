@@ -1,4 +1,4 @@
-package com.i2r.ARC.Sensors;
+package com.i2r.androidremotecontroller.sensors;
 
 import ARC.Constants;
 
@@ -74,8 +74,19 @@ public class SensorDurationHandler {
 	 *         false otherwise.
 	 */
 	public boolean maxReached() {
-		return max > 0 && System.currentTimeMillis() - startTime > max;
+		return  System.currentTimeMillis() - startTime > max;
 	}
+	
+	
+	/**
+	 * Query about the state of this duration's "max" field
+	 * @return true if the field is set to a positive value greater
+	 * than zero, false otherwise
+	 */
+	public boolean hasMax(){
+		return max > 0;
+	}
+	
 
 	/**
 	 * Resets the start time marker and the max duration marker. Once this is
@@ -83,8 +94,8 @@ public class SensorDurationHandler {
 	 * {@link #setMax(int)} or {@link #setMax(long)} are called
 	 */
 	public void reset() {
-		this.startTime = 0L;
-		this.max = 0L;
+		this.startTime = Constants.Args.ARG_NONE;
+		this.max = Constants.Args.ARG_NONE;
 	}
 
 	/**
@@ -155,7 +166,8 @@ public class SensorDurationHandler {
 		boolean equal = false;
 
 		if (other instanceof SensorDurationHandler) {
-			SensorDurationHandler otherHandler = (SensorDurationHandler) other;
+			SensorDurationHandler otherHandler = 
+						(SensorDurationHandler) other;
 			equal = otherHandler.id.equals(this.id) &&
 					otherHandler.index == this.index;
 		}
