@@ -6,11 +6,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import ARC.Constants;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.Intent;
 import android.os.ParcelUuid;
 import android.util.Log;
@@ -31,6 +33,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	private Activity activity;
 	private String name;
 	private BluetoothServerSocket listener;
+	private boolean isServer;
 	
 	/**
 	 * Constructor<br>
@@ -42,18 +45,19 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	 * @param activity - a reference to the activity that made this link.
 	 * @throws ServiceNotFoundException if the given {@link BluetoothAdapter} is null.
 	 */
-	public BluetoothLink(BluetoothAdapter adapter, UUID uuid, String name, Activity activity)
-														throws ServiceNotFoundException {
+	public BluetoothLink(Activity activity, boolean isServer) throws ServiceNotFoundException {
+		
+		this.adapter = BluetoothAdapter.getDefaultAdapter();
 		
 		if(adapter == null){
 			// ABANDON SHIP!!!
 			throw new ServiceNotFoundException("bluetooth adapter is null");
 		}
 		
-		this.uuid = uuid;
-		this.name = name;
-		this.adapter = adapter;
+		this.uuid = UUID.fromString(Constants.Info.UUID);
+		this.name = Constants.Info.SERVICE_NAME;
 		this.activity = activity;
+		this.isServer = isServer;
 		this.listener = null;
 	}
 	
@@ -134,13 +138,15 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 		
 		Log.d(TAG, "halting connection discovery for bluetooth");
 		
-		try {
-			listener.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		if(listener != null){
+			try {
+				listener.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+			listener = null;
 		}
-		
-		listener = null;
 		
 		if(adapter.isDiscovering()){
 			adapter.cancelDiscovery();
@@ -150,14 +156,9 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 
 	@Override
 	public boolean isServerLink() {
-		return listener != null;
+		return isServer;
 	}
 
-
-	@Override
-	public boolean isClientLink(){
-		return adapter.isDiscovering();
-	}
 
 	
 	@Override
@@ -213,6 +214,12 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 		}
 
 		return device;
+	}
+
+
+	@Override
+	public Context getContext() {
+		return activity;
 	}
 
 }

@@ -205,6 +205,16 @@ public class CommandPacket {
 	}
 
 	
+	/**
+	 * Query about the type of this command
+	 * @return true if this command is to start
+	 * a task, false if it is a high priority command.
+	 * @see {@link #hasHighPriority()}
+	 */
+	public boolean isTaskStarter(){
+		return command >= 0;
+	}
+	
 
 	/**
 	 * Parses an array of {@link CommandPacket} objects from the given

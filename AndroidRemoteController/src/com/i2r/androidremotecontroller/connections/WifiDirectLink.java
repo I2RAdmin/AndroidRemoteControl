@@ -9,6 +9,7 @@ import java.util.List;
 
 import ARC.Constants;
 import android.app.Activity;
+import android.content.Context;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
@@ -147,12 +148,6 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 
 	
 	@Override
-	public boolean isClientLink() {
-		return !isServer;
-	}
-
-	
-	@Override
 	public boolean isSearchingForLinks() {
 		return searchingForLinks;
 	}
@@ -236,6 +231,12 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 			}
 		}
 
+	}
+
+
+	@Override
+	public Context getContext() {
+		return activity;
 	}
 
 } // end of WifiDirectLink class

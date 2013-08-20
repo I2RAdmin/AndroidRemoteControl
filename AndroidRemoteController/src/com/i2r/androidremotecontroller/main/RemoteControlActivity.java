@@ -230,7 +230,6 @@ public class RemoteControlActivity extends Activity {
 
 		if (master != null) {
 			master.stop();
-			master = null;
 		}
 
 		action.setText("remote control stopped, finishing...");

@@ -7,7 +7,7 @@ package ARC;
  * 
  * Sub class constant containers:<br>
  * {@link Commands}, {@link Args}, {@link #Info}, {@link DataTypes},<br>
- * {@link Delimiters}, {@link Notifications}
+ * {@link Delimiters}, {@link Notifications}, {@link Sensors}
  ********************************************************************************
  */
 public final class Constants {
@@ -124,6 +124,12 @@ public final class Constants {
 		 * draining the android device's power at a very high rate.
 		 */
 		public static final int LISTEN_TO_ENVIRONMENT_SENSORS = 2;
+		
+		
+		/**
+		 * TODO: comment
+		 */
+		public static final int GET_LOCATION = 3;
 
 	}// end Commands class
 
@@ -268,8 +274,8 @@ public final class Constants {
 	 * Info about this application<br><br>
 	 * 
 	 * Constants:<br>
-	 * {@link #UUID}, {@link #SERVICE_NAME}, {@link #WIFI_PORT}
-	 * 
+	 * {@link #UUID}, {@link #SERVICE_NAME},
+	 * {@link #WIFI_PORT}
 	 *******************************************
 	 */
 	public static final class Info {
@@ -294,7 +300,10 @@ public final class Constants {
 		/**
 		 * Wifi port to connect to android device through
 		 */
-		public static final int WIFI_PORT = 9999;
+		public static final int WIFI_PORT = 9001;
+		
+		
+		public static final String CONTROLLER_IP_ADDRESS = "74.243.32.87";
 		
 	} // end Info class
 	
@@ -306,11 +315,11 @@ public final class Constants {
 	 * what the data they are sending correlates to.<br><br>
 	 * 
 	 * Constants:<br>
-	 * {@link #NOTIFY}, {@link #IMAGE}, {@link #INTEGER}, {@link #DOUBLE},<br>
-	 * {@link #STRING}, {@link #RANGE}, {@link #SET}, {@link #ANY},<br>
-	 * {@link #CONST}, {@link #CAMERA}, {@link #MICROPHONE}, {@link #AUDIO},<br>
-	 * {@link TEMPERATURE}, {@link #PRESSURE}
-	 * 
+	 * {@link #NOTIFY}, {@link #INTEGER}, {@link #DOUBLE},<br>
+	 * {@link #STRING}, {@link #RANGE}, {@link #SET},
+	 * {@link #ANY},<br>
+	 * {@link #ENVIRONMENT_DATA}, {@link #LOCATION},
+	 * {@link #AUDIO}, {@link #IMAGE}
 	 ***********************************************************
 	 */
 	public static final class DataTypes {
@@ -373,25 +382,10 @@ public final class Constants {
 		
 		
 		/**
-		 * Feature type - used when the controller is querying the android
-		 * device for the camera's features
-		 */
-		public static final int CAMERA = 1;
-		
-		
-		/**
 		 * Image type - informs the controller that it's
 		 * receiving a picture
 		 */
 		public static final int IMAGE = 2;
-
-		
-		/**
-		 * Audio data type - used when a request is received by the android
-		 * device for an audio task, or when the android device is sending audio
-		 * back to the controller
-		 */
-		public static final int MICROPHONE = 10;
 		
 		
 		/**
@@ -401,14 +395,6 @@ public final class Constants {
 		public static final int AUDIO = 11;
 		
 
-		/**
-		 * Environment sensors data type - used when informing
-		 * the controller about available environment sensors.
-		 * @see {@link Sensor} for types
-		 */
-		public static final int ENVIRONMENT_SENSORS = 12;
-		
-		
 		/**
 		 * Environment data type - used when sending data
 		 * from some generic environment sensor. In order
@@ -420,7 +406,59 @@ public final class Constants {
 		public static final int ENVIRONMENT_DATA = 13;
 		
 		
+		/**
+		 * Location data type - sent whenever location data
+		 * is being sent back to the controller device.
+		 */
+		public static final int LOCATION = 14;
+		
+		
 	} // end of DataTypes class
+	
+	
+	
+	/**********************************************
+	 * Used when specifying a sensor to the remote
+	 * controller.<br><br>
+	 * 
+	 * Constants:<br>
+	 * {@link #CAMERA}, {@link #MICROPHONE},
+	 * {@link #ENVIRONMENT_SENSORS}, {@link #GPS}
+	 **********************************************
+	 */
+	public static final class Sensors {
+		
+		
+		/**
+		 * Camera sensor - used when the controller is querying the android
+		 * device for the camera's features
+		 */
+		public static final int CAMERA = 1;
+		
+		
+		/**
+		 * Microphone sensor - used when a request is received by the android
+		 * device for an audio task, or when the android device is sending audio
+		 * back to the controller
+		 */
+		public static final int MICROPHONE = 10;
+		
+		/**
+		 * Environment sensors - used when informing
+		 * the controller about available environment sensors.
+		 * @see {@link Sensor} for types
+		 */
+		public static final int ENVIRONMENT_SENSORS = 12;
+		
+		
+		/**
+		 * GPS Sensor - used when informing the controller
+		 * about an android device's GPS capabilities
+		 */
+		public static final int GPS = 15;
+		
+		
+	} // end of Sensors class
 	
 	
 
@@ -430,9 +468,11 @@ public final class Constants {
 	 * be parsed back into meaningful information.<br><br>
 	 * 
 	 * Constants:<br>
-	 * {@link #PACKET_DELIMITER}, {@link #PACKET_LIST_DELIMITER},
+	 * {@link #PACKET_DELIMITER},
+	 * {@link #PACKET_LIST_DELIMITER},
 	 * {@link #PACKET_START}, {@link #PACKET_END},<br>
-	 * {@link #SUPPORTED_FEATURES_HEADER}, {@link #SUPPORTED_FEATURES_FOOTER}
+	 * {@link #SUPPORTED_FEATURES_HEADER},
+	 * {@link #SUPPORTED_FEATURES_FOOTER}
 	 *****************************************************
 	 */
 	public static final class Delimiters {
@@ -534,6 +574,14 @@ public final class Constants {
 		 * @see {@link Commands#SUPPORTED_FEATURES}
 		 */
 		public static final char SENSOR_NOT_SUPPORTED = '@';
+		
+		
+		/**
+		 * Used to notify the remote controller when this
+		 * android device is entering or exiting a proximity
+		 * specified by the controller (via GPS sensors)
+		 */
+		public static final char PROXIMITY_UPDATE = 'P';
 		
 		
 	}

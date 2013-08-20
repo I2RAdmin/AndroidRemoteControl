@@ -25,7 +25,7 @@ public class ResponsePacket {
 
 	public static boolean SHOW_DATA = true;
 
-	private char header, footer;
+	private String header, footer;
 	private int taskID, dataType;
 	private byte[] data;
 
@@ -38,8 +38,8 @@ public class ResponsePacket {
 	 * @see {@link ResponsePacket#isValid()}
 	 */
 	public ResponsePacket() {
-		this.header = Constants.Args.ARG_CHAR_NONE;
-		this.footer = Constants.Args.ARG_CHAR_NONE;
+		this.header = Constants.Args.ARG_STRING_NONE;
+		this.footer = Constants.Args.ARG_STRING_NONE;
 		this.taskID = Constants.Args.ARG_NONE;
 		this.dataType = Constants.Args.ARG_NONE;
 		this.data = null;
@@ -64,8 +64,8 @@ public class ResponsePacket {
 	 * @see {@link ResponsePacket#isValid()}
 	 */
 	public ResponsePacket(int taskID, int dataType, byte[] data) {
-		this.header = Constants.Args.ARG_CHAR_NONE;
-		this.footer = Constants.Args.ARG_CHAR_NONE;
+		this.header = Constants.Args.ARG_STRING_NONE;
+		this.footer = Constants.Args.ARG_STRING_NONE;
 		this.taskID = taskID;
 		this.dataType = dataType;
 		this.data = data;
@@ -91,7 +91,7 @@ public class ResponsePacket {
 	 * @see {@link ResponsePacket#isValid()}
 	 * @see {@link Constants#Args}
 	 */
-	public ResponsePacket(char header, char footer, int taskID) {
+	public ResponsePacket(String header, String footer, int taskID) {
 		this.header = header;
 		this.footer = footer;
 		this.taskID = taskID;
@@ -126,8 +126,7 @@ public class ResponsePacket {
 	 * @see {@link ResponsePacket#isValid()}
 	 * @see {@link Constants#Args}
 	 */
-	public ResponsePacket(char header, char footer, int taskID, int dataType,
-			byte[] data) {
+	public ResponsePacket(String header, String footer, int taskID, int dataType, byte[] data) {
 		this.header = header;
 		this.footer = footer;
 		this.taskID = taskID;
@@ -148,7 +147,7 @@ public class ResponsePacket {
 	 *         {@link Args#ARG_CHAR_NONE} if it has not been set.
 	 * @see {@link Constants#Args}
 	 */
-	public char getHeader() {
+	public String getHeader() {
 		return header;
 	}
 
@@ -160,7 +159,7 @@ public class ResponsePacket {
 	 *         {@link Args#ARG_CHAR_NONE} if it has not been set.
 	 * @see {@link Constants#Args}
 	 */
-	public char getFooter() {
+	public String getFooter() {
 		return footer;
 	}
 
@@ -217,7 +216,7 @@ public class ResponsePacket {
 	 * @param header
 	 *            - the header to set this ResponsePacket's header element to.
 	 */
-	public void setHeader(char header) {
+	public void setHeader(String header) {
 		this.header = header;
 	}
 	
@@ -228,7 +227,7 @@ public class ResponsePacket {
 	 * @param footer
 	 *            - the header to set this ResponsePacket's footer element to.
 	 */
-	public void setFooter(char footer) {
+	public void setFooter(String footer) {
 		this.footer = footer;
 	}
 
@@ -301,7 +300,7 @@ public class ResponsePacket {
 	 * @see {@link Constants#Args}
 	 */
 	public boolean hasHeader() {
-		return header != Constants.Args.ARG_CHAR_NONE;
+		return !header.equals(Constants.Args.ARG_STRING_NONE);
 	}
 
 	
@@ -315,7 +314,7 @@ public class ResponsePacket {
 	 * @see {@link Constants#Args}
 	 */
 	public boolean hasFooter() {
-		return footer != Constants.Args.ARG_CHAR_NONE;
+		return !footer.equals(Constants.Args.ARG_STRING_NONE);
 	}
 	
 
@@ -595,7 +594,7 @@ public class ResponsePacket {
 
 				// include a header only if it has been added
 				if (packet.hasHeader()) {
-					stream.write(packet.header);
+					stream.write(packet.header.getBytes());
 					stream.write(delimiter);
 				}
 
@@ -613,7 +612,7 @@ public class ResponsePacket {
 
 				// include a footer only if it has been added
 				if (packet.hasFooter()) {
-					stream.write(packet.footer);
+					stream.write(packet.footer.getBytes());
 					stream.write(delimiter);
 				}
 

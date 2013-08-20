@@ -104,4 +104,6 @@ public class GenericRemoteConnection implements RemoteConnection {
 		if(input != null){try{input.close();}catch(IOException e){}}
 		if(output != null){try{output.flush(); output.close();}catch(IOException e){}}
 	}
+
+	
 }

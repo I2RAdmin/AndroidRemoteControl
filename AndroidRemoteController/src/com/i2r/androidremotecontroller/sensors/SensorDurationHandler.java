@@ -69,9 +69,9 @@ public class SensorDurationHandler {
 	/**
 	 * Query for the time passed in terms of the max duration currently set.
 	 * 
-	 * @return true if the max duration has been set to a value greater than
-	 *         zero and the current time elapsed is greater than that duration,
-	 *         false otherwise.
+	 * @return true if the current time elapsed is greater than that duration,
+	 *         false otherwise. This will return true if the max has not
+	 *         been set.
 	 */
 	public boolean maxReached() {
 		return  System.currentTimeMillis() - startTime > max;

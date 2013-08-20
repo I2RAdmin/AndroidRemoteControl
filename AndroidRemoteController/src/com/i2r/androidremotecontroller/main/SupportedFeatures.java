@@ -271,6 +271,14 @@ public final class SupportedFeatures {
 	 */
 	public static final class LocationKeys {
 		
+		
+		public static final String[] POWER_REQUIREMENTS = {
+			"-power-requirement-none", "-power-requirement-low",
+			"-power-requirement-medium", "-power-requirement-high"
+		};
+		
+		
+		
 		public static final String PROXIMITY_ALERT = "proximity-alert";
 		public static final String PROXIMITY_ALERT_LATITUDE = "proximity-alert-latitude";
 		public static final String PROXIMITY_ALERT_LONGITUDE = "proximity-alert-longitude";
@@ -278,6 +286,18 @@ public final class SupportedFeatures {
 		public static final String PROXIMITY_ALERT_EXPIRATION = "proximity-alert-expiration";
 		
 		
+		public static final String PROVIDER = "location-provider";
+		public static final String PROVIDER_PREFIX = "location-provider-";
+		public static final String ACCURACY_SUFFIX = "-accuracy";
+		public static final String POWER_COST_SUFFIX = "-power-cost";
+		public static final String MONETARY_COST_SUFFIX = "-has-monetary-cost";
+		public static final String CELL_SUFFIX = "-requires-cell-network";
+		public static final String DATA_SUFFIX = "-requires-data-network";
+		public static final String SATELLITE_SUFFIX = "-requires-satellite";
+		public static final String SUPPORTS_ALTITUDE_SUFFIX = "-supports-altitude";
+		public static final String SUPPORTS_BEARING_SUFFIX = "-supports-bearing";
+		public static final String SUPPORTS_SPEED_SUFFIX = "-supports-speed";
+
 	}
 	
 	
@@ -868,8 +888,6 @@ public final class SupportedFeatures {
 	 * @param manager - the manager to obtain supported features information from
 	 * @return a listing of all LocationProviders (and their properties) that
 	 * can be obtained from the given LocationManager.
-	 * 
-	 * TODO: finish this
 	 */
 	public static byte[] getLocationSupportedFeatures(LocationManager manager){
 		byte[] result = null;
@@ -878,19 +896,67 @@ public final class SupportedFeatures {
 			
 			StringBuilder builder = new StringBuilder();
 			
-			
 			List<String> providers = manager.getAllProviders();
 			
-			Iterator<String> iter = providers.iterator();
+			builder.append(encodeCollection(LocationKeys.PROVIDER, 
+					Constants.Args.ARG_STRING_NONE, Constants.DataTypes.STRING, providers));
 			
-			while(iter.hasNext()){
-				LocationProvider p = manager.getProvider(iter.next());
-				p.getAccuracy();
-				p.getName();
-				p.getPowerRequirement();
-				p.hasMonetaryCost();
+			for(String provider : providers){
+				
+				StringBuilder temp = new StringBuilder();
+				
+				try{
+					LocationProvider p = manager.getProvider(provider);
+					String name = LocationKeys.PROVIDER_PREFIX + p.getName();
+					
+					temp.append(encodeSingle(name + LocationKeys.ACCURACY_SUFFIX, 
+							String.valueOf(p.getAccuracy()), Constants.DataTypes.INTEGER));
+
+					temp.append(encodeSingle(name + LocationKeys.POWER_COST_SUFFIX,
+							LocationKeys.POWER_REQUIREMENTS[p.getPowerRequirement()], Constants.DataTypes.STRING));
+					
+					temp.append(encodeSingle(name + LocationKeys.MONETARY_COST_SUFFIX,
+							Boolean.toString(p.hasMonetaryCost()), Constants.DataTypes.STRING));
+					
+					temp.append(encodeSingle(name + LocationKeys.CELL_SUFFIX,
+							Boolean.toString(p.requiresCell()), Constants.DataTypes.STRING));
+					
+					temp.append(encodeSingle(name + LocationKeys.DATA_SUFFIX,
+							Boolean.toString(p.requiresNetwork()), Constants.DataTypes.STRING));
+					
+					temp.append(encodeSingle(name + LocationKeys.SATELLITE_SUFFIX,
+							Boolean.toString(p.requiresSatellite()), Constants.DataTypes.STRING));
+					
+					temp.append(encodeSingle(name + LocationKeys.SUPPORTS_ALTITUDE_SUFFIX,
+							Boolean.toString(p.supportsAltitude()), Constants.DataTypes.STRING));
+					
+					temp.append(encodeSingle(name + LocationKeys.SUPPORTS_BEARING_SUFFIX,
+							Boolean.toString(p.supportsBearing()), Constants.DataTypes.STRING));
+					
+					temp.append(encodeSingle(name + LocationKeys.SUPPORTS_SPEED_SUFFIX,
+							Boolean.toString(p.supportsSpeed()), Constants.DataTypes.STRING));
+					
+					builder.append(temp.toString());
+					
+				} catch (Exception e){
+					// move on to next provider
+				}
 			}
 			
+			
+			builder.append(encodeSwitch(LocationKeys.PROXIMITY_ALERT, FALSE));
+			
+			builder.append(encodeSingle(LocationKeys.PROXIMITY_ALERT_EXPIRATION,
+					Constants.Args.ARG_STRING_NONE, Constants.DataTypes.INTEGER));
+			
+			builder.append(encodeSingle(LocationKeys.PROXIMITY_ALERT_LATITUDE,
+					Constants.Args.ARG_STRING_NONE, Constants.DataTypes.DOUBLE));
+			
+			builder.append(encodeSingle(LocationKeys.PROXIMITY_ALERT_LONGITUDE,
+					Constants.Args.ARG_STRING_NONE, Constants.DataTypes.DOUBLE));
+			
+			builder.append(encodeSingle(LocationKeys.PROXIMITY_ALERT_RADIUS,
+					Constants.Args.ARG_STRING_NONE, Constants.DataTypes.DOUBLE));
 			
 			builder.append(sdOptions());
 			
@@ -967,7 +1033,7 @@ public final class SupportedFeatures {
 		builder.append(Constants.Delimiters.PACKET_DELIMITER);
 		builder.append(dataType);
 		builder.append(Constants.Delimiters.PACKET_DELIMITER);
-		builder.append(Constants.DataTypes.SET);
+		builder.append(limiter);
 		builder.append(Constants.Delimiters.PACKET_DELIMITER);
 		builder.append(1);
 		builder.append(Constants.Delimiters.PACKET_DELIMITER);
@@ -1008,8 +1074,10 @@ public final class SupportedFeatures {
 	 * be sent to the controller for interpretation.
 	 * @see {@link Constants#DataTypes}
 	 */
-	public static String encodeRange(String rangeName, String currentValue, int dataType, String min, String max){
-		return encodeSize2Set(rangeName, currentValue, dataType, Constants.DataTypes.RANGE, min, max);
+	public static String encodeRange(String rangeName, String currentValue,
+			int dataType, String min, String max){
+		return encodeSize2Set(rangeName, currentValue,
+				dataType, Constants.DataTypes.RANGE, min, max);
 	}
 	
 	

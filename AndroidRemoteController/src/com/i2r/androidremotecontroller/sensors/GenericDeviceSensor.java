@@ -393,6 +393,31 @@ public abstract class GenericDeviceSensor {
 	
 	
 	/**
+	 * TODO: comment
+	 * @param dataType
+	 * @param data
+	 */
+	protected void sendData(int dataType, byte[] data){
+		if(data != null){
+			if(data.length / 1024 > 2){
+				int buffer_size = 1024;
+				for(int i = 0; i < data.length; i += buffer_size){
+					int size = Math.min(buffer_size, data.length - i);
+					byte[] temp = new byte[size];
+					for(int j = 0; j < size; j++){
+						temp[j] = data[i+j];
+					}
+					new ResponsePacket(taskID, dataType, temp).send(connection);
+				}
+				
+			} else {
+				new ResponsePacket(taskID, dataType, data).send(connection);
+			}
+		}
+	}
+	
+	
+	/**
 	 * Static method for defining what makes a sensor available for use
 	 * @param sensor - the sensor to test for availability
 	 * @param taskID - the task ID to ask it for

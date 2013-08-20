@@ -1,11 +1,11 @@
 package com.i2r.androidremotecontroller.connections;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import com.i2r.androidremotecontroller.main.RemoteControlActivity;
+import com.i2r.androidremotecontroller.main.RemoteControlMaster;
 
 /**
  * This class models a manager for a connection type
@@ -23,7 +23,6 @@ public class ConnectionManager<E> {
 	private static final String TAG = "ConnectionManager";
 	
 	private Link<E> linker;
-	private boolean isServer;
 	private LocalBroadcastManager manager;
 	private RemoteConnection connection;
 	private Thread runningConnection;
@@ -40,10 +39,9 @@ public class ConnectionManager<E> {
 	 * @param activity - a reference to the activity that created this connection manager.
 	 * @see {@link Link}
 	 */
-	public ConnectionManager(Link<E> linker, boolean isServer, Activity activity){
+	public ConnectionManager(Link<E> linker){
 		this.linker = linker;
-		this.isServer = isServer;
-		this.manager = LocalBroadcastManager.getInstance(activity);
+		this.manager = LocalBroadcastManager.getInstance(linker.getContext());
 		this.runningConnection = null;
 		this.finder = null;
 	}
@@ -114,7 +112,7 @@ public class ConnectionManager<E> {
 	 * to listen for other devices, false otherwise.
 	 */
 	public boolean isServerConnection(){
-		return isServer;
+		return linker.isServerLink();
 	}
 	
 	/**
@@ -123,7 +121,7 @@ public class ConnectionManager<E> {
 	 * to seek out other devices, false otherwise.
 	 */
 	public boolean isClientConnection(){
-		return !isServer;
+		return !linker.isServerLink();
 	}
 	
 	/**
@@ -157,6 +155,7 @@ public class ConnectionManager<E> {
 	
 	
 	
+	
 	/**
 	 * Side thread for this connection manager to look for
 	 * connections with. This is used so that waiting
@@ -168,7 +167,7 @@ public class ConnectionManager<E> {
 		@Override
 		public void run() {
 			connection = null;
-			if (isServer) {
+			if (linker.isServerLink()) {
 				
 				Log.d(TAG, "listening for a connection...");
 				connection = linker.listenForRemoteConnection();

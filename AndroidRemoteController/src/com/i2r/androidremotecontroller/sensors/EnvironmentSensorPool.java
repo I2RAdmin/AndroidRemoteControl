@@ -11,7 +11,6 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
-import com.i2r.androidremotecontroller.main.ResponsePacket;
 import com.i2r.androidremotecontroller.main.SupportedFeatures;
 import com.i2r.androidremotecontroller.main.SupportedFeatures.EnvironmentKeys;
 
@@ -164,8 +163,7 @@ public class EnvironmentSensorPool extends
 			builder.append(Constants.Delimiters.PACKET_DELIMITER);
 		}
 		
-		new ResponsePacket(getTaskID(), Constants.DataTypes.ENVIRONMENT_DATA,
-				builder.toString().getBytes()).send(getConnection());
+		sendData(Constants.DataTypes.ENVIRONMENT_DATA, builder.toString().getBytes());
 	}
 	
 

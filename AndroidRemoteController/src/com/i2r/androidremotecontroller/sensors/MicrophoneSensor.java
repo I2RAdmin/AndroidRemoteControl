@@ -7,7 +7,6 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder.AudioSource;
 import android.util.Log;
 
-import com.i2r.androidremotecontroller.main.ResponsePacket;
 import com.i2r.androidremotecontroller.main.SupportedFeatures;
 import com.i2r.androidremotecontroller.main.SupportedFeatures.AudioKeys;
 
@@ -124,6 +123,7 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 				AudioKeys.ENCODING, getProperty(AudioKeys.ENCODING));
 				
 		if(result != Constants.Args.ARG_NONE){
+			Log.d(TAG, "modifying encoding");
 			modify(AudioKeys.ENCODING, result);
 			
 		} 
@@ -132,6 +132,7 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 				AudioKeys.CHANNEL, getProperty(AudioKeys.CHANNEL));
 		
 		if(result != Constants.Args.ARG_NONE){
+			Log.d(TAG, "modifying channel");
 			modify(AudioKeys.CHANNEL, result);
 			
 		} 
@@ -140,8 +141,8 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 				AudioKeys.SOURCE, getProperty(AudioKeys.SOURCE));
 		
 		if(result != Constants.Args.ARG_NONE){
+			Log.d(TAG, "modifying source");
 			modify(AudioKeys.SOURCE, result);
-			
 		}
 	}
 
@@ -279,8 +280,7 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 						// if this sensor currently has a valid connection
 						if(getConnection().isConnected()){
 							
-							new ResponsePacket(getTaskID(),
-									Constants.DataTypes.AUDIO, buffer).send(getConnection());
+							sendData(Constants.DataTypes.AUDIO, buffer);
 							
 							// if there is no valid connection,
 							// but the controller specified to keep recording

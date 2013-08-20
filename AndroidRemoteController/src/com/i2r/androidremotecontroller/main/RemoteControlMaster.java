@@ -1,23 +1,17 @@
 package com.i2r.androidremotecontroller.main;
 
 import java.io.File;
-import java.util.UUID;
-
-import ARC.Constants;
-import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.hardware.usb.UsbDevice;
 import android.net.Uri;
-import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Environment;
 import android.util.Log;
 
 import com.i2r.androidremotecontroller.connections.BluetoothLink;
 import com.i2r.androidremotecontroller.connections.ConnectionManager;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.connections.SocketLink;
 import com.i2r.androidremotecontroller.connections.UsbLink;
 import com.i2r.androidremotecontroller.connections.WifiDirectLink;
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
@@ -59,7 +53,7 @@ public class RemoteControlMaster {
 		this.started = false;
 
 		// figure out what type of connection the user chose
-
+		
 		// BLUETOOTH
 		if (connectionType
 				.equals(ConnectionTypeSelectionActivity.EXTRA_BLUETOOTH)) {
@@ -89,17 +83,12 @@ public class RemoteControlMaster {
 	 */
 	private void createWifiDirectRemoteConnection()
 			throws ServiceNotFoundException {
-		
-		WifiP2pManager wifi = (WifiP2pManager) filter.getActivity()
-				.getSystemService(Activity.WIFI_P2P_SERVICE);
 
-		// create a WifiDirectLink to pass to this ConnectionManager
-		WifiDirectLink linker = new WifiDirectLink(filter.getActivity(),
-				ConnectionManager.CONNECTION_TYPE_SERVER, wifi);
+		SocketLink linker = new SocketLink(filter.getActivity(), 
+				ConnectionManager.CONNECTION_TYPE_CLIENT);
 
 		// create a new ConnectionManager
-		this.connectionManager = new ConnectionManager<WifiP2pDevice>(linker,
-				ConnectionManager.CONNECTION_TYPE_SERVER, filter.getActivity());
+		this.connectionManager = new ConnectionManager<Object>(linker);
 
 		Log.d(TAG, "connection manager created with WifiLink");
 
@@ -115,14 +104,11 @@ public class RemoteControlMaster {
 			throws ServiceNotFoundException {
 
 		// create a BluetoothLink to pass to this ConnectionManager
-		BluetoothLink linker = new BluetoothLink(
-				BluetoothAdapter.getDefaultAdapter(),
-				UUID.fromString(Constants.Info.UUID),
-				Constants.Info.SERVICE_NAME, filter.getActivity());
+		BluetoothLink linker = new BluetoothLink(filter.getActivity(),
+				ConnectionManager.CONNECTION_TYPE_SERVER);
 
 		// create a new ConnectionManager
-		this.connectionManager = new ConnectionManager<BluetoothDevice>(linker,
-				ConnectionManager.CONNECTION_TYPE_SERVER, filter.getActivity());
+		this.connectionManager = new ConnectionManager<BluetoothDevice>(linker);
 
 		Log.d(TAG, "connection manager created with BluetoothLink");
 	}
@@ -135,10 +121,10 @@ public class RemoteControlMaster {
 	 * 		   create a {@link UsbLink}
 	 */
 	private void createUsbRemoteConnection() throws ServiceNotFoundException {
-		UsbLink linker = new UsbLink(filter.getActivity());
+		UsbLink linker = new UsbLink(filter.getActivity(),
+				ConnectionManager.CONNECTION_TYPE_CLIENT);
 
-		this.connectionManager = new ConnectionManager<UsbDevice>(linker,
-				ConnectionManager.CONNECTION_TYPE_SERVER, filter.getActivity());
+		this.connectionManager = new ConnectionManager<UsbDevice>(linker);
 
 		Log.d(TAG, "connection manager created with USB link");
 	}

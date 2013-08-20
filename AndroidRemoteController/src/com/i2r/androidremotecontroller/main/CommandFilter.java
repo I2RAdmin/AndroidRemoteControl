@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.hardware.Camera;
 import android.hardware.SensorManager;
+import android.location.LocationManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.SurfaceHolder;
@@ -17,6 +18,7 @@ import com.i2r.androidremotecontroller.connections.RemoteConnection;
 import com.i2r.androidremotecontroller.sensors.CameraSensor;
 import com.i2r.androidremotecontroller.sensors.EnvironmentSensorPool;
 import com.i2r.androidremotecontroller.sensors.GenericDeviceSensor;
+import com.i2r.androidremotecontroller.sensors.LocationSensor;
 import com.i2r.androidremotecontroller.sensors.MicrophoneSensor;
 
 
@@ -37,7 +39,7 @@ public class CommandFilter {
 	private static final String TAG = "CommandFilter";
 	private static final int MAX_COMMAND_CAPACITY = 10;
 	
-	private static final int SENSOR_SIZE = 3;
+	private static final int SENSOR_SIZE = 4;
 	
 	private Activity activity;
 	private LocalBroadcastManager manager;
@@ -66,6 +68,7 @@ public class CommandFilter {
 		this.sensors[Constants.Commands.TAKE_PICTURE] = new CameraSensor(activity, camera, holder);
 		this.sensors[Constants.Commands.RECORD_AUDIO] = new MicrophoneSensor(activity);
 		this.sensors[Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS] = new EnvironmentSensorPool(activity);
+		this.sensors[Constants.Commands.GET_LOCATION] = new LocationSensor(activity);
 	}
 	
 
@@ -148,7 +151,7 @@ public class CommandFilter {
 			if (isAvailableService(commandQueue.get(0).getCommand())) {
 				
 				// notify UI and log that a new task is starting
-				String result = "executing command - taskID:" + taskID;
+				String result = "executing command - taskID: " + taskID;
 				Log.d(TAG, result);
 				
 				// start the new task by filtering what kind of task it is
@@ -186,26 +189,39 @@ public class CommandFilter {
 	// to be called only if this connection is not null
 	private void filter(CommandPacket packet){
 		
-		// what kind of command are we getting?
+		if(packet.isTaskStarter()){
+			try{
+				sensors[packet.getCommand()].setConnection(connection);
+				sensors[packet.getCommand()].startNewTask(packet.getTaskID(),
+					packet.getIntParameters());
+			} catch(Exception e){
+				Log.e(TAG, "command is undefined");
+				ResponsePacket.getNotificationPacket(packet.getTaskID(),
+						Constants.Notifications.TASK_ERRORED_OUT,
+						"command is unknown").send(connection);
+			}
+		} else {
+			filterSpecialCommand(packet);
+		}	 
+
+	}
+	
+	
+	// FILTER HELPER METHODS ------------------------------|
+	// the following methods are called based on the switch
+	// statements defined in the filter method above
+	
+	
+	/**
+	 * Called if a special command was sent from the
+	 * controlling device.
+	 * @param packet - the packet containing a special command
+	 * @see {@link Constants#Commands}
+	 */
+	private void filterSpecialCommand(CommandPacket packet){
+		
 		switch(packet.getCommand()){
 		
-		// command to take pictures
-		case Constants.Commands.TAKE_PICTURE:
-			// create a new imageCapture task
-			startService(packet);
-			break;
-			
-		// command to begin recording audio
-		case Constants.Commands.RECORD_AUDIO:
-			startService(packet);
-			break;
-			
-		// command to start sending data from the local
-		// environment sensors
-		case Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS:
-			startService(packet);
-			break;
-			 
 		// modify a currently running task
 		case Constants.Commands.MODIFY:
 			modifyService(packet);
@@ -229,32 +245,12 @@ public class CommandFilter {
 			
 		// case is unknown, blow up in controller's face
 		default:
-			Log.e(TAG, "filter went to default case");
+			Log.e(TAG, "command is undefined");
 			ResponsePacket.getNotificationPacket(packet.getTaskID(),
 					Constants.Notifications.TASK_ERRORED_OUT,
 					"command is unknown").send(connection);
 			break;
 		}
-	}
-	
-	
-	// FILTER HELPER METHODS ------------------------------|
-	// the following methods are called based on the switch
-	// statements defined in the filter method above
-	
-	
-	/**
-	 * FILTER CASE START TASK:
-	 * Called if a command to start a sensor service was received
-	 * from the controller PC.
-	 * @param packet - the packet containing the command to start
-	 * a specified sensor service, as well as parameters defining
-	 * how that service should be carried out
-	 */
-	private void startService(CommandPacket packet){
-		sensors[packet.getCommand()].setConnection(connection);
-		sensors[packet.getCommand()].startNewTask(packet.getTaskID(),
-				packet.getIntParameters());
 	}
 	
 	
@@ -385,20 +381,26 @@ public class CommandFilter {
 				
 				switch(features[i]){
 				
-				case Constants.DataTypes.CAMERA:
+				case Constants.Sensors.CAMERA:
 					sendFeatures(packet.getTaskID(), features[i], 
 							SupportedFeatures.getCameraFeatures(camera));
 					break;
 					
-				case Constants.DataTypes.MICROPHONE:
+				case Constants.Sensors.MICROPHONE:
 					sendFeatures(packet.getTaskID(), features[i],
 							SupportedFeatures.getMicrophoneFeatures());
 					break;
 					
-				case Constants.DataTypes.ENVIRONMENT_SENSORS:
+				case Constants.Sensors.ENVIRONMENT_SENSORS:
 					sendFeatures(packet.getTaskID(), features[i],
 							SupportedFeatures.getEnvironmentSensorFeatures((SensorManager)
 								activity.getSystemService(Context.SENSOR_SERVICE)));
+					break;
+					
+				case Constants.Sensors.GPS:
+					sendFeatures(packet.getTaskID(), features[i],
+							SupportedFeatures.getLocationSupportedFeatures((LocationManager)
+									activity.getSystemService(Context.LOCATION_SERVICE)));
 					break;
 					
 					// TODO: add more sensors here
@@ -550,16 +552,20 @@ public class CommandFilter {
 	public GenericDeviceSensor getSensor(int sensorID){
 		GenericDeviceSensor sensor;
 		switch (sensorID){
-		case Constants.DataTypes.CAMERA:
+		case Constants.Sensors.CAMERA:
 			sensor = sensors[Constants.Commands.TAKE_PICTURE];
 			break;
 			
-		case Constants.DataTypes.MICROPHONE:
+		case Constants.Sensors.MICROPHONE:
 			sensor = sensors[Constants.Commands.RECORD_AUDIO];
 			break;
 			
-		case Constants.DataTypes.ENVIRONMENT_SENSORS:
+		case Constants.Sensors.ENVIRONMENT_SENSORS:
 			sensor = sensors[Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS];
+			break;
+			
+		case Constants.Sensors.GPS:
+			sensor = sensors[Constants.Commands.GET_LOCATION];
 			break;
 			
 		default:

@@ -2,6 +2,8 @@ package com.i2r.androidremotecontroller.connections;
 
 import java.util.List;
 
+import android.content.Context;
+
 /**
  * This interface models a generic link between two remote
  * devices, which have similar means for communicating (i.e.,
@@ -81,15 +83,15 @@ public interface Link<E> {
 	 * for connections, false otherwise
 	 */
 	public boolean isServerLink();
-	
+
 	
 	
 	/**
-	 * Query about the searching state of this Link
-	 * @return true if this link is set to search for
-	 * connections, false otherwise
+	 * Query for this link's context.
+	 * @return the {@link Context} in which
+	 * this Link was created.
+	 * @return
 	 */
-	public boolean isClientLink();
-	
+	public Context getContext();
 	
 }

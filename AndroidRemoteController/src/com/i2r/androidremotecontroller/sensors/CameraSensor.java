@@ -392,8 +392,7 @@ public class CameraSensor extends GenericDeviceSensor {
 				if(saveToSD){
 					saveDataToSD(data, Long.toString(System.currentTimeMillis()), ".jpg");
 				} else {
-					new ResponsePacket(getTaskID(), 
-							Constants.DataTypes.IMAGE, data).send(getConnection());
+					sendData(Constants.DataTypes.IMAGE, data);
 				}
 				
 			}}, builder.toString()).start();

@@ -185,7 +185,6 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
         	} else if(selection.equals(EXTRA_USB)){
         		setupUsb();
         	} else if(selection.equals(EXIT)){
-        		inform("exiting remote control app...");
         		finish();
         	}
         	
@@ -263,7 +262,7 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	 * control with this connection type.
 	 */
 	private void setupUsb(){
-		Log.d(TAG, "usb connected, starting remote control");
+		Log.d(TAG, "starting remote control with usb");
 	    Intent intent = new Intent(this, RemoteControlActivity.class);
 	    intent.putExtra(EXTRA_CONNECTION_TYPE, EXTRA_USB);
 	    startActivity(intent);
@@ -277,8 +276,10 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	 * control with this connection type.
 	 */
 	private void setupWifi(){
-		Log.d(TAG, "setup wifi called");
-		inform("wifi remote connection is not currently supported for this app");
+		Log.d(TAG, "starting remote control with wifi");
+	    Intent intent = new Intent(this, RemoteControlActivity.class);
+	    intent.putExtra(EXTRA_CONNECTION_TYPE, EXTRA_WIFI);
+	    startActivity(intent);
 	}
 	
 	

@@ -52,11 +52,11 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * Currently used by this application.
 	 * @param context - the context in which this link was created.
 	 */
-	public UsbLink(Context context) {
+	public UsbLink(Context context, boolean isServer) {
 		
 		this.usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
 		this.broadcastManager = LocalBroadcastManager.getInstance(context);
-		this.isServer = true;
+		this.isServer = isServer;
 		this.endpointAddresses = null;
 		this.interfaceIds = null;
 		this.context = context;
@@ -117,7 +117,12 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	@Override
 	public RemoteConnection listenForRemoteConnection() {
 		RemoteConnection connection = null;
-		if(accessory != null){
+		
+		UsbAccessory[] a = usbManager.getAccessoryList();
+		
+		if(a != null){
+			
+			accessory = a[0];
 
 			if(usbManager.hasPermission(accessory)){
 				connection = getConnectionFromAccessory(accessory);
@@ -187,8 +192,9 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 				UsbInterface[] interfaces = getInterfaces(remote, interfaceIds);
 				UsbEndpoint[] points = getEndpoints(interfaces, endpointAddresses);
 				UsbDeviceConnection usbConnection = usbManager.openDevice(remote);
-				connection = new UsbHostConnection(context, interfaces[0], 
-						usbConnection, points[0], points[0]);
+				// TODO: make this stuff streams
+				//connection = new UsbHostConnection(context, interfaces[0], 
+				//		usbConnection, points[0], points[0]);
 				
 			} else {
 				usbManager.requestPermission(remote, 
@@ -245,11 +251,6 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		return isServer;
 	}
 
-	
-	@Override
-	public boolean isClientLink() {
-		return !isServer;
-	}
 
 	
 	/**
@@ -278,6 +279,9 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	}
 	
 	
+	// TODO: (MUY IMPORTANTE' ==>) look into ServerSocket and InetAddress
+	
+	
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -292,6 +296,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 			broadcastManager.sendBroadcast(ui);
 			
 			this.accessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
+			
+			
 			
 		} else if(action.equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)){
 			
@@ -312,18 +318,24 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 				Log.d(TAG, "received USB device is null, no action performed");
 			}
 			
+			
+			
 		} else if(action.equals(UsbManager.ACTION_USB_ACCESSORY_DETACHED)){
 		
 			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
 			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "accessory detached");
 			broadcastManager.sendBroadcast(ui);
 		
+			
+			
 		} else if(action.equals(UsbManager.ACTION_USB_DEVICE_DETACHED)) {
 			
 			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
 			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "device detached");
 			broadcastManager.sendBroadcast(ui);
 		
+			
+			
 		} else if(action.equals(USB_DEVICE_REQUEST)){
 			
 			boolean success = intent.getBooleanExtra (UsbManager.EXTRA_PERMISSION_GRANTED, false);
@@ -334,6 +346,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 			} else {
 				// TODO: alert user that app cannot run without connection
 			}
+			
+			
 			
 		} else if(action.equals(USB_ACCESSORY_REQUEST)){
 			
@@ -456,6 +470,12 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		} // end interface for-loop
 		
 		return interfaces;
+	}
+
+
+	@Override
+	public Context getContext() {
+		return context;
 	}
 	
 }
