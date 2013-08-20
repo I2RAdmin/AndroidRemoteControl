@@ -12,7 +12,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
@@ -43,7 +42,6 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	private UsbDevice device;
 	private IntentFilter usbFilter;
 	private boolean isServer, listeningForConnection;
-	private int[] endpointAddresses, interfaceIds;
 	
 	/**
 	 * Create a UsbLink where this device is the UsbAccessory.<br>
@@ -57,8 +55,6 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		this.usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
 		this.broadcastManager = LocalBroadcastManager.getInstance(context);
 		this.isServer = isServer;
-		this.endpointAddresses = null;
-		this.interfaceIds = null;
 		this.context = context;
 		this.usbFilter = new IntentFilter();
 		usbFilter.addAction(UsbManager.ACTION_USB_ACCESSORY_ATTACHED);
@@ -93,8 +89,6 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		
 		this.usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
 		this.isServer = false;
-		this.endpointAddresses = endpointAddresses;
-		this.interfaceIds = interfaceIds;
 		this.context = context;
 		this.usbFilter = new IntentFilter();
 		usbFilter.addAction(UsbManager.ACTION_USB_ACCESSORY_ATTACHED);
@@ -189,10 +183,10 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		if(isCorrectDevice(remote)){
 			if(usbManager.hasPermission(remote)){
 				
-				UsbInterface[] interfaces = getInterfaces(remote, interfaceIds);
-				UsbEndpoint[] points = getEndpoints(interfaces, endpointAddresses);
-				UsbDeviceConnection usbConnection = usbManager.openDevice(remote);
-				// TODO: make this stuff streams
+//				UsbInterface[] interfaces = getInterfaces(remote, interfaceIds);
+//				UsbEndpoint[] points = getEndpoints(interfaces, endpointAddresses);
+//				UsbDeviceConnection usbConnection = usbManager.openDevice(remote);
+				
 				//connection = new UsbHostConnection(context, interfaces[0], 
 				//		usbConnection, points[0], points[0]);
 				

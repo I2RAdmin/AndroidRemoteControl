@@ -273,8 +273,8 @@ public final class SupportedFeatures {
 		
 		
 		public static final String[] POWER_REQUIREMENTS = {
-			"-power-requirement-none", "-power-requirement-low",
-			"-power-requirement-medium", "-power-requirement-high"
+			"power-requirement-none", "power-requirement-low",
+			"power-requirement-medium", "power-requirement-high"
 		};
 		
 		

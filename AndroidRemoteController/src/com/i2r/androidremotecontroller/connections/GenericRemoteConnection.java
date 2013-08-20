@@ -69,29 +69,26 @@ public class GenericRemoteConnection implements RemoteConnection {
 					manager.sendBroadcast(intent);
 				}
 			} catch(IOException e){
-				connected = false;
 				Log.d(TAG, "connection closed by remote device");
-				Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
-				intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, 
-						"connection closed by remote device, listening for connection...");
-				manager.sendBroadcast(intent);
+				returnToMain();
 			}
 		}
 	}
 
 	@Override
-	public void write(byte[] bytes) {
+	public synchronized void write(byte[] bytes) {
 		if(output != null){
 			try{
 				output.write(bytes);
 				Log.d(TAG, "successfully wrote bytes to stream - " + bytes.length);
 			} catch (IOException e){
 				Log.e(TAG, "error writing bytes to stream - " + bytes.length);
-				e.printStackTrace();
+				returnToMain();
 			}
 		}
 	}
 
+	
 	@Override
 	public boolean isConnected() {
 		return connected;
@@ -105,5 +102,19 @@ public class GenericRemoteConnection implements RemoteConnection {
 		if(output != null){try{output.flush(); output.close();}catch(IOException e){}}
 	}
 
+	
+	/**
+	 * Helper method for notifying the
+	 * main activity that this connection
+	 * is no longer valid.
+	 */
+	private void returnToMain(){
+		Log.d(TAG, "connection closed by remote device");
+		Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
+		intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, 
+				"connection closed by remote device, listening for connection...");
+		this.connected = false;
+		manager.sendBroadcast(intent);
+	}
 	
 }

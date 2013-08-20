@@ -1,5 +1,6 @@
 package com.i2r.androidremotecontroller.main;
 
+import ARC.Constants;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -19,6 +20,7 @@ import android.widget.Toast;
 
 import com.i2r.androidremotecontroller.R;
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
+import com.i2r.androidremotecontroller.sensors.SensorDurationHandler;
 
 /**
  * This class acts as a base starter for remote control of an android device.
@@ -189,6 +191,7 @@ public class RemoteControlActivity extends Activity {
 				action.setText("listening for connection to remote device...");
 				Log.d(TAG, "remote control started");
 				master.start();
+				startPing(30000);
 			}
 
 			// goes back to main activity if connectionType parameter was not
@@ -235,5 +238,40 @@ public class RemoteControlActivity extends Activity {
 		action.setText("remote control stopped, finishing...");
 		finish();
 	}
+	
+	
+	/**
+	 * Used to periodically test the connection for
+	 * validity, since there are some cases in
+	 * which the connection does not close properly.
+	 */
+	private synchronized void startPing(final int duration){
+		new Thread(new Runnable(){ public void run(){
+			
+			SensorDurationHandler handler = new SensorDurationHandler();
+			handler.setMax(duration).start();
+			
+			while(started){
+				if(handler.maxReached()){
+					boolean connected = ResponsePacket.getNotificationPacket(0, 
+							Constants.Notifications.PROXIMITY_UPDATE)
+							.send(master.getConnection());
+					
+					if(!connected){
+						master.initializeConnection();
+					}
+					
+					handler.start();
+				} else {
+					try{
+						Thread.sleep(duration);
+					} catch (InterruptedException e){}
+				}
+			}
+			
+		}}, "ARC-ping-thread").start();
+	}
+	
+	
 
 }// end of SelectorActivity class
