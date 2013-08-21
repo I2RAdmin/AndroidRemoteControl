@@ -12,8 +12,8 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.i2r.androidremotecontroller.main.ResponsePacket;
-import com.i2r.androidremotecontroller.main.SupportedFeatures;
-import com.i2r.androidremotecontroller.main.SupportedFeatures.CameraKeys;
+import com.i2r.androidremotecontroller.supported_features.CameraFeatureSet;
+import com.i2r.androidremotecontroller.supported_features.FormatExchanger;
 
 /**
  * This class models a camera sensor that responds to commands
@@ -95,7 +95,7 @@ public class CameraSensor extends GenericDeviceSensor {
 		setTaskID(taskID);
 		
 		if(params != null){
-			modify(SupportedFeatures.CameraKeys.PICTURE_AMOUNT, 
+			modify(CameraFeatureSet.PICTURE_AMOUNT, 
 					params[Constants.Args.AMOUNT_INDEX]);
 			
 			getDuration(Constants.Args.FREQUENCY_INDEX)
@@ -127,18 +127,18 @@ public class CameraSensor extends GenericDeviceSensor {
 	@Override
 	public void updateSensorProperties(int taskID){
 		
-		int result = SupportedFeatures.exchange(
-				CameraKeys.PICTURE_FORMAT, getProperty(CameraKeys.PICTURE_FORMAT));
+		int result = FormatExchanger.exchange(
+				CameraFeatureSet.PICTURE_FORMAT, getProperty(CameraFeatureSet.PICTURE_FORMAT));
 		
 		if(result != Constants.Args.ARG_NONE){
-			modify(CameraKeys.PICTURE_FORMAT, result);
+			modify(CameraFeatureSet.PICTURE_FORMAT, result);
 		}
 		
-		result = SupportedFeatures.exchange(
-				CameraKeys.PREVIEW_FORMAT, getProperty(CameraKeys.PREVIEW_FORMAT));
+		result = FormatExchanger.exchange(
+				CameraFeatureSet.PREVIEW_FORMAT, getProperty(CameraFeatureSet.PREVIEW_FORMAT));
 		
 		if(result != Constants.Args.ARG_NONE){
-			modify(CameraKeys.PREVIEW_FORMAT, result);
+			modify(CameraFeatureSet.PREVIEW_FORMAT, result);
 		}
 		
 		if(camera != null){
@@ -245,7 +245,7 @@ public class CameraSensor extends GenericDeviceSensor {
 	 * value, this returns false.
 	 */
 	private boolean validPictureCount(){
-		int count = getIntProperty(SupportedFeatures.CameraKeys.PICTURE_AMOUNT);
+		int count = getIntProperty(CameraFeatureSet.PICTURE_AMOUNT);
 		return count == Constants.Args.ARG_NONE || pictureCount < count;
 	}
 	

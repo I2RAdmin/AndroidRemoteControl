@@ -544,6 +544,7 @@ public class ResponsePacket {
 		if (packet != null && packet.isValid() && connection != null && connection.isConnected()) {
 			result = encodePacket(packet, Constants.Delimiters.PACKET_DELIMITER);
 			if (result != null) {
+				//Log.d(TAG, "response:\n" + packet.toStringWithData());
 				connection.write(result);
 			} else {
 				Log.e(TAG, "could not send response because encodedPacket returned null");

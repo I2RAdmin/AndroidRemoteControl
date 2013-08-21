@@ -11,8 +11,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
-import com.i2r.androidremotecontroller.main.SupportedFeatures;
-import com.i2r.androidremotecontroller.main.SupportedFeatures.EnvironmentKeys;
+import com.i2r.androidremotecontroller.supported_features.EnvironmentFeatureSet;
+import com.i2r.androidremotecontroller.supported_features.FormatExchanger;
 
 
 /**
@@ -129,8 +129,8 @@ public class EnvironmentSensorPool extends
 		for(Sensor sensor : sensors){
 			
 			String sensorName = sensor.getName();
-			int result = SupportedFeatures.exchange(
-					EnvironmentKeys.UPDATE_SPEED, getProperty(sensorName));
+			int result = FormatExchanger.exchange(
+					EnvironmentFeatureSet.UPDATE_SPEED, getProperty(sensorName));
 			
 			if(result != Constants.Args.ARG_NONE){
 				Log.d(TAG, "modifying " + sensorName + "with value: " + result);

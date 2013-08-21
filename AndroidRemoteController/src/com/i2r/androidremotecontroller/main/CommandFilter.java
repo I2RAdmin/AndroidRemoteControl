@@ -20,6 +20,10 @@ import com.i2r.androidremotecontroller.sensors.EnvironmentSensorPool;
 import com.i2r.androidremotecontroller.sensors.GenericDeviceSensor;
 import com.i2r.androidremotecontroller.sensors.LocationSensor;
 import com.i2r.androidremotecontroller.sensors.MicrophoneSensor;
+import com.i2r.androidremotecontroller.supported_features.CameraFeatureSet;
+import com.i2r.androidremotecontroller.supported_features.EnvironmentFeatureSet;
+import com.i2r.androidremotecontroller.supported_features.LocationFeatureSet;
+import com.i2r.androidremotecontroller.supported_features.MicrophoneFeatureSet;
 
 
 /**
@@ -383,24 +387,26 @@ public class CommandFilter {
 				
 				case Constants.Sensors.CAMERA:
 					sendFeatures(packet.getTaskID(), features[i], 
-							SupportedFeatures.getCameraFeatures(camera));
+							new CameraFeatureSet(camera).encode());
 					break;
 					
 				case Constants.Sensors.MICROPHONE:
 					sendFeatures(packet.getTaskID(), features[i],
-							SupportedFeatures.getMicrophoneFeatures());
+							MicrophoneFeatureSet.FEATURES);
 					break;
 					
 				case Constants.Sensors.ENVIRONMENT_SENSORS:
+					SensorManager manager = (SensorManager)
+							activity.getSystemService(Context.SENSOR_SERVICE);
 					sendFeatures(packet.getTaskID(), features[i],
-							SupportedFeatures.getEnvironmentSensorFeatures((SensorManager)
-								activity.getSystemService(Context.SENSOR_SERVICE)));
+							new EnvironmentFeatureSet(manager).encode());
 					break;
 					
 				case Constants.Sensors.GPS:
+					LocationManager lManager = (LocationManager)
+							activity.getSystemService(Context.LOCATION_SERVICE);
 					sendFeatures(packet.getTaskID(), features[i],
-							SupportedFeatures.getLocationSupportedFeatures((LocationManager)
-									activity.getSystemService(Context.LOCATION_SERVICE)));
+							new LocationFeatureSet(lManager).encode());
 					break;
 					
 					

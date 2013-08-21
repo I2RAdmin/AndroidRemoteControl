@@ -94,9 +94,6 @@ public final class Constants {
 		 */
 		public static final int KILL_EVERYTHING = -1;
 		
-			
-		// TODO: tell jonathan that i did a stunt and he's gonna hate me
-		
 		/**
 		 * Expected arguments following this command header:<br>
 		 * int - maximum amount of pictures to be taken<br>
@@ -191,7 +188,7 @@ public final class Constants {
 		/**
 		 * argument specifying that a parameter has no value
 		 */
-		public static final String ARG_STRING_NONE = "-1";
+		public static final String ARG_STRING_NONE = "none";
 		
 		/**
 		 * argument to keep the specified parameter at

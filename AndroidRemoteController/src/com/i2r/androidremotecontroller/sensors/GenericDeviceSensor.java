@@ -21,7 +21,7 @@ import com.i2r.androidremotecontroller.connections.RemoteConnection;
 import com.i2r.androidremotecontroller.main.CommandFilter;
 import com.i2r.androidremotecontroller.main.RemoteControlActivity;
 import com.i2r.androidremotecontroller.main.ResponsePacket;
-import com.i2r.androidremotecontroller.main.SupportedFeatures;
+import com.i2r.androidremotecontroller.supported_features.FeatureSet;
 
 /**
  * This abstract class models the implementation needed for a piece of hardware
@@ -438,8 +438,8 @@ public abstract class GenericDeviceSensor {
 	 * remote device directly
 	 */
 	public boolean saveResultDataToFile(){
-		String result = properties.get(SupportedFeatures.KEY_SAVE_TO_SD);
-		return result != null && result.equals(SupportedFeatures.TRUE);
+		String result = properties.get(FeatureSet.KEY_SAVE_TO_SD);
+		return result != null && result.equals(FeatureSet.TRUE);
 	}
 	
 	/**
@@ -450,8 +450,8 @@ public abstract class GenericDeviceSensor {
 	 * properties to true, false otherwise
 	 */
 	public boolean continueOnConnectionLost(){
-		String result = properties.get(SupportedFeatures.KEY_CONTINUE_ON_CONNECTION_LOST);
-		return result != null && result.equals(SupportedFeatures.TRUE);
+		String result = properties.get(FeatureSet.KEY_CONTINUE_ON_CONNECTION_LOST);
+		return result != null && result.equals(FeatureSet.TRUE);
 	}
 	
 	

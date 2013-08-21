@@ -7,8 +7,8 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder.AudioSource;
 import android.util.Log;
 
-import com.i2r.androidremotecontroller.main.SupportedFeatures;
-import com.i2r.androidremotecontroller.main.SupportedFeatures.AudioKeys;
+import com.i2r.androidremotecontroller.supported_features.FormatExchanger;
+import com.i2r.androidremotecontroller.supported_features.MicrophoneFeatureSet;
 
 
 /**
@@ -119,30 +119,30 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 	@Override
 	public void updateSensorProperties(int taskID) {
 		
-		int result = SupportedFeatures.exchange(
-				AudioKeys.ENCODING, getProperty(AudioKeys.ENCODING));
+		int result = FormatExchanger.exchange(
+				MicrophoneFeatureSet.ENCODING, getProperty(MicrophoneFeatureSet.ENCODING));
 				
 		if(result != Constants.Args.ARG_NONE){
 			Log.d(TAG, "modifying encoding");
-			modify(AudioKeys.ENCODING, result);
+			modify(MicrophoneFeatureSet.ENCODING, result);
 			
 		} 
 		
-		result = SupportedFeatures.exchange(
-				AudioKeys.CHANNEL, getProperty(AudioKeys.CHANNEL));
+		result = FormatExchanger.exchange(
+				MicrophoneFeatureSet.CHANNEL, getProperty(MicrophoneFeatureSet.CHANNEL));
 		
 		if(result != Constants.Args.ARG_NONE){
 			Log.d(TAG, "modifying channel");
-			modify(AudioKeys.CHANNEL, result);
+			modify(MicrophoneFeatureSet.CHANNEL, result);
 			
 		} 
 		
-		result = SupportedFeatures.exchange(
-				AudioKeys.SOURCE, getProperty(AudioKeys.SOURCE));
+		result = FormatExchanger.exchange(
+				MicrophoneFeatureSet.SOURCE, getProperty(MicrophoneFeatureSet.SOURCE));
 		
 		if(result != Constants.Args.ARG_NONE){
 			Log.d(TAG, "modifying source");
-			modify(AudioKeys.SOURCE, result);
+			modify(MicrophoneFeatureSet.SOURCE, result);
 		}
 	}
 
@@ -158,13 +158,13 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 			
 			// 44100 supported by all devices
 			int sampleRate = getIntProperty(
-					AudioKeys.SAMPLING_RATE, 44100);
+					MicrophoneFeatureSet.SAMPLING_RATE, 44100);
 			int audioSource = getIntProperty(
-					AudioKeys.SOURCE, AudioSource.DEFAULT);
+					MicrophoneFeatureSet.SOURCE, AudioSource.DEFAULT);
 			int channel = getIntProperty(
-					AudioKeys.CHANNEL, AudioFormat.CHANNEL_IN_MONO);
+					MicrophoneFeatureSet.CHANNEL, AudioFormat.CHANNEL_IN_MONO);
 			int audioFormat = getIntProperty(
-					AudioKeys.ENCODING, AudioFormat.ENCODING_PCM_16BIT);
+					MicrophoneFeatureSet.ENCODING, AudioFormat.ENCODING_PCM_16BIT);
 			
 			int bufferSizeInBytes = AudioRecord.getMinBufferSize(
 					sampleRate, channel, audioFormat) * 3;

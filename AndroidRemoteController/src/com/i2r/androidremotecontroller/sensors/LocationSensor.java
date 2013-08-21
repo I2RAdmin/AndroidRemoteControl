@@ -15,7 +15,7 @@ import android.util.Log;
 import android.util.StringBuilderPrinter;
 
 import com.i2r.androidremotecontroller.main.ResponsePacket;
-import com.i2r.androidremotecontroller.main.SupportedFeatures.LocationKeys;
+import com.i2r.androidremotecontroller.supported_features.LocationFeatureSet;
 
 /**
  * This class models a GPS sensor that can be queried for
@@ -89,7 +89,7 @@ public class LocationSensor extends GenericDeviceSensor implements LocationListe
 		if(args != null){
 			
 			getDuration(0).setMax(args[0]).start();
-			String provider = getProperty(LocationKeys.PROVIDER);
+			String provider = getProperty(LocationFeatureSet.PROVIDER);
 			
 			try{
 				if(getDuration(0).hasMax()){
@@ -129,11 +129,11 @@ public class LocationSensor extends GenericDeviceSensor implements LocationListe
 
 		setTaskID(taskID);
 		
-		if(getBooleanProperty(LocationKeys.PROXIMITY_ALERT)){
-			double latitude = getDoubleProperty(LocationKeys.PROXIMITY_ALERT_LATITUDE);
-			double longitude = getDoubleProperty(LocationKeys.PROXIMITY_ALERT_LONGITUDE);
-			float radius = (float) getDoubleProperty(LocationKeys.PROXIMITY_ALERT_RADIUS);
-			int expiration = getIntProperty(LocationKeys.PROXIMITY_ALERT_EXPIRATION);
+		if(getBooleanProperty(LocationFeatureSet.PROXIMITY_ALERT)){
+			double latitude = getDoubleProperty(LocationFeatureSet.PROXIMITY_ALERT_LATITUDE);
+			double longitude = getDoubleProperty(LocationFeatureSet.PROXIMITY_ALERT_LONGITUDE);
+			float radius = (float) getDoubleProperty(LocationFeatureSet.PROXIMITY_ALERT_RADIUS);
+			int expiration = getIntProperty(LocationFeatureSet.PROXIMITY_ALERT_EXPIRATION);
 			
 			if(latitude != Constants.Args.ARG_DOUBLE_NONE 
 					&& longitude != Constants.Args.ARG_DOUBLE_NONE
