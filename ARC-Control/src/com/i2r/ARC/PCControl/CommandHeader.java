@@ -12,17 +12,19 @@ import java.util.Map;
  *
  */
 public enum CommandHeader {
-	DO_NOTHING(-2, ""),
+	DO_NOTHING(-2, "ping"),
 	KILL_ALL(-1, "nuke"),
 	KILL_TASK(-3, "kill"),
 	MODIFY_SENSOR(-4, "modify"),
 	TAKE_PICTURE(0, "picture"),
 	RECORD_AUDIO(1, "record"),
 	LISTEN_ENVIRONMENT(2, "sense"),
+	GET_LOCATION(3, "locate"),
 	GET_SENSOR_FEATURES(-5, "features"),
 	LIST_DEVICE_SENSORS(-10, "sensors"),
 	LIST_DEVICES(-11, "devices"),
 	PAUSE(-12, "pause"),
+	CONNECT(-13, "connect"),
 	HELP(-15, "help");
 	
 	private static final Map<Integer, CommandHeader> headerType = new HashMap<Integer, CommandHeader>();
@@ -31,9 +33,6 @@ public enum CommandHeader {
 	static{
 		for(CommandHeader h : EnumSet.allOf(CommandHeader.class)){
 			headerType.put(h.getType(), h);
-		}
-		
-		for(CommandHeader h : EnumSet.allOf(CommandHeader.class)){
 			headerAlias.put(h.getAlias(), h);
 		}
 	}

@@ -25,9 +25,6 @@ public enum DataType {
 	static{
 		for(DataType t : EnumSet.allOf(DataType.class)){
 			dataType.put(t.getType(), t);
-		}
-		
-		for(DataType t : EnumSet.allOf(DataType.class)){
 			dataAlias.put(t.getAlias(), t);
 		}
 	}

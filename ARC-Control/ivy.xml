@@ -29,5 +29,6 @@
         <dependency org="commons-lang" name="commons-lang" rev="2.6" />
         <dependency org="log4j" name="log4j" rev="1.2.17" />
         <dependency org="net.sf.bluecove" name="bluecove" rev="2.1.1-SNAPSHOT" />
+        <dependency org="nrjavaserial" name="nrjavaserial" rev="3.8.8" />
     </dependencies>
 </ivy-module>

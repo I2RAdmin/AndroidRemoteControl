@@ -23,9 +23,6 @@ public enum Limiter {
 	static{
 		for(Limiter l : EnumSet.allOf(Limiter.class)){
 			limiterType.put(l.getType(), l);
-		}
-		
-		for(Limiter l : EnumSet.allOf(Limiter.class)){
 			limiterAlias.put(l.getAlias(), l);
 		}
 	}

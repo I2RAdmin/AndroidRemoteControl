@@ -85,9 +85,9 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 			//write data out to the remote connection
 			dataOut.write(dataByes);
 		} catch (IOException e) {
-			//something bad as happened, socket could have been closed (EOF Exception)
 			logger.error(e.getMessage(), e);
-			e.printStackTrace();
+			//lost connection somehow, shit shit shit...
+			dev.reconnect();
 		}
 	}
 	
@@ -174,9 +174,8 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 					}
 				}
 			} catch (IOException e) {
-				//some error has occured.  Hopefully, its an EOF exception (socket closed)
+				//some error has occured.
 				logger.error(e.getMessage(), e);
-				e.printStackTrace();
 			}
 		}
 	}

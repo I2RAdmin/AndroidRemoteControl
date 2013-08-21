@@ -39,12 +39,14 @@ public class ARCCommand {
 	private static final String[] DEFAULT_TAKE_PICTURE_ARGUMENTS = {NO_ARGUMENT, NO_ARGUMENT, PICTURE_AMMOUNT_DEFAULT};
 	private static final String[] DEFAULT_SUPPORTED_FEATURES = {NO_ARGUMENT};
 	private static final String[] DEFAULT_MODIFY_SENSOR_ARGUMENTS = {NO_ARGUMENT};
-
+	private static final String[] DEFAULT_LISTEN_ENVIRONMENT_ARGUMENTS = {NO_ARGUMENT};
+	private static final String[] DEFAULT_GET_LOCATION_ARGUMENTS = {NO_ARGUMENT};
+	
 	private static final String[] DEFAULT_LIST_DEVICES_ARGUMENTS = {};
 	private static final String[] DEFAULT_HELP_ARGUMENTS = {};
 	private static final String[] DEFAULT_LIST_DEVICE_SENSORS = {NO_ARGUMENT};
 	private static final String[] DEFAULT_PAUSE_ARGUMENTS = {};
-	private static final String[] DEFAULT_LISTEN_ENVIRONMENT_ARGUMENTS = {NO_ARGUMENT};
+	private static final String[] DEFAULT_CONNECT_ARGUMENTS = {NO_ARGUMENT};
 	
 	public static final int KILL_TASK_INDEX = 0;
 	
@@ -65,6 +67,7 @@ public class ARCCommand {
 		case LIST_DEVICES:
 		case HELP:
 		case PAUSE:
+		case CONNECT:
 			this.header = header;
 			this.arguments = defaultArguments(header);
 			break;
@@ -79,6 +82,7 @@ public class ARCCommand {
 		case LIST_DEVICE_SENSORS:
 		case HELP:
 		case PAUSE:
+		case CONNECT:
 			this.header = header;
 			this.arguments = checkArgumentsAgainstController(header, arguments);
 			logger.debug("ARCCommand has " + arguments.size() + " args");
@@ -99,9 +103,24 @@ public class ARCCommand {
 			return checkHelpArguments(arguments);
 		case PAUSE:
 			return checkPauseArguments(arguments);
+		case CONNECT:
+			return checkConnectArguments(arguments);
 		default:
 			throw new UnsupportedValueException("Supplied Command header " + header.getAlias() + " was invalid.");
 		}
+	}
+
+	private List<String> checkConnectArguments(List<String> arguments) throws UnsupportedValueException {
+		if(arguments.size() != 1){
+			throw new UnsupportedValueException("Incorrect number of arguments.");
+		}
+		
+		Controller cntrl = Controller.getInstance();
+		if(Integer.parseInt(arguments.get(0)) > cntrl.devices.size()){
+			throw new UnsupportedValueException("Remote Client does not exist.");
+		}
+		
+		return arguments;
 	}
 
 	private List<String> checkPauseArguments(List<String> arguments) throws UnsupportedValueException {
@@ -182,6 +201,7 @@ public class ARCCommand {
 		case MODIFY_SENSOR:
 		case RECORD_AUDIO:
 		case LISTEN_ENVIRONMENT:
+		case GET_LOCATION:
 			//if the header was the no command header, the kill header, or the take pictures header
 			//set the class header to the supplied header
 			this.header = header;
@@ -219,6 +239,8 @@ public class ARCCommand {
 		case RECORD_AUDIO:
 			//return the default record audio command
 			return Arrays.asList(DEFAULT_RECORD_AUDIO_ARGUMENTS);
+		case GET_LOCATION:
+			return Arrays.asList(DEFAULT_GET_LOCATION_ARGUMENTS);
 		case GET_SENSOR_FEATURES:
 			return Arrays.asList(DEFAULT_SUPPORTED_FEATURES);
 		case MODIFY_SENSOR:
@@ -233,6 +255,8 @@ public class ARCCommand {
 			return Arrays.asList(DEFAULT_HELP_ARGUMENTS);
 		case PAUSE:
 			return Arrays.asList(DEFAULT_PAUSE_ARGUMENTS);
+		case CONNECT:
+			return Arrays.asList(DEFAULT_CONNECT_ARGUMENTS);
 		default:
 			throw new UnsupportedValueException("Supplied command header " + header.getAlias() + " was invalid.");
 		}
@@ -282,6 +306,7 @@ public class ARCCommand {
 		case MODIFY_SENSOR:
 		case RECORD_AUDIO:
 		case LISTEN_ENVIRONMENT:
+		case GET_LOCATION:
 			//set the header to the provided header
 			this.header = header;
 			this.arguments = checkAgainstDevice(header, arguments);
@@ -331,12 +356,35 @@ public class ARCCommand {
 				throw new UnsupportedValueException(Sensor.ENVIRONMENT.getAlias() + " is unsupported.");
 			}
 			return checkListenEnvironmentArgs(arguments);
+		case GET_LOCATION:
+			if(!dev.supportedSensors.containsKey(Sensor.LOCATION)){
+				throw new UnsupportedValueException(Sensor.LOCATION.getAlias() + " is unsupported.");
+			}
+			return checkGetLocationArgs(arguments);
 		default:
 			throw new UnsupportedValueException("The supplied header " + header.getAlias() + " was invalid.");
 		}
 	}
 
 	
+	private List<String> checkGetLocationArgs(List<String> arguments) throws UnsupportedValueException {
+		if(arguments.size() < 1){
+			throw new UnsupportedValueException("Incorrect number of arguments.");
+		}else if(arguments.size() == 1){
+			return defaultArguments(CommandHeader.GET_LOCATION);
+		}else if(arguments.size() == 3){
+			for(String arg : arguments){
+				int value = Integer.parseInt(arg);
+				if(value < 1){
+					throw new UnsupportedValueException("Invalid argument");
+				}
+			}
+			return arguments;
+		}else{
+			throw new UnsupportedValueException("Incorrect number of arguments.");
+		}
+	}
+
 	private List<String> checkListenEnvironmentArgs(List<String> arguments) throws UnsupportedValueException {
 		if(arguments.size() < 1){
 			throw new UnsupportedValueException("Incorrect number of arguments.");
@@ -367,6 +415,7 @@ public class ARCCommand {
 				}
 				break;
 			case ENVIRONMENT:
+			case LOCATION:
 				int j = 0;
 				while(j < subArgs.size()){
 					String key = subArgs.get(j);

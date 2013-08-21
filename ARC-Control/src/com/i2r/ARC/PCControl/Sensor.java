@@ -30,7 +30,12 @@ public enum Sensor {
 	 * The passive sensor collection.  The Environment sensors are everything from the gyroscopes to the accelerometer, to the
 	 * temperature sensor
 	 */
-	ENVIRONMENT(12, "Environment");
+	ENVIRONMENT(12, "Environment"),
+	
+	/*
+	 * The passive location sensor.  As of the time of coding, was pretty much either a GPS or a network sensor
+	 */
+	LOCATION(15, "Location");
 	
 	/**
 	 * The internal map used to map the <code>integer</code> type to a particular sensor constant
@@ -89,18 +94,36 @@ public enum Sensor {
 		return alias;
 	}
 	
-	
+	/**
+	 * Get the Sensor constant from an {@link Integer} code
+	 * @param type the code to use to get a Sensor Constant
+	 * @return the sensor constant
+	 * @throws UnsupportedValueException if the code provided is not valid
+	 */
 	public static Sensor get(Integer type) throws UnsupportedValueException{
+		//if the provided sensor code is not a key in the sensor code map
 		if(!sensorType.containsKey(type)){
+			//throw an exception
 			throw new UnsupportedValueException(type + " is not a valid sensor.");
 		}
+		//return the sensor constant mapped to the passed in integer
 		return sensorType.get(type);
 	}
 	
+	/**
+	 * Get the sensor constant from a <code>String</code> human readable name
+	 * 
+	 * @param alias the human readable name to use to get a Sensor constant
+	 * @return the sensor constant associated with this human readable name
+	 * @throws UnsupportedValueException
+	 */
 	public static Sensor get(String alias) throws UnsupportedValueException{
+		//if the provided sensor name is not a key in the sensor name map
 		if(!sensorAlias.containsKey(alias)){
+			//throw an exception
 			throw new UnsupportedValueException(alias + " is not a valid sensor.");
 		}
+		//return the sensor constant mapped to the passed in sensor name
 		return sensorAlias.get(alias);
 	}
 }

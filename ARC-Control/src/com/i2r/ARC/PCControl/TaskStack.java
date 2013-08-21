@@ -3,22 +3,22 @@
  */
 package com.i2r.ARC.PCControl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
 /**
  * This class abstracts the data structure for {@link Task}s.  It's not actually a stack.
- * The data strcutre is a map, which maps a {@link Integer} to a {@link Task}.  The <code>Integer</code> key is the task ID,
+ * The data structure is a map, which maps a {@link Integer} to a {@link Task}.  The <code>Integer</code> key is the task ID,
  * the unique identifier for that task.
  * <p>
- * The addition algorithm tries to use low numbers first.  Starting at 0, the code incramets by one until it finds a number not
- * currently be using as a task ID.  This becomes the task ID of the current task to add, and it is inserted into the map.
+ *.Task ID's are randomly generated from {@link Integer#MIN_VALUE} to {@link Integer#MAX_VALUE}.
  * <p>
- * The obvious result from this is that there may be many tasks that have task ID 0 (or 1, or 345), however, there will never be
- * two task 0's at the same time.
+ * The obvious result from this is that there may be many tasks that have task ID 0 (it's rare, but possible), however, there 
+ * will never be two task 0's at the same time.
  * <p>
  * In addition, the accessing methods to the task stack are synchronized so that multiple threads will not ruin the Task Stack
  * 
@@ -36,14 +36,18 @@ public class TaskStack {
 	 * The {@link Map} of {@link Integer}s to {@link Task}s.  The <code>Integer</code>s are the task ID's for the {@link Task}s that
 	 * are mapped to that key.  The elements in the {@link Map} are the currently pending tasks.
 	 */
-	private HashMap<Integer, Task> taskMap;
+	private Map<Integer, Task> taskMap;
+	
+	Random rand;
 	
 	/**
 	 * Constructor
 	 */
 	public TaskStack(){
 		//create a new HashMap for for the taskMap
-		taskMap = new HashMap<Integer, Task>();
+		taskMap = new ConcurrentHashMap<Integer, Task>();
+		
+		rand = new Random();
 	}
 	
 	/**
@@ -56,13 +60,14 @@ public class TaskStack {
 	public synchronized Task createTask(ARCCommand newCommand){
 		//get a set of the current integers in the task map
 		Set<Integer> taskIDSet = taskMap.keySet();
-		//start the count at 0
-		int newId = 0;
+		
+		//get a random number for the task ID
+		int newId = rand.nextInt(Integer.MAX_VALUE);
 		
 		//while we already have a task mapped to a particular id
 		while(taskIDSet.contains(Integer.valueOf(newId))){
-			//check the next number
-			newId++;
+			//generate a new random number
+			newId = rand.nextInt(Integer.MAX_VALUE);
 		}
 		
 		//create a new task with the unique id
@@ -87,6 +92,8 @@ public class TaskStack {
 	 */
 	public synchronized void removeTask(int taskID){
 		logger.debug("Attempting to remove task " + taskID);
+		
+		//while(!processingTaskLock.compareAndSet(false, false));
 		
 		//if the task has been holding on to data...
 		if(taskMap.get(taskID).taskData != null){
@@ -168,9 +175,12 @@ public class TaskStack {
 	 * @return true if a task with that ID has been found, false if otherwise
 	 */
 	public boolean hasTask(Integer taskID) {
+		//if the task map has a task id that matches the one provided
 		if(taskMap.containsKey(taskID)){
+			//return true
 			return true;
 		}
+		//otherwise, return false
 		return false;
 	}
 }

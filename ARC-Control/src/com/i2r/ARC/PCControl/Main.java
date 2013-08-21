@@ -23,7 +23,7 @@ public class Main {
 		//initialize the logger
 		PropertyConfigurator.configure("log4j.properties");
 		
-		logger.debug("\nPROGRAM START\n");
+		logger.debug("\n\nPROGRAM START\n");
 		Controller cntrl = Controller.getInstance();
 		cntrl.initalize();
 		

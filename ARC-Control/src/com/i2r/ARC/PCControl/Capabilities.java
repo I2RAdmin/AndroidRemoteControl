@@ -57,6 +57,9 @@ public class Capabilities {
 	 */
 	public static final int ASCII_DOT = 46;
 	
+	/**
+	 * Constant defines the integer value of the ASCII -
+	 */
 	public static final int ASCII_DASH = 45;
 	/**
 	 * Constant defines the interger value of ASCII null
@@ -148,7 +151,7 @@ public class Capabilities {
 		//Get the data type for this feature
 		DataType type = featureDataTypes.get(key);
 		
-		//check to see if the value could be interpeted as the data type for this feature
+		//check to see if the value could be interpreted as the data type for this feature
 		if(!checkType(type, value)){
 			//it can't, log and throw an error
 			throw new UnsupportedValueException("Data for " + key + " was of the incorrect type (needed to be: " + type.getAlias() + ")");

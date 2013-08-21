@@ -17,13 +17,22 @@ import org.apache.log4j.Logger;
  */
 public class UnsupportedValueException extends Exception {
 
+	private static final long serialVersionUID = 1L;
+	
 	//logger
 	static final Logger logger = Logger.getLogger(UnsupportedValueException.class);
 	
+	/**
+	 * Create a new UnsuportedValueException with no provided message
+	 */
 	public UnsupportedValueException() {
 		super();
 	}
 	
+	/**
+	 * Create a new UnsupportedValueException with a provided message
+	 * @param message the message to display along with the exception thrown
+	 */
 	public UnsupportedValueException(String message){
 		super(message);
 	}

@@ -18,7 +18,6 @@ import com.i2r.ARC.PCControl.link.RemoteConnection;
  * correctly, I can treat like a wireless AP), the only actual work to do is to connect directly to the agreed upon IP address.
  * 
  * @author Johnathan Pagnutti
- * @deprecated
  */
 public class WifiConnection extends RemoteConnection<byte[]> {
 	Socket TCPSocket;
@@ -31,26 +30,30 @@ public class WifiConnection extends RemoteConnection<byte[]> {
 	 * Boom.
 	 * 
 	 * @param connectionURL 
+	 * @throws IOException 
+	 * @throws UnknownHostException 
 	 */
-	public WifiConnection(String connectionURL){
-		try {
-			TCPSocket = new Socket(connectionURL, 9999);
-			
-			dataIn = new DataInputStream(TCPSocket.getInputStream());
-			dataOut = new DataOutputStream(TCPSocket.getOutputStream());
-			
-		} catch (UnknownHostException e) {
-			logger.error(e.getMessage(), e);
-			e.printStackTrace();
-		} catch (IOException e) {
-			logger.error(e.getMessage(), e);
-			e.printStackTrace();
-		}
+	public WifiConnection(String connectionURL) throws UnknownHostException, IOException {
+		TCPSocket = new Socket(connectionURL, 9001);
+		
+		dataIn = new DataInputStream(TCPSocket.getInputStream());
+		dataOut = new DataOutputStream(TCPSocket.getOutputStream());	
+	}
+
+	public WifiConnection(Socket socket) throws IOException {
+		logger.debug("Connecting through passed socket.");
+		TCPSocket = socket;
+		
+		dataIn = new DataInputStream(TCPSocket.getInputStream());
+		dataOut = new DataOutputStream(TCPSocket.getOutputStream());
 	}
 
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
-		
+		try {
+			TCPSocket.close();
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+		}
 	}
 }

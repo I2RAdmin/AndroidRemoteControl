@@ -9,13 +9,14 @@ import java.util.List;
 import org.apache.log4j.Logger;
 
 /**
- * Object handles a {@link DataResponse} object and performs some action based on what fields in the {@link DataResponse} object have been
- * filled.  This is probably not the best idea ever. 
+ * Object handles a {@link DataResponse} object and performs some action based on what fields in the {@link DataResponse} object have 
+ * been filled.  {@link ResponseAction}s have references to the {@link RemoteClient} that started the task that returned a result we
+ * need to respond to, and the {@link Cotroller} so they can access the UI.
  * 
- * This object has a reference back to the singleton {@link Controller}, so that it can access the {@link TaskStack}, {@link Controller#tasks}.  
+ * There are several actions we keep track of.  The first one is saving recieved data to some sort of file.  Saving a file is set to 
+ * be its own thread created by the inner {@link SaveDataRunnable}, so that the system does not block on File I/O.
  * 
- * Saving a file is set to be its own thread created by the inner {@link SaveDataRunnable}, so that the system does not block on File I/O.
- * 
+ * The other main response is to populate the {@link Capabilities} map
  * @author Johnathan Pagnutti
  *
  */
@@ -51,6 +52,9 @@ public class ResponseAction {
 		this.response = dataResponse;
 		cntrl = Controller.getInstance();
 		this.dev = dev;
+		
+		logger.debug("Added: " + dataResponse.taskID + " to the pending task map.");
+		dev.responseMap.put(dev.deviceTasks.getTask(dataResponse.taskID), dataResponse);
 	}
 
 	/**
@@ -59,6 +63,8 @@ public class ResponseAction {
 	 * If the {@link DataResponse#type} is invalid, then don't do anything and log an error.
 	 */
 	public void performAction(){
+		//dev.deviceTasks.processingTaskLock.set(true);
+		
 		if(response.type == DataResponse.SAVE_FILE){
 			saveData();
 		}else if (response.type == DataResponse.STREAM){
@@ -66,65 +72,62 @@ public class ResponseAction {
 		}else if (response.type == DataResponse.REMOVE_TASK){
 			if(response.otherArgs.get(0).equals(DataResponse.TASK_ERRORED_ARGUMENT)){
 				cntrl.ui.write(response.taskID + " has errored out.");
-				if(response.otherArgs.size() > 1){
-					for(int i = 1; i < response.otherArgs.size(); i++){
-						cntrl.ui.write(response.otherArgs.get(i));
-					}
-				}
+				
 			}else if(response.otherArgs.get(0).equals(DataResponse.UNSUPPORTED_SENSOR)){
 				cntrl.ui.write(response.taskID + " asked for an unsupported sensor.");
 			}
+		
+			if(response.otherArgs.size() > 1){
+				for(int i = 1; i < response.otherArgs.size(); i++){
+					cntrl.ui.write(response.otherArgs.get(i));
+				}
+			}
 			
 			removeTask();
+		}else if (response.type == DataResponse.NOTIFY){
+			if(response.otherArgs.size() > 1){
+				for(int i = 1; i < response.otherArgs.size(); i++){
+					cntrl.ui.write(response.otherArgs.get(i));
+				}
+			}
 		}else if (response.type == DataResponse.CAMERA_ARGS){
 			setCameraArgs();
 		}else if (response.type == DataResponse.MICROPHONE_ARGS){
 			setMicArgs();
 		}else if (response.type == DataResponse.ENVIRONMENT_ARGS){
 			setEnvironmentArgs();
+		}else if (response.type == DataResponse.LOCATION_ARGS){
+			setLocationArgs();
 		}else{
 			logger.error("The type " + response.type + " is invalid.");
 		}
+		
+		logger.debug("Removed " + response.taskID + " from the pending tasks map.");
+		dev.responseMap.remove(response.taskID);
 	}
 	
 	private void setEnvironmentArgs() {
-		Thread t = new Thread(new SetArgumentsRunnable(Sensor.ENVIRONMENT, response));
-		t.start();
+		setSensorArguments(Sensor.ENVIRONMENT, response);
 	}
 
 	private void setMicArgs(){
-		Thread t = new Thread(new SetArgumentsRunnable(Sensor.MICROPHONE, response));
-		t.start();
+		setSensorArguments(Sensor.MICROPHONE, response);
 	}
 	
 	private void setCameraArgs() {
-		Thread t = new Thread(new SetArgumentsRunnable(Sensor.CAMERA, response));
-		t.start();
+		setSensorArguments(Sensor.CAMERA, response);
 	}
 
+	private void setLocationArgs(){
+		setSensorArguments(Sensor.LOCATION, response);
+	}
 	/**
 	 * The action that removes a task from the stack.  This action should be called when {@link ResponseAction#response} follows the form
 	 * of a {@link DataResponse} that would call for task removal.
 	 */
 	private void removeTask(){
 		logger.debug("Removing a task with ID " + response.taskID + " from the stack.");
-		
-		referencedTask = dev.deviceTasks.getTask(response.taskID);
-		
-		if(referencedTask != null){
-			cntrl.ui.write("Removing task " + response.taskID + " from the stack.");
-			
-			dev.deviceTasks.removeTask(referencedTask.getId());
-			cntrl.ui.write("Pending tasks:");
-			
-			if(dev.deviceTasks.tasksRemaining()){
-				cntrl.ui.write(dev.deviceTasks.logStackState());
-			}else{
-				cntrl.ui.write("none");
-			}
-		}else{
-			logger.error("Arrempted to remove a task with a reference to a task that was not on the stack.");
-		}
+		dev.removePendingTask(response.taskID);
 	}
 	
 	private void saveData(){
@@ -132,84 +135,79 @@ public class ResponseAction {
 		t.start();
 	}
 
-	/****************
-	 * INNER CLASSES
-	 ****************/
-	
-	private class SetArgumentsRunnable implements Runnable{
-
-		private DataResponse setArgumentResponse;
-		private Sensor sensor;
+	private void setSensorArguments(Sensor sensor, DataResponse setArgumentResponse){
+		logger.debug("Getting Sensor Args.");
+		String sensorName;
+		logger.debug("Device: " + dev.toString());
 		
-		public SetArgumentsRunnable(Sensor sensor, DataResponse response){
-			this.setArgumentResponse = response;
-			this.sensor = sensor;
+		switch(sensor){
+		case CAMERA:
+			sensorName = Sensor.CAMERA.getAlias();
+			break;
+		case MICROPHONE: 
+			sensorName = Sensor.MICROPHONE.getAlias();
+			break;
+		case ENVIRONMENT:
+			sensorName = Sensor.ENVIRONMENT.getAlias();
+			break;
+		case LOCATION:
+			sensorName = Sensor.LOCATION.getAlias();
+			break;
+		default:
+			cntrl.ui.write(sensor.getAlias() + " is not supported.");
+			return;
 		}
 		
-		@Override
-		public void run() {
-			logger.debug("Getting Sensor Args.");
-			String sensorName;
-			logger.debug("Device: " + dev.toString());
+		cntrl.ui.write("Getting " + sensorName + " settings.");
+		
+		for(String line : setArgumentResponse.otherArgs){
+			String[] lineElements = line.split("\n");
 			
-			switch(sensor){
-			case CAMERA:
-				sensorName = Sensor.CAMERA.getAlias();
-				break;
-			case MICROPHONE: 
-				sensorName = Sensor.MICROPHONE.getAlias();
-				break;
-			case ENVIRONMENT:
-				sensorName = Sensor.ENVIRONMENT.getAlias();
-				break;
-			default:
-				cntrl.ui.write(sensor.getAlias() + " is not supported.");
-				return;
+			StringBuilder sb2 =  new StringBuilder();
+			for(String element : lineElements){
+				sb2.append(element);
 			}
+			logger.debug(sb2.toString());
 			
-			cntrl.ui.write("Getting " + sensorName + " settings.");
+			String featureName = lineElements[0].replace(' ', '_');
+			String currentValue = lineElements[1];
 			
-			for(String line : setArgumentResponse.otherArgs){
-				String[] lineElements = line.split("\n");
-				
-				String featureName = lineElements[0].replace(' ', '_');
-				String currentValue = lineElements[1];
-				
-				if(lineElements.length > 2){
-					DataType type = DataType.get(Integer.parseInt(lineElements[2]));
-					Limiter limit = Limiter.get(Integer.parseInt(lineElements[3]));
-					int size = Integer.parseInt(lineElements[4]);
-				
-					List<String> args = new ArrayList<String>(lineElements.length);
-					logger.debug("Setting " + (lineElements.length - 4) + " args");
-					int i = 0;
-				
-					while(i < size){
-						args.add(lineElements[i + 5]);
-						i++;
-					}
-				
-					cntrl.ui.write(featureName);
-					cntrl.ui.write("Current value: " + currentValue);
-					cntrl.ui.write(type.getAlias());
-					cntrl.ui.write(limit.getAlias());
-				
-					StringBuilder sb = new StringBuilder();
-					for(String arg : args){
-						sb.append(arg);
-						sb.append(" ");
-					}
-					cntrl.ui.write(sb.toString());
-					
-					dev.setSensorParams(sensor, featureName, type, limit, args);
-					dev.setCurrentValue(sensor, featureName, currentValue);
-				}else{
-					cntrl.ui.write("Currently: ");
-					cntrl.ui.write(featureName + ": " + currentValue);
+			if(lineElements.length > 4){
+				DataType type = DataType.get(Integer.parseInt(lineElements[2]));
+				Limiter limit = Limiter.get(Integer.parseInt(lineElements[3]));
+				int size = Integer.parseInt(lineElements[4]);
+			
+				List<String> args = new ArrayList<String>(lineElements.length);
+				logger.debug("Setting " + (lineElements.length - 4) + " args");
+				int i = 0;
+			
+				while(i < size){
+					args.add(lineElements[i + 5]);
+					i++;
 				}
+			
+				cntrl.ui.write(featureName);
+				cntrl.ui.write("Current value: " + currentValue);
+				cntrl.ui.write(type.getAlias());
+				cntrl.ui.write(limit.getAlias());
+			
+				StringBuilder sb = new StringBuilder();
+				for(String arg : args){
+					sb.append(arg);
+					sb.append(" ");
+				}
+				cntrl.ui.write(sb.toString());
+				
+				dev.setSensorParams(sensor, featureName, type, limit, args);
+				dev.setCurrentValue(sensor, featureName, currentValue);
+			}else{
+				cntrl.ui.write("Currently: ");
+				cntrl.ui.write(featureName + ": " + currentValue);
 			}
 		}
+		
 	}
+	
 	
 	private class SaveDataRunnable implements Runnable{
 		

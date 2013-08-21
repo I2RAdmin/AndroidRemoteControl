@@ -24,22 +24,26 @@ public class DataResponse {
 	public static final int DATA_TYPE_CAMERA_ARGS = 1;
 	public static final int DATA_TYPE_MICROPHONE_ARGS = 10;
 	public static final int DATA_TYPE_ENVIRONMENT_ARGS = 12;
+	public static final int DATA_TYPE_LOCATION_ARGS = 15;
 	
 	public static final int DATA_TYPE_IMAGE = 2;
 	public static final int DATA_TYPE_AUDIO = 11;
 	public static final int DATA_TYPE_ENVIRONMENT = 13;
+	public static final int DATA_TYPE_LOCATION = 14;
 	
 	public static final String REMOVE_TASK_ARGUMENT = "#";
 	public static final String TASK_ERRORED_ARGUMENT = "!";
 	public static final String UNSUPPORTED_SENSOR = "@";
+	public static final String PROXIMITY_ALERT = "P";
 	
 	public static int REMOVE_TASK = 0;
 	public static int SAVE_FILE = 1;
 	public static int STREAM = 2;
+	public static int NOTIFY = 3;
 	public static int CAMERA_ARGS = 4;
 	public static int MICROPHONE_ARGS = 5;
 	public static int ENVIRONMENT_ARGS = 6;
-	
+	public static int LOCATION_ARGS = 7;
 	
 	/**
 	 * The taskID.  This marks which task the response should be associated with.
@@ -130,6 +134,18 @@ public class DataResponse {
 					this.otherArgs.add(message);
 				}
 				
+			}else if(controlString.equals(PROXIMITY_ALERT)){
+				//alert the user to the fact that we have gotten close or moved away from some point
+				logger.debug("Notify Response created.");
+				this.type = NOTIFY;
+				
+				otherArgs = new ArrayList<String>(1);
+				this.otherArgs.add(controlString);
+				
+				if(message != null){
+					this.otherArgs.add(message);
+				}
+				
 			}else{
 				logger.debug("Could not interpet response packet: ");
 				logger.debug(controlString);
@@ -139,12 +155,15 @@ public class DataResponse {
 		case(DATA_TYPE_MICROPHONE_ARGS):
 		case(DATA_TYPE_CAMERA_ARGS):
 		case (DATA_TYPE_ENVIRONMENT_ARGS):
+		case (DATA_TYPE_LOCATION_ARGS):
 			if(argType == DATA_TYPE_MICROPHONE_ARGS){
 				this.type = MICROPHONE_ARGS;
 			}else if (argType == DATA_TYPE_CAMERA_ARGS){
 				this.type = CAMERA_ARGS;
 			}else if (argType == DATA_TYPE_ENVIRONMENT_ARGS){
 				this.type = ENVIRONMENT_ARGS;
+			}else if (argType == DATA_TYPE_LOCATION_ARGS){
+				this.type = LOCATION_ARGS;
 			}
 		
 			String[] micArgs = new String(data).split("&");
@@ -159,6 +178,7 @@ public class DataResponse {
 		
 		case(DATA_TYPE_AUDIO):
 		case(DATA_TYPE_ENVIRONMENT):
+		case(DATA_TYPE_LOCATION):
 			//send the audio to an audio buffer
 			logger.debug("Stream task created.");
 			this.type = STREAM;

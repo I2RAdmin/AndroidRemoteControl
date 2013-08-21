@@ -91,9 +91,6 @@ public class ARCDataParser implements DataParser<byte []> {
 	//an array to store the file bytes in as they're parsed
 	private byte[] fileBytes = null;
 	
-	//the response arguments that the parser has seen
-	private List<String> args;
-	
 	//synchronization and multithreading lock
 	private final Object parseLock = new Object();
 	
@@ -117,8 +114,6 @@ public class ARCDataParser implements DataParser<byte []> {
 		//create the partial section list
 		partialSection = new ArrayList<Byte>();
 		
-		//create the parsed argument list
-		args = new ArrayList<String>();
 		
 		//set the lock as open
 		lockAquired = new AtomicBoolean(false);
@@ -130,9 +125,6 @@ public class ARCDataParser implements DataParser<byte []> {
 		
 		//create the partial section list
 		partialSection = new ArrayList<Byte>();
-		
-		//create the parsed argument list
-		args = new ArrayList<String>();
 		
 		//set the lock as open
 		lockAquired = new AtomicBoolean(false);
