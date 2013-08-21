@@ -188,7 +188,7 @@ public final class Constants {
 		/**
 		 * argument specifying that a parameter has no value
 		 */
-		public static final String ARG_STRING_NONE = "none";
+		public static final String ARG_STRING_NONE = "-1";
 		
 		/**
 		 * argument to keep the specified parameter at
