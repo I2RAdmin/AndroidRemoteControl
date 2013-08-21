@@ -584,19 +584,6 @@ public final class Constants {
 		public static final char PROXIMITY_UPDATE = 'P';
 		
 		
-	}
+	} // end of Notifications class
 
-	
-
-	/**
-	 * Jenny, I got your number<br>
-	 * I need to make you mine<br>
-	 * Jenny, don't change your number
-	 * 
-	 * @deprecated I totally tried to call this and it said the number wasn't in
-	 *             service...
-	 */
-	public static final int GENERIC_ID = 8675309;
-
-
-}
+} // end of Constants class
