@@ -25,9 +25,11 @@ import com.i2r.androidremotecontroller.main.RemoteControlActivity;
 /**
  * This class models a {@link Link} implementation with USB connections.
  * Since USBs are immediately known to be connected and not connected,
- * this class only uses 
- * @author jnoel
- *
+ * this class only uses broadcasts to determine connection and thus
+ * does not need to implement searching or connection discovery.
+ * @deprecated USB connection types are infeasible with the current
+ * android API's, use {@link BluetoothLink} or {@link SocketLink} instead.
+ * @author Josh Noel
  */
 public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 

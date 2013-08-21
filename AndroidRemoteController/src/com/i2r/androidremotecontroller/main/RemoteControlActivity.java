@@ -68,7 +68,7 @@ public class RemoteControlActivity extends Activity {
 	private BroadcastReceiver receiver;
 	private LocalBroadcastManager manager;
 	private RemoteControlMaster master;
-	private CommandFilter sensorController;
+	private CommandFilter cFilter;
 	private TextView action;
 	private Camera camera;
 	private boolean started;
@@ -182,10 +182,10 @@ public class RemoteControlActivity extends Activity {
 		// to mediate between the master and the device sensors
 		this.camera = Camera.open();
 		SurfaceView view = (SurfaceView) findViewById(R.id.preview);
-		this.sensorController = new CommandFilter(this, camera,
+		this.cFilter = new CommandFilter(this, camera,
 				view.getHolder());
 		try {
-			this.master = new RemoteControlMaster(sensorController, connectionType);
+			this.master = new RemoteControlMaster(cFilter, connectionType);
 			if (!started) {
 				started = true;
 				action.setText("listening for connection to remote device...");
@@ -198,6 +198,7 @@ public class RemoteControlActivity extends Activity {
 			// valid or
 			// no connection of the given type was found
 		} catch (ServiceNotFoundException e) {
+			
 			Toast.makeText(
 					this,
 					"connection service for remote control not found, shutting down app",
@@ -244,6 +245,9 @@ public class RemoteControlActivity extends Activity {
 	 * Used to periodically test the connection for
 	 * validity, since there are some cases in
 	 * which the connection does not close properly.
+	 * @param duration - the frequency in milliseconds
+	 * to ping the remote device. (i.e., every x amount
+	 * of milliseconds, send a ping)
 	 */
 	private synchronized void startPing(final int duration){
 		new Thread(new Runnable(){ public void run(){
@@ -255,7 +259,7 @@ public class RemoteControlActivity extends Activity {
 				if(handler.maxReached()){
 					boolean connected = ResponsePacket.getNotificationPacket(0, 
 							Constants.Notifications.PROXIMITY_UPDATE)
-							.send(master.getConnection());
+							.send(master.getConnectionManager().getConnection());
 					
 					if(!connected){
 						master.initializeConnection();

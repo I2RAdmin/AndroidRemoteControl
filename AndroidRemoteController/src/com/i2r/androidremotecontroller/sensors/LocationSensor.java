@@ -84,6 +84,7 @@ public class LocationSensor extends GenericDeviceSensor implements LocationListe
 	public void startNewTask(int taskID, int[] args) {
 		
 		setTaskID(taskID);
+		this.taskCompleted = false;
 		
 		if(args != null){
 			
@@ -170,19 +171,24 @@ public class LocationSensor extends GenericDeviceSensor implements LocationListe
 
 	@Override
 	public void onProviderDisabled(String provider) {
-		// do nothing
+		Log.d(TAG, "provider disabled: " + provider);
 	}
 
 
 	@Override
 	public void onProviderEnabled(String provider) {
-		// do nothing
+		Log.d(TAG, "provider enabled: " + provider);
 	}
 
 
 	@Override
 	public void onStatusChanged(String provider, int status, Bundle extras) {
-		// do nothing
+		StringBuilder b = new StringBuilder();
+		b.append("status changed: ");
+		b.append(provider);
+		b.append(" - status: ");
+		b.append(status);
+		Log.d(TAG, b.toString());
 	}
 
 }

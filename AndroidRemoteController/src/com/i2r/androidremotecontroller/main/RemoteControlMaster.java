@@ -3,7 +3,6 @@ package com.i2r.androidremotecontroller.main;
 import java.io.File;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
-import android.hardware.usb.UsbDevice;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
@@ -12,7 +11,6 @@ import com.i2r.androidremotecontroller.connections.BluetoothLink;
 import com.i2r.androidremotecontroller.connections.ConnectionManager;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
 import com.i2r.androidremotecontroller.connections.SocketLink;
-import com.i2r.androidremotecontroller.connections.UsbLink;
 import com.i2r.androidremotecontroller.connections.WifiDirectLink;
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 
@@ -121,11 +119,6 @@ public class RemoteControlMaster {
 	 * 		   create a {@link UsbLink}
 	 */
 	private void createUsbRemoteConnection() throws ServiceNotFoundException {
-		UsbLink linker = new UsbLink(filter.getActivity(),
-				ConnectionManager.CONNECTION_TYPE_CLIENT);
-
-		this.connectionManager = new ConnectionManager<UsbDevice>(linker);
-
 		Log.d(TAG, "connection manager created with USB link");
 	}
 
@@ -243,12 +236,8 @@ public class RemoteControlMaster {
 	 *         {@link ConnectionManager}, or null if either the manager is null
 	 *         or the manager does not currently have an active connection.
 	 */
-	public RemoteConnection getConnection() {
-		RemoteConnection connection = null;
-		if (connectionManager != null) {
-			connection = connectionManager.getConnection();
-		}
-		return connection;
+	public ConnectionManager<?> getConnectionManager() {
+		return connectionManager;
 	}
 
 } // end on RemoteControlMaster class

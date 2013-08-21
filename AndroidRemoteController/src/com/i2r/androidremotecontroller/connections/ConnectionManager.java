@@ -34,10 +34,6 @@ public class ConnectionManager<E> {
 	 * interface to search for and create new connections with a remote controlling device.
 	 * @param linker - the linker to use when handling connections for this application's
 	 * {@link RemoteControlMaster}
-	 * @param isServer - the flag to assert what kind of connections this
-	 * manager should look for.
-	 * @param activity - a reference to the activity that created this connection manager.
-	 * @see {@link Link}
 	 */
 	public ConnectionManager(Link<E> linker){
 		this.linker = linker;
@@ -69,8 +65,8 @@ public class ConnectionManager<E> {
 	 */
 	public void startDataTransfer(){
 		
-		if(linker.isServerLink()){
-			Log.d(TAG, "stopping connection discovery");
+		Log.d(TAG, "stopping connection discovery");
+		if(linker.isSearchingForLinks()){
 			linker.haltConnectionDiscovery();
 			finder = null;
 		}
@@ -92,9 +88,7 @@ public class ConnectionManager<E> {
 	public void cancel(){
 		
 		Log.d(TAG, "all connections canceled");
-		if(linker.isServerLink()){
-			linker.haltConnectionDiscovery();
-		}
+	    linker.haltConnectionDiscovery();
 		
 		if(connection != null){
 			connection.disconnect();
@@ -185,8 +179,9 @@ public class ConnectionManager<E> {
 			}
 			
 			if(connection != null){
-				runningConnection = new Thread(connection);
-				Log.d(TAG, "connection thread created");
+				Log.d(TAG, "connection found");
+			} else {
+				Log.e(TAG, "no connection found");
 			}
 			
 			// notify main Activity that connection search has finished

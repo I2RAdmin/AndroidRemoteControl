@@ -13,16 +13,35 @@ import android.content.Context;
 import android.util.Log;
 
 /**
- * TODO: comment
+ * This class models a socket connection finder that
+ * implements the {@link Link} interface. Socket connections
+ * in this case mean connections to the remote device by
+ * means of using wifi to find an IP Address and a port
+ * on the machine that the IP Address leads to.
  * @author Josh Noel
+ * @see {@link ServerSocket}
+ * @see {@link Socket}
  */
 public class SocketLink implements Link<Object> {
 
 	private static final String TAG = "SocketLink";
 	
+	private ServerSocket listener;
+	private Socket socket;
 	private Activity activity;
 	private boolean isServer;
 	
+	/**
+	 * Constructor<br>
+	 * Creates a new SocketLink object with the given
+	 * activity as the context in which it was created,
+	 * and a boolean flag specifying whether it should
+	 * act as a server or a client connector.
+	 * @param activity - the activity in which this link was created.
+	 * @param isServer - the flag specifying how this link should act.
+	 * @see {@link ConnectionManager#CONNECTION_TYPE_CLIENT}
+	 * @see {@link ConnectionManager#CONNECTION_TYPE_SERVER}
+	 */
 	public SocketLink(Activity activity, boolean isServer){
 		this.activity = activity;
 		this.isServer = isServer;
@@ -33,13 +52,15 @@ public class SocketLink implements Link<Object> {
 	public RemoteConnection listenForRemoteConnection() {
 		RemoteConnection connection = null;
 		try {
-			ServerSocket socket = new ServerSocket(Constants.Info.WIFI_PORT);
-			Socket result = socket.accept();
+			listener = new ServerSocket(Constants.Info.WIFI_PORT);
+			 socket = listener.accept();
 
-			if (result != null) {
+			if (socket != null) {
 				connection = new GenericRemoteConnection(activity,
-						result.getInputStream(), result.getOutputStream());
+						socket.getInputStream(), socket.getOutputStream());
 			}
+			
+			listener.close();
 			
 		} catch (IOException e) {
 			Log.e(TAG, "error creating connection from port");
@@ -53,7 +74,7 @@ public class SocketLink implements Link<Object> {
 	public RemoteConnection connectTo(Object remote) {
 		RemoteConnection connection = null;
 		try {
-			Socket socket = new Socket(Constants.Info.CONTROLLER_IP_ADDRESS,
+			socket = new Socket(Constants.Info.CONTROLLER_IP_ADDRESS,
 					Constants.Info.WIFI_PORT);
 			connection = new GenericRemoteConnection(activity, 
 					socket.getInputStream(), socket.getOutputStream());
@@ -78,8 +99,21 @@ public class SocketLink implements Link<Object> {
 
 	@Override
 	public void haltConnectionDiscovery() {
+		if(listener != null){
+			try{
+				listener.close();
+			} catch (IOException e){}
+			listener = null;
+		}
 		
+		if(socket != null){
+			try{
+				socket.close();
+			} catch (IOException e){}
+			socket = null;
+		}
 	}
+	
 
 	@Override
 	public List<Object> getLinks() {

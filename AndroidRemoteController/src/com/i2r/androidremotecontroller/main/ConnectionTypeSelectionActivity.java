@@ -262,10 +262,12 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	 * control with this connection type.
 	 */
 	private void setupUsb(){
-		Log.d(TAG, "starting remote control with usb");
-	    Intent intent = new Intent(this, RemoteControlActivity.class);
-	    intent.putExtra(EXTRA_CONNECTION_TYPE, EXTRA_USB);
-	    startActivity(intent);
+//		Log.d(TAG, "starting remote control with usb");
+//	    Intent intent = new Intent(this, RemoteControlActivity.class);
+//	    intent.putExtra(EXTRA_CONNECTION_TYPE, EXTRA_USB);
+//	    startActivity(intent);
+		
+		inform("USB control currently not supported for this app");
 	}
 	
 	

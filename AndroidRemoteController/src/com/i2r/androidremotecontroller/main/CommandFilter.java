@@ -403,7 +403,6 @@ public class CommandFilter {
 									activity.getSystemService(Context.LOCATION_SERVICE)));
 					break;
 					
-					// TODO: add more sensors here
 					
 				default:
 					Log.e(TAG, "supported features went to default case");

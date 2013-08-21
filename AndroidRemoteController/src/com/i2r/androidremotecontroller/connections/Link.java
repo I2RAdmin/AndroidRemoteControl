@@ -87,10 +87,11 @@ public interface Link<E> {
 	
 	
 	/**
-	 * Query for this link's context.
+	 * Query for this link's context. This is
+	 * purely a convenience query for any objects
+	 * using a concrete implementation of this interface.
 	 * @return the {@link Context} in which
 	 * this Link was created.
-	 * @return
 	 */
 	public Context getContext();
 	

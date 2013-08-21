@@ -173,7 +173,7 @@ public final class SupportedFeatures {
 		public static final String SOURCE = "audio-source";
 		public static final String CHANNEL = "audio-channel";
 		public static final String SAMPLING_RATE = "audio-sampling-rate";
-		public static final String RECORD_DURATION = "recording-duration";
+		public static final String RECORD_DURATION = "audio-recording-duration";
 		
 		// ENCODING OPTIONS
 		
@@ -208,8 +208,8 @@ public final class SupportedFeatures {
 		
 		/**
 		 * Constant values:<br>
-		 * 	"camcorder", "mic", "voice-call", "voice-communication",
-			"voice-downlink", "voice-uplink", "voice-recognition", "default"
+		 * "camcorder", "mic", "voice-call", "voice-communication",
+		 * "voice-downlink", "voice-uplink", "voice-recognition", "default"
 		 */
 		public static final String[] STRING_SOURCES = {
 			"camcorder", "mic", "voice-call", "voice-communication",
@@ -865,8 +865,8 @@ public final class SupportedFeatures {
 			List<Sensor> sensors = manager.getSensorList(Sensor.TYPE_ALL);
 			
 			if(sensors != null){
-				for(int i = 0; i < sensors.size(); i++){
-					builder.append(encodeCollection(sensors.get(i).getName(), 
+				for(Sensor sensor : sensors){
+					builder.append(encodeCollection(sensor.getName(), 
 							Constants.Args.ARG_STRING_NONE, Constants.DataTypes.STRING,
 							EnvironmentKeys.STRING_UPDATE_RATES.length,
 							encodeStringArray(EnvironmentKeys.STRING_UPDATE_RATES)));

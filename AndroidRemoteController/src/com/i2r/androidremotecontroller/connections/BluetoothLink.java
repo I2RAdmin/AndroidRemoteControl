@@ -21,7 +21,7 @@ import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 
 /**
  * This class models a Linker object to pair (but not necessarily connect)
- * this device with another bluetooth device 
+ * this device with a controlling bluetooth device (PC client)
  * @author Josh Noel
  */
 public class BluetoothLink implements Link<BluetoothDevice> {
@@ -33,17 +33,18 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	private Activity activity;
 	private String name;
 	private BluetoothServerSocket listener;
+	private BluetoothSocket socket;
 	private boolean isServer;
 	
 	/**
 	 * Constructor<br>
 	 * creates a new BluetoothLink that accepts connections only with other
 	 * devices that have the UUID given.
-	 * @param adapter - the bluetooth adapter to start listening or seek connections with
-	 * @param uuid - the UUID to specify which connections to accept or search for
-	 * @param name - the name to display this device with when becoming visible to other devices
 	 * @param activity - a reference to the activity that made this link.
+	 * @param isServer - flag to tell this link to act as a server or a client link
 	 * @throws ServiceNotFoundException if the given {@link BluetoothAdapter} is null.
+	 * @see {@link ConnectionManager#CONNECTION_TYPE_CLIENT}
+	 * @see {@link ConnectionManager#CONNECTION_TYPE_SERVER}
 	 */
 	public BluetoothLink(Activity activity, boolean isServer) throws ServiceNotFoundException {
 		
@@ -70,7 +71,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	@Override
 	public RemoteConnection listenForRemoteConnection() {
 		GenericRemoteConnection connection = null;
-		BluetoothSocket socket = null;
+		socket = null;
 		
 		try{
 			listener = adapter.listenUsingInsecureRfcommWithServiceRecord(name, uuid);
@@ -100,7 +101,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 		GenericRemoteConnection connection = null;
 		try{
 			Log.d(TAG, "creating connection to device : " + remote.getName());
-			BluetoothSocket socket = remote.createInsecureRfcommSocketToServiceRecord(uuid);
+			socket = remote.createInsecureRfcommSocketToServiceRecord(uuid);
 			socket.connect();
 			connection = new GenericRemoteConnection(activity, 
 					socket.getInputStream(), socket.getOutputStream());
@@ -141,12 +142,20 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 		if(listener != null){
 			try {
 				listener.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			} catch (IOException e) {}
 			
 			listener = null;
 		}
+		
+		
+		if(socket != null){
+			try{
+				socket.close();
+			} catch(IOException e){}
+			
+			socket = null;
+		}
+		
 		
 		if(adapter.isDiscovering()){
 			adapter.cancelDiscovery();
