@@ -127,7 +127,10 @@ public final class Constants {
 		
 		
 		/**
-		 * TODO: comment
+		 * Command to start sending GPS data back to the controller PC.
+		 * Depending on the parameters received with this command,
+		 * either a single update will be sent, or updates will continue
+		 * to be sent for a specified duration.
 		 */
 		public static final int GET_LOCATION = 3;
 
@@ -261,10 +264,7 @@ public final class Constants {
 		 * Default value, primarily for testing
 		 */
 		public static final int PICTURE_DEFAULT_PICTURE_AMOUNT = 10;
-		
-		// others...
-		
-		// TODO: make args for other sensors
+	
 
 	} // end Args class
 
