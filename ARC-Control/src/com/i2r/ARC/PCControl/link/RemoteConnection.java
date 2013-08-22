@@ -12,7 +12,7 @@ import java.io.OutputStream;
  * The streams generated are {@link DataInputStream} for input and {@link DataOuputStream} for output
  * 
  * @author Johnathan Pagnutti
- * @param <T> the type of data that the {@link RemoteConnection} is going to deal with
+ * @param <T> the action of data that the {@link RemoteConnection} is going to deal with
  */
 public abstract class RemoteConnection<T> {
 

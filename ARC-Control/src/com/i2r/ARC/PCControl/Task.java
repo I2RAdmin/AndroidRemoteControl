@@ -116,7 +116,7 @@ public class Task {
 			if(section == null){
 				//create it
 				section = new DataSegment();
-				//set the file type
+				//set the file action
 				section.fileType = fileType;
 				//append passed in data to the segment
 				section.appendData(data);
@@ -130,20 +130,38 @@ public class Task {
 		}
 	}
 
-	/**
-	 * Push the data in this task to a set of files.
-	 * The data path will be the main directory of the eventual code
-	 */
-	public void pushDataToFile() {
-		//for each position in the taskData map
-		for(Integer dataPos : taskData.keySet()){
+	public void saveFile(int dataPos){
+		//get the file data
+		DataSegment file = taskData.get(dataPos);
+		
+		//if we found file data...
+		if(file != null){
 			//create a new file header string, ala string builder
 			StringBuilder sb = new StringBuilder();
 			sb.append(id);
 			sb.append("_");
 			sb.append(dataPos);
 			//save the data
-			taskData.get(dataPos).saveSegmentAsFile(sb.toString());
+			file.saveSegmentAsFile(sb.toString());
 		}
+	}
+	
+	/**
+	 * Push the data in this task to a set of files.
+	 * The data path will be the main directory of the eventual code
+	 */
+	public void pushAllData() {
+		//for each position in the taskData map
+		for(Integer dataPos : taskData.keySet()){
+			//safe the file
+			saveFile(dataPos);
+		}
+	}
+
+	public void clearData() {
+		if(taskData != null){
+			taskData.clear();
+		}
+		
 	}
 }

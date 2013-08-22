@@ -3,6 +3,8 @@
  */
 package com.i2r.ARC.PCControl.link.wifiLink;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -44,13 +46,16 @@ public class WifiConnection extends RemoteConnection<byte[]> {
 		logger.debug("Connecting through passed socket.");
 		TCPSocket = socket;
 		
-		dataIn = new DataInputStream(TCPSocket.getInputStream());
-		dataOut = new DataOutputStream(TCPSocket.getOutputStream());
+		dataIn = new DataInputStream( new BufferedInputStream(TCPSocket.getInputStream()));
+		dataOut = new DataOutputStream( new BufferedOutputStream(TCPSocket.getOutputStream()));
 	}
 
 	@Override
 	public void close() {
 		try {
+			dataOut.flush();
+			dataOut.close();
+			dataIn.close();
 			TCPSocket.close();
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);

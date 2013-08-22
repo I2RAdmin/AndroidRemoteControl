@@ -3,6 +3,7 @@
  */
 package com.i2r.ARC.PCControl.link.BluetoothLink;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -379,8 +380,8 @@ public class BluetoothLink implements Runnable, RemoteLink<byte[]>{
 			
 			 List<String> attributeValues = new ArrayList<String>(deviceAttributes.length);
 			 for(int deviceAttribute : deviceAttributes){
-				int type = record.getAttributeValue(deviceAttribute).getDataType();
-				switch(type){
+				int action = record.getAttributeValue(deviceAttribute).getDataType();
+				switch(action){
 				case(DataElement.STRING):
 					attributeValues.add(arg0)
 				default:
@@ -440,7 +441,12 @@ public class BluetoothLink implements Runnable, RemoteLink<byte[]>{
 		}
 		
 		logger.debug("Getting a remote connection to " + conn);
-		return new BluetoothConnection(conn);
+		try {
+			return new BluetoothConnection(conn);
+		} catch (IOException e) {
+			logger.error(e.getMessage(), e);
+			return null;
+		}
 	}
 	
 	/********************

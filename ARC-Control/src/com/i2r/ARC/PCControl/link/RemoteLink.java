@@ -14,7 +14,7 @@ import java.util.List;
  * 
  * Remote links are primerally used to create {@link RemoteConnection} objects to actually send data and recieve data
  * @author Johnathan Pagnutti
- * @param <T> the type of data the {@link RemoteConnection} this {@link RemoteLink} creates will deal with.
+ * @param <T> the action of data the {@link RemoteConnection} this {@link RemoteLink} creates will deal with.
  */
 public interface RemoteLink<T> {
 
@@ -38,11 +38,11 @@ public interface RemoteLink<T> {
 	
 	/**
 	 * Establish a connection from a potential connection URL or a default.
-	 * Parameterized to handle data of a specified type.
+	 * Parameterized to handle data of a specified action.
 	 * 
 	 * @param connectionURL the URL of the connection to create, or null to use a default
 	 * @return a {@link RemoteConnection} object to use to get the input and output streams of the connection.
-	 * 			Typed to the same type as the remote link.
+	 * 			Typed to the same action as the remote link.
 	 */
 	public RemoteConnection<T> connect(String connectionURL);
 }

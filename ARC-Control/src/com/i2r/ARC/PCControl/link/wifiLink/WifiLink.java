@@ -18,7 +18,7 @@ import com.i2r.ARC.PCControl.link.RemoteConnection;
 import com.i2r.ARC.PCControl.link.RemoteLink;
 
 /**
- * Create a new Wifi Link that will handle data of type <code> byte[] </code>
+ * Create a new Wifi Link that will handle data of action <code> byte[] </code>
  * 
  * Wifi is much slicker than Bluetooth, as we can pretty much create a connection outright from an IP address (that should be a constant).
  * 

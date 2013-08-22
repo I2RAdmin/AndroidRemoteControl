@@ -117,7 +117,7 @@ public class TaskStack {
 	private void saveTaskData(int taskID) {
 		logger.debug("Saving data");
 		//save the data as one or more files
-		taskMap.get(taskID).pushDataToFile();
+		taskMap.get(taskID).pushAllData();
 	}
 
 	/**
@@ -130,6 +130,7 @@ public class TaskStack {
 
 	/**
 	 * Get a task from the task stack given a task ID
+	 * 
 	 * @param taskID the id of the task to get
 	 * @return the task, or null if the task was not found
 	 */
@@ -174,7 +175,7 @@ public class TaskStack {
 	 * @param taskID the ID of the task to check
 	 * @return true if a task with that ID has been found, false if otherwise
 	 */
-	public boolean hasTask(Integer taskID) {
+	public synchronized boolean hasTask(Integer taskID) {
 		//if the task map has a task id that matches the one provided
 		if(taskMap.containsKey(taskID)){
 			//return true
@@ -182,5 +183,13 @@ public class TaskStack {
 		}
 		//otherwise, return false
 		return false;
+	}
+
+	public void clear() {
+		//wipe the task stack out
+		//make an attempt to save any data currently floating around
+		for(int taskID : taskMap.keySet()){
+			removeTask(taskID);
+		}
 	}
 }

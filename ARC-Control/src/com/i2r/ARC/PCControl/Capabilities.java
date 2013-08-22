@@ -11,18 +11,18 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 /**
- * The {@link Capabilities} class is a how we define what type of parameters we can change for a particular sensor
+ * The {@link Capabilities} class is a how we define what action of parameters we can change for a particular sensor
  * on the remote device.
  * 
  * {@link Capabilities} have three main components:
  * 
  * {@link Capabilities#featureDataTypes} This is a {@link Map} of the {@link String} name of the parameter to the {@link DataType}
- * 	of the values we can give to that parameter.  For example, if we had a sensor that took a {@link String} file type (jpeg), its
+ * 	of the values we can give to that parameter.  For example, if we had a sensor that took a {@link String} file action (jpeg), its
  * 	{@link DataType} would be {@link DataType#STRING}, and so the {@link Capabilities#featureDataTypes} would have an entry with a key of 
  * 	the {@link String} "filetype" and a value {@link DataType#STRING}
  * 
  * {@link Capabilities#featureLimiters} This is a {@link Map} of the {@link String} name of a parameter to the {@link Limiter} of
- * 	the values that we can give that parameter.  For example, if we had a sensor that took a {@link String} file type, and we knew it could
+ * 	the values that we can give that parameter.  For example, if we had a sensor that took a {@link String} file action, and we knew it could
  * 	be one element of a {@link Set} of valid file types, then its {@link Limiter} is a {@link Limiter#SET}, so the 
  * {@link Capabilities#featureLimiters} would have an entry with the key as the {@link String} parameter name and the value of 
  * {@link Limiter#SET}
@@ -98,7 +98,7 @@ public class Capabilities {
 	 * A base example is the flash on the android camera
 	 * 
 	 * @param featureName the name of the feature.  This is the key used in the {@link Capabilities} maps.
-	 * @param type this is a {@link DataType} of the values we can pass to the feature
+	 * @param action this is a {@link DataType} of the values we can pass to the feature
 	 * @param limit this is the {@link Limiter} on the values we can pass to the feature
 	 * @param args this is a {@link List<String>} of the acceptable values we can pass to a feature
 	 */
@@ -148,13 +148,13 @@ public class Capabilities {
 		
 		//the key does point to a valid feature!
 		
-		//Get the data type for this feature
+		//Get the data action for this feature
 		DataType type = featureDataTypes.get(key);
 		
-		//check to see if the value could be interpreted as the data type for this feature
+		//check to see if the value could be interpreted as the data action for this feature
 		if(!checkType(type, value)){
 			//it can't, log and throw an error
-			throw new UnsupportedValueException("Data for " + key + " was of the incorrect type (needed to be: " + type.getAlias() + ")");
+			throw new UnsupportedValueException("Data for " + key + " was of the incorrect action (needed to be: " + type.getAlias() + ")");
 		}
 		
 		//it can!
@@ -178,7 +178,7 @@ public class Capabilities {
 	 * feature.  If the value falls within the acceptable arguments, then we know the value can be used to set a particular
 	 * feature.
 	 * 
-	 * @param type the {@link DataType} of a feature.  Used here so we can cast the value correctly for comparison
+	 * @param action the {@link DataType} of a feature.  Used here so we can cast the value correctly for comparison
 	 * @param limit the {@link Limiter} of a feature.  Used here so we can correctly interpet the limitVals
 	 * @param limitVals the {@link List<String>} of acceptable arguments for a feature.  Used in conjunction with the limit so we
 	 * 			can check to make sure the value falls within the acceptable bounds of a feature
@@ -194,9 +194,9 @@ public class Capabilities {
 			return true;
 		//if the limit is a range
 		case RANGE:
-			//check the data type
+			//check the data action
 			switch(type){
-			//if the data type is an integer
+			//if the data action is an integer
 			case INTEGER:
 				//get the minimum value as an int
 				int intMin = Integer.parseInt(limitVals.get(0));
@@ -213,7 +213,7 @@ public class Capabilities {
 					//it don't! return false
 					return false;
 				}
-			//if the data type is a double
+			//if the data action is a double
 			case DOUBLE:
 				//get the minimum value as a double
 				double doubleMin = Double.parseDouble(limitVals.get(0));
@@ -230,9 +230,9 @@ public class Capabilities {
 					//it don't! return false
 					return false;
 				}
-			//if the data type is anything else
+			//if the data action is anything else
 			default:
-				//ranges don't make sense for that data type, just return false
+				//ranges don't make sense for that data action, just return false
 				return false;
 			}
 		//if the limiter is a set
@@ -258,26 +258,26 @@ public class Capabilities {
 	/**
 	 * Checks to see if the value can be enterpeted as the supplied {@link DataType}
 	 * 
-	 * @param type the data type of this feature
+	 * @param action the data action of this feature
 	 * @param value the value to check
-	 * @return true if the value can be interpeted as the {@link DataType} type, false if otherwise
+	 * @return true if the value can be interpeted as the {@link DataType} action, false if otherwise
 	 */
 	private boolean checkType(DataType type, String value) {
-		//check the data type
+		//check the data action
 		switch(type){
-		//if the data type is an integer
+		//if the data action is an integer
 		case INTEGER:
 			//check to see if the value can be interpeted as an integer
 			return checkInt(value);
-		//if the data type is a double
+		//if the data action is a double
 		case DOUBLE:
 			//check to see if the value can be interpeted as a double
 			return checkDouble(value);
-		//if the data type is a string
+		//if the data action is a string
 		case STRING:
 			//check to see if the value can be interpeted as a string
 			return checkString(value);
-		//if the data type is a file or stream
+		//if the data action is a file or stream
 		case FILE:
 		case STREAM:
 		case ANY:

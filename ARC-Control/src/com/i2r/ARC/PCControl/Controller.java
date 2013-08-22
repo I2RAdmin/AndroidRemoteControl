@@ -364,8 +364,6 @@ public class Controller{
 		case CONNECT:
 			RemoteClient connDev = this.devices.get(Integer.parseInt(arcCommand.getArguments().get(0)));
 			if(connDev.connectToDevice()){
-				//open the read side of the connection
-				connDev.dataManager.read();
 				ui.write("Successfully Connected to the remote device!");
 			}
 			break;

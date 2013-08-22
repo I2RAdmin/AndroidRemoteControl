@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
 
 import com.i2r.ARC.PCControl.DataManager.ARCDataManager;
+import com.i2r.ARC.PCControl.DataManager.ARCDataParser;
 import com.i2r.ARC.PCControl.DataManager.DataManager;
 import com.i2r.ARC.PCControl.DataManager.DataParser;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
@@ -45,10 +46,8 @@ public class RemoteClient {
 	
 	Map<Task, DataResponse> responseMap;
 	TaskStack deviceTasks;
-	Capabilities capabilities;
 	
-	AtomicBoolean retrievedCapabilities;
-	
+	AtomicBoolean retrievedCapabilities;	
 	Controller cntrl;
 	
 	boolean die;
@@ -80,6 +79,8 @@ public class RemoteClient {
 			dataManager.read();
 			Thread t = new Thread(new PingConnectionRunnable(this));
 			t.start();
+			logger.debug("Established Connection");
+			report("Established Connection");
 			return true;
 		}else{
 			return false;
@@ -138,7 +139,11 @@ public class RemoteClient {
 			break;
 		}
 		
-		dataManager.write(newTask);
+		if(dataManager != null){
+			dataManager.write(newTask);
+		}else{
+			logger.error("Data Manager has not been found, huh?");
+		}
 	}
 
 	
@@ -187,18 +192,84 @@ public class RemoteClient {
 		}
 	}
 	
-	public void reconnect() {
+	public boolean reconnect() {
 		//if we weren't supposed to die...
 		if(!die){
 			//start attempting to reconnect
 			for(int i = 0; i < RECONNECT_ATTEMPTS; i++){
 				if(this.connectToDevice()){
-					break;
+					report("connection reestablished");
+					return true;
+				}else{
+					try {
+						Thread.sleep(5000);
+					} catch (InterruptedException e) {
+						logger.error(e.getMessage(), e);
+					}
 				}
 			}
 		}
+		
+		return false;
 	}
 	
+	 //Going down hard
+	public void shutdown() {
+		logger.debug(this + " is shuting down hard.");
+		report("Going Down... NOW");
+		report("All pending data may or may not be lost.");
+			
+		die = true;
+			
+		for(Task t : responseMap.keySet()){
+			responseMap.remove(t);
+		}
+				
+		deviceTasks.clear();
+			
+		cntrl.devices.remove(this);
+	}
+
+	//the associated ARCParser has failed
+	public void respondParserFailure(int state, int taskID) {
+		switch(state){
+			case ARCDataParser.READ_TASK_ID:
+			case ARCDataParser.READ_FILE_SIZE:
+			case ARCDataParser.READ_ARGUMENT_TYPE:
+				clearTaskData(taskID);
+				resendTask(taskID);
+				break;
+			case ARCDataParser.NEW_RESPONSE:
+			default:
+				break;
+		}
+		logger.debug("Parser failed in state: " + state);
+			
+	}
+
+	private void resendTask(int taskID) {
+		Task t = deviceTasks.getTask(taskID);
+				
+		if(t != null){
+			ARCCommand command = t.getCommand();
+			removePendingTask(t.getId());
+			try {
+				sendTask(command);
+			} catch (UnsupportedValueException e) {
+				report("Unable to resend task " + taskID + " after parsing error.");
+			}
+		}
+				
+	}
+
+	private void clearTaskData(int taskID) {
+		Task t = deviceTasks.getTask(taskID);
+			
+		if(t != null){
+			t.clearData();
+		}			
+	}
+			
 	/**********************
 	 * INNER CLASS
 	 **********************/
@@ -234,6 +305,8 @@ public class RemoteClient {
 		}
 	}
 	
+	
+	
 	/**********************
 	 * INNER CLASS
 	 **********************/ 
@@ -248,12 +321,13 @@ public class RemoteClient {
 		@Override
 		public void run() {
 			while(!die){
+				
 				try {
 					Thread.sleep(60000);
 				} catch (InterruptedException e) {
 					logger.error(e.getMessage(), e);
 				}
-		
+				
 				if(!die){
 					try {
 						dev.sendTask(ARCCommand.fromString(dev, "ping"));
@@ -264,4 +338,6 @@ public class RemoteClient {
 			}
 		}
 	 }
+
+	
 }

@@ -25,7 +25,7 @@ public interface DataParser<T>{
 	 * After enough data has been seen that some action can be taken, a {@link DataResponse} object is created.  It is not required that
 	 * the parser act, or tell another part of the program to act, on the created {@link DataResponse}.
 	 * 
-	 * @param dataToParse a data element from some data source.  The type of the element is determined at runtime
+	 * @param dataToParse a data element from some data source.  The action of the element is determined at runtime
 	 *
 	 * @requires that some sort of data source be attached to the parser
 	 * @ensures very little.  An attempt is made to create a valid response object (such as {@link DataResponse}), 

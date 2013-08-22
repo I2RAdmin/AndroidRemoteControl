@@ -14,17 +14,17 @@ import com.i2r.ARC.PCControl.link.RemoteConnection;
  * The generic high level abstract class that defines how a data manager.
  * 
  * Data Managers take the connection streams gotten from some a passed in {@link RemoteConnection}, and reading and writing
- * to the streams from the connection.  The connection streams are of type {@link DataInputStream} to
+ * to the streams from the connection.  The connection streams are of action {@link DataInputStream} to
  * receive data and {@link DataOuputStream} to send data.
  * 
- * Data Managers also have a {@link DataParser} of the same type as the data manager, to parse the data received from
+ * Data Managers also have a {@link DataParser} of the same action as the data manager, to parse the data received from
  * the input stream
  *
  * @author Johnathan Pagnutti
- * @param <T> The type of data this data manager use for writing to the {@link RemoteConnection}.  It is important to note that the 
- * 			{@link DataManager} must obey the {@link RemoteConnection}'s parameterized type when sending data, so for most cases, 
+ * @param <T> The action of data this data manager use for writing to the {@link RemoteConnection}.  It is important to note that the 
+ * 			{@link DataManager} must obey the {@link RemoteConnection}'s parameterized action when sending data, so for most cases, 
  * 			{@link DataManager#write(Object)} must perform a conversion
- * @param <U> The type of data this data manager will read from the {@link RemoteConnection}
+ * @param <U> The action of data this data manager will read from the {@link RemoteConnection}
  *
  */
 public abstract class DataManager<T, U> {

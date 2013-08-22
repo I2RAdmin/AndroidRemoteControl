@@ -14,7 +14,7 @@ import com.i2r.ARC.PCControl.link.RemoteConnection;
 
 /**
  * This is the ARC implementation of a {@link DataManager}
- * Generic to allow for any {@link RemoteConnection} of type <code>byte[]</code> to be used in the constructor.
+ * Generic to allow for any {@link RemoteConnection} of action <code>byte[]</code> to be used in the constructor.
  * @see {@link DataManager} for general contract details and notes regarding data hiding
  * 
  * @author Johnathan Pagnutti
@@ -87,7 +87,15 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			//lost connection somehow, shit shit shit...
-			dev.reconnect();
+			dev.report("Attempting to restablish connection...");
+			boolean reconnected = dev.reconnect();
+			
+			if(reconnected){
+				write(dataElement);
+			}else{
+				dev.report("Connection Lost.");
+				dev.shutdown();
+			}
 		}
 	}
 	
@@ -152,29 +160,30 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 				byte[] readBuffer = new byte[1024];
 				
 				logger.debug("Waiting to read bytes...");
-				//this is the read data loop.  Read until we hit a socket exception (the connection is dead)
+				//this is the read data loop.  Read until we hit an error
 				while(true){
-					
-					//read data into the buffer
-					int bytesRead = threadIn.read(readBuffer);
+					synchronized(this){
+						//read data into the buffer
+						int bytesRead = threadIn.read(readBuffer);
 						
-					//if we have read at least one byte...
-					if(bytesRead > 0){
-						//trim the array down to the number of bytes read
-						byte[] cleanArray = new byte[bytesRead];
-						System.arraycopy(readBuffer, 0, cleanArray, 0, cleanArray.length);
+						//if we have read at least one byte...
+						if(bytesRead > 0){							
+							//trim the array down to the number of bytes read
+							byte[] cleanArray = new byte[bytesRead];
+							System.arraycopy(readBuffer, 0, cleanArray, 0, cleanArray.length);
 						
-						logger.debug("Read " + cleanArray.length + " bytes from the connection.");
+							logger.debug("Read " + cleanArray.length + " bytes from the connection.");
 						
-						//pass a copy of the trimmed data to parse it
-						threadParser.parseData(cleanArray);
-					}else if(bytesRead == -1){
-						threadIn.close();
-						break;
+							//pass a copy of the trimmed data to parse it
+							threadParser.parseData(cleanArray);
+						}else if(bytesRead == -1){
+							threadIn.close();
+							break;
+						}
 					}
 				}
 			} catch (IOException e) {
-				//some error has occured.
+				//some error has occurred.
 				logger.error(e.getMessage(), e);
 			}
 		}

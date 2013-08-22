@@ -43,7 +43,7 @@ public class ARCDataParser implements DataParser<byte []> {
 	public static final int READ_TASK_ID = 1;
 	
 	
-	private static final int READ_ARGUMENT_TYPE = 2;
+	public static final int READ_ARGUMENT_TYPE = 2;
 	
 	/**
 	 * Constant to define that the parser has parsed a new File Size
@@ -159,7 +159,12 @@ public class ARCDataParser implements DataParser<byte []> {
 			//log loop
 			StringBuilder sb = new StringBuilder();
 			for(byte b : dataToParse){
-				sb.append((int)((char)b)); //Low level byte fun in Java!
+				char c = ((char) b); //Low level byte fun in Java!
+				if(c == '\n'){
+					sb.append("\\n");
+				}else{
+					sb.append(c);
+				}
 				sb.append(" ");
 			}
 			logger.debug(sb.toString());
@@ -169,6 +174,7 @@ public class ARCDataParser implements DataParser<byte []> {
 			
 			//start it
 			t.start();
+			
 		}
 	}
 	
@@ -197,6 +203,7 @@ public class ARCDataParser implements DataParser<byte []> {
 		 private boolean hasData = false;
 		 
 		 public ParseRunnable(byte[] bytesToParse){
+			 
 			 //convert the raw array passed in to a List of Bytes
 			 //allows for list utility methods to be called on the parsed bytes.
 			 this.rawData = new ArrayList<Byte>();
@@ -317,15 +324,14 @@ public class ARCDataParser implements DataParser<byte []> {
 				
 				// if the task ID is still its default value...
 				if(argumentType == -1){
-					logger.error("Could not enterpet this segment as a argument type.");
+					logger.error("Could not enterpet this segment as a argument action.");
 					logger.error("Clearing current data to parse and resetting parser.");
 					//wipe the current block
 					argumentTypeBytes.clear();
 					rawData.clear();
 					hasData = false;
 					
-					//TODO: tell the remote device that the stream is dead
-					//TODO: set the parser to wait for the stream clear packet
+					dev.respondParserFailure(state, taskID);
 					
 					//reset the parser
 					parserReset();
@@ -550,8 +556,7 @@ public class ARCDataParser implements DataParser<byte []> {
 					rawData.clear();
 					hasData = false;
 					
-					//TODO: tell the remote device that the stream is dead
-					//TODO: set the parser to wait for the stream clear packet
+					dev.respondParserFailure(state, taskID);
 					
 					//reset the parser
 					parserReset();
@@ -624,7 +629,7 @@ public class ARCDataParser implements DataParser<byte []> {
 				}
 				logger.debug(sb.toString());
 				
-				//see if the new argument can be interpeted as a filesize
+				//see if the new argument can be interpreted as a file size
 				argumentSize = interpetAsInt(argSublist);
 				
 				//if the argument size could not be determined by this chunk...
@@ -636,8 +641,7 @@ public class ARCDataParser implements DataParser<byte []> {
 					rawData.clear();
 					hasData = false;
 					
-					//TODO: tell the remote device that the stream is dead
-					//TODO: set the parser to wait for the stream clear packet
+					dev.respondParserFailure(state, taskID);
 					
 					//reset the parser
 					parserReset();

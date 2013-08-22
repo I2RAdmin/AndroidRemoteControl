@@ -80,7 +80,7 @@ public class SMSConnection extends RemoteConnection<byte[]> {
 			
 			logger.debug("Inbound Message Recieved From " + msg.getOriginator());
 			logger.debug("through gateway " + gateway.getGatewayId());
-			logger.debug("message type: " + msgType.name());
+			logger.debug("message action: " + msgType.name());
 			logger.debug("message: " + msg.getText());
 		}
 	}
@@ -94,7 +94,7 @@ public class SMSConnection extends RemoteConnection<byte[]> {
 				GatewayStatuses msg) {
 			logger.debug("Gateway Status Recieved Recieved");
 			logger.debug("through gateway " + gateway.getGatewayId());
-			logger.debug("message type: " + msgType.name());
+			logger.debug("message action: " + msgType.name());
 			logger.debug("message: " + msg.name());
 		}
 	}

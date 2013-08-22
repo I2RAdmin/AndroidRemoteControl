@@ -35,11 +35,13 @@ public class DataResponse {
 	public static final String TASK_ERRORED_ARGUMENT = "!";
 	public static final String UNSUPPORTED_SENSOR = "@";
 	public static final String PROXIMITY_ALERT = "P";
+	public static final String NEXT_PICTURE = "$";
 	
 	public static int REMOVE_TASK = 0;
 	public static int SAVE_FILE = 1;
 	public static int STREAM = 2;
 	public static int NOTIFY = 3;
+	
 	public static int CAMERA_ARGS = 4;
 	public static int MICROPHONE_ARGS = 5;
 	public static int ENVIRONMENT_ARGS = 6;
@@ -60,12 +62,12 @@ public class DataResponse {
 	int argType = -1;
 	
 	/**
-	 * Response Type.  This sets the type of this response, which is how methods that actually act on the response figure out
+	 * Response Type.  This sets the action of this response, which is how methods that actually act on the response figure out
 	 * what action the response is abstracting.
 	 * 
-	 * -1 is the initial set type, which is an error type.
+	 * -1 is the initial set action, which is an error action.
 	 */
-	int type = -1;
+	int action = -1;
 	
 	/**
 	 * An array of file data to save to a file.  This field is set when it makes sense to do so (we want to save a file)
@@ -75,14 +77,14 @@ public class DataResponse {
 	
 	/**
 	 * This field encapsulates any other arguments we would want to send along with a response. It's default is a <code>List</code> of
-	 * type <code>String</code> with the single element of a blank string.
+	 * action <code>String</code> with the single element of a blank string.
 	 */
 	
 	List<String> otherArgs;
 	
 	/**
-	 * Object constructor.  Takes some block of data along with a taskID, and tries to interpet the block. It sets the type argument
-	 * to the type of response this is, based on how it can interpet the provided byte array
+	 * Object constructor.  Takes some block of data along with a taskID, and tries to interpet the block. It sets the action argument
+	 * to the action of response this is, based on how it can interpet the provided byte array
 	 *  
 	 * @param taskID the taskID to set
 	 * @param data the actual data to set
@@ -125,7 +127,7 @@ public class DataResponse {
 					controlString.equals(UNSUPPORTED_SENSOR)){
 				//remove the task from the task stack
 				logger.debug("Remove Task Response created.");
-				this.type = REMOVE_TASK;
+				this.action = REMOVE_TASK;
 				
 				otherArgs = new ArrayList<String>(1);
 				this.otherArgs.add(controlString);
@@ -137,7 +139,7 @@ public class DataResponse {
 			}else if(controlString.equals(PROXIMITY_ALERT)){
 				//alert the user to the fact that we have gotten close or moved away from some point
 				logger.debug("Notify Response created.");
-				this.type = NOTIFY;
+				this.action = NOTIFY;
 				
 				otherArgs = new ArrayList<String>(1);
 				this.otherArgs.add(controlString);
@@ -157,13 +159,13 @@ public class DataResponse {
 		case (DATA_TYPE_ENVIRONMENT_ARGS):
 		case (DATA_TYPE_LOCATION_ARGS):
 			if(argType == DATA_TYPE_MICROPHONE_ARGS){
-				this.type = MICROPHONE_ARGS;
+				this.action = MICROPHONE_ARGS;
 			}else if (argType == DATA_TYPE_CAMERA_ARGS){
-				this.type = CAMERA_ARGS;
+				this.action = CAMERA_ARGS;
 			}else if (argType == DATA_TYPE_ENVIRONMENT_ARGS){
-				this.type = ENVIRONMENT_ARGS;
+				this.action = ENVIRONMENT_ARGS;
 			}else if (argType == DATA_TYPE_LOCATION_ARGS){
-				this.type = LOCATION_ARGS;
+				this.action = LOCATION_ARGS;
 			}
 		
 			String[] micArgs = new String(data).split("&");
@@ -181,19 +183,20 @@ public class DataResponse {
 		case(DATA_TYPE_LOCATION):
 			//send the audio to an audio buffer
 			logger.debug("Stream task created.");
-			this.type = STREAM;
+			this.action = STREAM;
 			this.fileSize = data.length;
 			this.fileData = data;
 			break;
+			
 		case (DATA_TYPE_IMAGE):
 			//Save the image as a file
 			logger.debug("Save file task created.");
-			this.type = SAVE_FILE;
+			this.action = SAVE_FILE;
 			this.fileSize = data.length;
 			this.fileData = data;
 			break;
 		default:
-			logger.error("This argument type is not supported: " + argType);
+			logger.error("This argument action is not supported: " + argType);
 		}
 	}
 }

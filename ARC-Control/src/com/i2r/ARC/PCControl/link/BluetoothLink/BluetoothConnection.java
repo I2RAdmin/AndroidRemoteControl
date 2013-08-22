@@ -13,10 +13,10 @@ import org.apache.log4j.Logger;
 import com.i2r.ARC.PCControl.link.RemoteConnection;
 
 /**
- * Implements {@link RemoteConnection} of type <code>byte[]</code>
+ * Implements {@link RemoteConnection} of action <code>byte[]</code>
  * @see {@link RemoteConnection} for general contract information
  * 
- * A Bluetooth Connection for the PC Controller.  As per the general contract, and is the actual type returned from {@link Ble#c}
+ * A Bluetooth Connection for the PC Controller.  As per the general contract, and is the actual action returned from {@link Ble#c}
  * 
  * @author Johnathan Pagnutti
  *
@@ -31,27 +31,23 @@ public class BluetoothConnection extends RemoteConnection<byte[]>{
 	 * Constructor to create a new Bluetooth Connection
 	 * 
 	 * @param connURL the Bluetooth URL to connect to.
+	 * @throws IOException 
 	 */
-	public BluetoothConnection(String connURL){
+	public BluetoothConnection(String connURL) throws IOException{
 		logger.debug("Attempting to open stream from " + connURL);
 		
 		//attempt to get a connection...
-		try {
-			//open connection
-			this.conn = (StreamConnection)Connector.open(connURL, Connector.READ_WRITE);
+		
+		//open connection
+		this.conn = (StreamConnection)Connector.open(connURL, Connector.READ_WRITE);
 			
-			//open the input stream
-			dataIn = conn.openDataInputStream();
-			logger.debug("Opened input stream.");
+		//open the input stream
+		dataIn = conn.openDataInputStream();
+		logger.debug("Opened input stream.");
 			
-			//open the output stream
-			dataOut = conn.openDataOutputStream();
-			logger.debug("Opened output stream");
-		} catch (IOException e) {
-			//something went wrong, cry
-			logger.debug(e.getMessage(), e);
-			e.printStackTrace();
-		}
+		//open the output stream
+		dataOut = conn.openDataOutputStream();
+		logger.debug("Opened output stream");
 	}
 
 	/**
@@ -63,6 +59,9 @@ public class BluetoothConnection extends RemoteConnection<byte[]>{
 	@Override
 	public void close() {
 		try {
+			dataOut.flush();
+			dataOut.close();
+			dataIn.close();
 			conn.close();
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);

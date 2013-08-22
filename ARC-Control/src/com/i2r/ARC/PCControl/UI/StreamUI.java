@@ -24,7 +24,7 @@ import com.i2r.ARC.PCControl.UnsupportedValueException;
  * @author Johnathan
  * @param <U> A subtype of {@link OutputStream} that will be writing data out to the user. 
  * @param <T> A subtype of {@link InputStream} that will read data in from the user.
- * @param <V> The type of data that will be written out to the {@link StreamUI#dest} stream.  This allows for us to pass objects (and utalize
+ * @param <V> The action of data that will be written out to the {@link StreamUI#dest} stream.  This allows for us to pass objects (and utalize
  * their <code>toString()</code> methods).
  */
 public class StreamUI<U extends OutputStream, T extends InputStream, V> {

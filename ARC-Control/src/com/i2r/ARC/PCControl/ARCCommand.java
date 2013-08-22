@@ -315,8 +315,6 @@ public class ARCCommand {
 		default:
 			throw new UnsupportedValueException("Supplied command header " + header.getAlias() + " was invalid.");
 		}
-		
-		
 	}
 	
 	/**

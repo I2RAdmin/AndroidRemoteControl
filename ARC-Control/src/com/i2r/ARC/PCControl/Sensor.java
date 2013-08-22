@@ -13,7 +13,7 @@ import java.util.Map;
  * From the camera to the accelerometer, it all becomes a sensor.
  * <p>
  * Each element has two components: the <code>int</code> internal code for a sensor used for communication between the device
- * and the PC client, and the <code>String</code> name that an end user can read and type in to access that sensor
+ * and the PC client, and the <code>String</code> name that an end user can read and action in to access that sensor
  * @author Johnathan Pagnutti
  *
  */
@@ -38,7 +38,7 @@ public enum Sensor {
 	LOCATION(15, "Location");
 	
 	/**
-	 * The internal map used to map the <code>integer</code> type to a particular sensor constant
+	 * The internal map used to map the <code>integer</code> action to a particular sensor constant
 	 */
 	private static final Map<Integer, Sensor> sensorType = new HashMap<Integer, Sensor>();
 	
@@ -53,7 +53,7 @@ public enum Sensor {
 	static{
 		//For each sensor listed in the definition of the Sensor class
 		for(Sensor s: EnumSet.allOf(Sensor.class)){
-			//add it to the type map
+			//add it to the action map
 			sensorType.put(s.getType(), s);
 			//add it to the readable string map
 			sensorAlias.put(s.getAlias(), s);
@@ -70,7 +70,7 @@ public enum Sensor {
 	
 	/**
 	 * Constructor.  Private to the class.
-	 * @param type the integer code for a particular sensor
+	 * @param action the integer code for a particular sensor
 	 * @param alias the String readable name for a particular sensor
 	 */
 	private Sensor(Integer type, String alias){
@@ -80,7 +80,7 @@ public enum Sensor {
 	
 	/**
 	 * Get the code that a particular sensor uses to communicate with a remote device
-	 * @return the type of a Sensor
+	 * @return the action of a Sensor
 	 */
 	public Integer getType(){
 		return type;
@@ -96,7 +96,7 @@ public enum Sensor {
 	
 	/**
 	 * Get the Sensor constant from an {@link Integer} code
-	 * @param type the code to use to get a Sensor Constant
+	 * @param action the code to use to get a Sensor Constant
 	 * @return the sensor constant
 	 * @throws UnsupportedValueException if the code provided is not valid
 	 */
