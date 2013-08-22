@@ -80,7 +80,7 @@ public class GenericThreadedRemoteConnection extends ThreadedRemoteConnection {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void write(byte[] bytes) {
+	public synchronized void write(byte[] bytes) {
 		if(out() != null){
 			try{
 				out().write(bytes);
@@ -117,15 +117,6 @@ public class GenericThreadedRemoteConnection extends ThreadedRemoteConnection {
 		if(out() != null){
 		try{out().flush(); out().close();}
 		catch(IOException e){Log.e(TAG, e.getMessage());}}
-	}
-	
-	
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public void cancel(){
-		disconnect();
 	}
 	
 

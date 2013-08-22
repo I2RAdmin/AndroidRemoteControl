@@ -43,8 +43,10 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 		createNewDuration("duration");
 	}
 
-
 	
+	/**
+	 * {@inheritDoc} 
+	 */
 	@Override
 	public void releaseSensor() {
 		taskCompleted = true;
@@ -64,12 +66,18 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 	}
 
 	
+	/**
+	 * {@inheritDoc} 
+	 */
 	@Override
 	public void killTask() {
 		releaseSensor();
 	}
 
 	
+	/**
+	 * {@inheritDoc} 
+	 */
 	@Override
 	public void startNewTask(int taskID, int[] args) {
 		setTaskID(taskID);
@@ -103,19 +111,27 @@ public class MicrophoneSensor extends GenericDeviceSensor {
 	}
 	
 
-	
+	/**
+	 * {@inheritDoc} 
+	 */
 	@Override
 	public boolean taskCompleted() {
 		return taskCompleted;
 	}
 
 	
+	/**
+	 * {@inheritDoc} 
+	 */
 	@Override
 	public String getName() {
 		return TAG;
 	}
 
 	
+	/**
+	 * {@inheritDoc} 
+	 */
 	@Override
 	public void updateSensorProperties(int taskID) {
 		

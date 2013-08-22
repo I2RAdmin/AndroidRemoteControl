@@ -69,17 +69,29 @@ public class EnvironmentSensorPool extends
 		createNewDuration("duration");
 	}
 
+	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void releaseSensor() {
 		// do nothing
 	}
 
+	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void killTask() {
 		manager.unregisterListener(this);
 		this.taskCompleted = true;
 	}
 
+	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void startNewTask(int taskID, int[] args) {
 		setTaskID(taskID);
@@ -112,18 +124,27 @@ public class EnvironmentSensorPool extends
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean taskCompleted() {
 		return taskCompleted;
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public String getName() {
 		return TAG;
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void updateSensorProperties(int taskID) {
 		for(Sensor sensor : sensors){
@@ -177,7 +198,11 @@ public class EnvironmentSensorPool extends
 	}
 	
 	
-	
+	/**
+	 * Creates a wait thread that kills
+	 * this task after the appropriate amount
+	 * of time has passed.
+	 */
 	private synchronized void waitForCompletion(){
 		
 		Log.d(TAG, "waiting for environment sensing completion...");

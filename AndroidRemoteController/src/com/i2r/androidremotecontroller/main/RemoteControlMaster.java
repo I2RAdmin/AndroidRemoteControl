@@ -47,9 +47,13 @@ public class RemoteControlMaster {
 	public RemoteControlMaster(CommandFilter filter, String connectionType)
 			throws ServiceNotFoundException {
 
+		if(connectionType == null){
+			throw new ServiceNotFoundException("connection type is null");
+		}
+		
 		this.filter = filter;
 		this.started = false;
-
+		
 		// figure out what type of connection the user chose
 		
 		// BLUETOOTH
@@ -144,11 +148,12 @@ public class RemoteControlMaster {
 
 		if (connectionManager != null) {
 			connectionManager.cancel();
+			connectionManager = null;
 		}
 
 		if (filter != null) {
 			filter.cancel();
-			filter.setConnection(null);
+			filter = null;
 		}
 	}
 

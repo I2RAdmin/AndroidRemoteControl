@@ -64,6 +64,9 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	public static final String EXTRA_USB = "USB";
 	
 	
+	public static final String ACTION_USER_TERMINATED_CONNECTION = "i2r_action_user_terminated_connection";
+	
+	
 	private static final String TAG = "ConnectionActivity";
 	private static final String EXIT = "Exit";
 	
@@ -79,8 +82,9 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	};
 	
 	private static final int BLUETOOTH_CODE = 1;
-	private static final int USB_CODE = 2;
-	private static final int WIFI_CODE = 3;
+	
+	private static final String KEY_SELECTION = "connection-selection";
+	private static final String NO_SELECTION = "[N/A]";
 
 	private String selection;
 	private AlertDialog.Builder builder;
@@ -90,7 +94,7 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_connection_select);
 		
-		this.selection = "[N/A]";
+		this.selection = NO_SELECTION;
 		this.builder = new AlertDialog.Builder(this);
 		
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, 
@@ -112,21 +116,35 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 			  }
 			});
 		
-		
-
-		
 	}
 	
 	
 	@Override
 	protected void onResume(){
 		super.onResume();
+		if(selection != null && !selection.equals(NO_SELECTION)){
+			executeSelection(selection);
+		}
 	}
 	
 	
 	@Override
 	protected void onPause(){
 		super.onPause();
+	}
+	
+	
+	@Override
+	protected void onSaveInstanceState(Bundle outState){
+		super.onSaveInstanceState(outState);
+		outState.putString(KEY_SELECTION, selection);
+	}
+	
+	
+	@Override
+	protected void onRestoreInstanceState(Bundle savedInstanceState){
+		super.onRestoreInstanceState(savedInstanceState);
+		selection = savedInstanceState.getString(KEY_SELECTION);
 	}
 	
 	
@@ -145,30 +163,10 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 			}
 			
 			break;
-			
-		case USB_CODE:
-			
-			if(resultCode == RESULT_OK){
-				// TODO: respond to USB activity result success
-			} else {
-				// TODO: respond to USB activity result failure
-			}
-			
-			break;
-			
-		case WIFI_CODE:
-			
-			if(resultCode == RESULT_OK){
-				// TODO: respond to wifi activity result success
-			} else {
-				// TODO: respond to wifi activity result failure
-			}
-			
-			break;
-			
-			default:
-				// TODO: make default
-				break;
+		}
+		
+		if(data != null && data.getAction().equals(ACTION_USER_TERMINATED_CONNECTION)){
+			selection = NO_SELECTION;
 		}
 	}
 	
@@ -177,23 +175,27 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
     public void onClick(DialogInterface dialog, int which) {
         switch (which){
         case DialogInterface.BUTTON_POSITIVE:
-        		
-        	if(selection.equals(EXTRA_WIFI)){
-        		setupWifi();
-        	} else if(selection.equals(EXTRA_BLUETOOTH)){
-        		setupBluetooth();
-        	} else if(selection.equals(EXTRA_USB)){
-        		setupUsb();
-        	} else if(selection.equals(EXIT)){
-        		finish();
-        	}
-        	
+        	executeSelection(selection);
             break;
 
         case DialogInterface.BUTTON_NEGATIVE:
             // do nothing
             break;
         }
+    }
+    
+    
+    // restoration helper method
+    private void executeSelection(String selection){
+    	if(selection.equals(EXTRA_WIFI)){
+    		setupWifi();
+    	} else if(selection.equals(EXTRA_BLUETOOTH)){
+    		setupBluetooth();
+    	} else if(selection.equals(EXTRA_USB)){
+    		setupUsb();
+    	} else if(selection.equals(EXIT)){
+    		finish();
+    	}
     }
 	
 	
@@ -242,7 +244,7 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 
 	        Intent intent = new Intent(this, RemoteControlActivity.class);
 	        intent.putExtra(EXTRA_CONNECTION_TYPE, EXTRA_BLUETOOTH);
-	        startActivity(intent);
+	        startActivityForResult(intent, 0);
 			
 		} else if(adapter != null && !adapter.isEnabled()){
 			
@@ -281,7 +283,7 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 		Log.d(TAG, "starting remote control with wifi");
 	    Intent intent = new Intent(this, RemoteControlActivity.class);
 	    intent.putExtra(EXTRA_CONNECTION_TYPE, EXTRA_WIFI);
-	    startActivity(intent);
+	    startActivityForResult(intent, 0);
 	}
 	
 	

@@ -393,9 +393,15 @@ public abstract class GenericDeviceSensor {
 	
 	
 	/**
-	 * TODO: comment
-	 * @param dataType
-	 * @param data
+	 * Sends the given data across this sensor's current
+	 * connection with the given data type. If the data
+	 * is considered too large, it is broken into megabyte
+	 * blocks that will be sent individually so that this
+	 * data can stream more fluidly across the connection.
+	 * @param dataType - the data type to send this data with.
+	 * @param data - the data to send across the connection.
+	 * @see {@link ResponsePacket#ResponsePacket(int, int, byte[])}
+	 * @see {@link ResponsePacket#send(RemoteConnection)}
 	 */
 	protected void sendData(int dataType, byte[] data){
 		if(data != null){
@@ -476,12 +482,15 @@ public abstract class GenericDeviceSensor {
 	
 	
 	/**
-	 * Starts a new task for this sensor
-	 * @param taskID - the ID assigned to the new task
-	 * @param params - the parameters that the new task requires of this sensor
-	 * @requires this sensor has no current;y running tasks and taskCompleted() returns true
-	 * @ensures if this sensor has no current task, a new task with the given ID and parameters
+	 * Starts a new task for this sensor.<br>
+	 * Requires this sensor has no currently running tasks
+	 * and taskCompleted() returns true<br>
+	 * Ensures if this sensor has no current task, a new
+	 * task with the given ID and parameters
 	 * will be started.
+	 * @param taskID - the ID assigned to the new task
+	 * @param args - the parameters that the new task requires
+	 * of this sensor
 	 * @see isSensorAvailable(GenericDeviceSensor, int)
 	 */
 	public abstract void startNewTask(int taskID, int[] args);
@@ -489,7 +498,8 @@ public abstract class GenericDeviceSensor {
 	
 	/**
 	 * Query about the state of this sensor's task
-	 * @return true if the task has completed (successfully or unsuccessfully),
+	 * @return true if the task has completed
+	 * (successfully or unsuccessfully),
 	 * false otherwise.
 	 */
 	public abstract boolean taskCompleted();
@@ -513,7 +523,9 @@ public abstract class GenericDeviceSensor {
 	 * object's HashMap is considered to be stable and
 	 * rarely changing.
 	 * @param taskID the task ID of the command that was sent
-	 * to modify this sensor
+	 * to modify this sensor - this is needed in case an 
+	 * error-out notification needs to be sent regarding
+	 * this update
 	 */
 	public abstract void updateSensorProperties(int taskID);
 	

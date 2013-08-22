@@ -11,7 +11,7 @@ import com.i2r.androidremotecontroller.main.RemoteControlMaster;
  * This class models a manager for a connection type
  * which implements the {@link Link} interface. This class implements
  * Thread, and when it is run, the given link object is used to attempt
- * to create a {@link RemoteConnection} object, which will then be stored
+ * to create a {@link ThreadedRemoteConnection} object, which will then be stored
  * so that this object can be queried for it later.
  * @author Josh Noel
  */
@@ -86,16 +86,17 @@ public class ConnectionManager<E> {
 	public void cancel(){
 		
 		Log.d(TAG, "all connections canceled");
-	    linker.haltConnectionDiscovery();
 		
 		if(connection != null){
-			connection.cancel();
+			connection.disconnect();
+			connection.interrupt();
 			connection = null;
 		}
 		
 		
 		if(finder != null){
 			finder.cancel();
+			finder.interrupt();
 			finder = null;
 		}
 		
@@ -182,8 +183,9 @@ public class ConnectionManager<E> {
 				// wait for linker to find a fresh list of peers
 				while(linker.isSearchingForLinks() && !cancelled){}
 				
-				// TODO: make this a list to choose from, if needed
-				connection = linker.connectTo(linker.getLinks().get(0));
+				if(!cancelled){
+					connection = linker.connectTo(linker.getLinks().get(0));
+				}
 			}
 			
 			if(connection != null){

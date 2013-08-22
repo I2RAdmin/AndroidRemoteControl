@@ -9,7 +9,6 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.view.Menu;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -37,7 +36,7 @@ import com.i2r.androidremotecontroller.sensors.SensorDurationHandler;
 public class RemoteControlActivity extends Activity {
 
 	private static final String TAG = "RemoteControlActivity";
-
+	
 	private static final int PING_FREQUENCY = 30000;
 	
 	/**
@@ -88,6 +87,7 @@ public class RemoteControlActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_remote_control);
 
+	
 		// booleans to query about the state of this activity during the
 		// first steps of creation
 		this.started = false;
@@ -131,44 +131,44 @@ public class RemoteControlActivity extends Activity {
 		Button stop = (Button) findViewById(R.id.stop_remote_control);
 		stop.setOnClickListener(new OnClickListener() {
 			public void onClick(View view) {
+				Intent result = new Intent(
+					ConnectionTypeSelectionActivity
+					.ACTION_USER_TERMINATED_CONNECTION);
+				setResult(RESULT_OK, result);
 				stopMaster();
 			}
 		});
 
 	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
+	
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		startMaster(getIntent().getStringExtra(
-				ConnectionTypeSelectionActivity.EXTRA_CONNECTION_TYPE));
+		
+		String connectionType = getIntent()
+					.getStringExtra(
+					ConnectionTypeSelectionActivity
+					.EXTRA_CONNECTION_TYPE);
+			startMaster(connectionType);
+		
 	}
+	
 
 	@Override
 	protected void onPause() {
 		super.onPause();
 		stopMaster();
 	}
+	
+	
 
 	
 	/**
 	 * Begins main execution of this remote control application. This creates a
 	 * new RemoteControlMaster to control the phone remotely by taking in
-	 * commands across a connection, and it creates a new SensorController for
-	 * the Master's use
-	 * 
-	 * @param connectionType
-	 *            - the connection type chosen by the user to start this
-	 *            application with. This parameter is passed to this activity
-	 *            from the starting intent passed here by this application's
-	 *            {@link ConnectionTypeSelectionActivity}
+	 * commands across a connection, and it creates a new CommandFilter for
+	 * the Master's use.
 	 */
 	private void startMaster(String connectionType) {
 
@@ -185,8 +185,8 @@ public class RemoteControlActivity extends Activity {
 		// to mediate between the master and the device sensors
 		this.camera = Camera.open();
 		SurfaceView view = (SurfaceView) findViewById(R.id.preview);
-		this.cFilter = new CommandFilter(this, camera,
-				view.getHolder());
+		this.cFilter = new CommandFilter(this, camera, view.getHolder());
+		
 		try {
 			this.master = new RemoteControlMaster(cFilter, connectionType);
 			if (!started) {

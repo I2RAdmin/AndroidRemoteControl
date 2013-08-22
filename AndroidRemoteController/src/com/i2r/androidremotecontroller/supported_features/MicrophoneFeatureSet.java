@@ -14,6 +14,8 @@ import android.media.MediaRecorder.AudioSource;
  * @author Josh Noel
  * @see {@link FeatureSet}
  * @see {@link Feature}
+ * @see {@link #getInstance()}
+ * @see {@link #FEATURES}
  */
 public class MicrophoneFeatureSet extends FeatureSet {
 
@@ -92,6 +94,11 @@ public class MicrophoneFeatureSet extends FeatureSet {
 	
 	private static final MicrophoneFeatureSet set = new MicrophoneFeatureSet();
 	
+	/**
+	 * Static footprint of the current microphone features.
+	 * If this object is only requested for encoded features,
+	 * use this. Otherwise use {@link #getInstance}
+	 */
 	public static final byte[] FEATURES = set.encode();
 	
 	/**
@@ -121,6 +128,10 @@ public class MicrophoneFeatureSet extends FeatureSet {
 	}
 	
 	
+	/**
+	 * Query for the singleton instance of this class.
+	 * @return a {@link MicrophoneFeatureSet} singleton instance
+	 */
 	public static MicrophoneFeatureSet getInstance(){
 		return set;
 	}

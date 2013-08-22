@@ -15,7 +15,7 @@ import android.support.v4.content.LocalBroadcastManager;
 public abstract class ThreadedRemoteConnection extends Thread
 										implements RemoteConnection {
 	
-
+	
 	private LocalBroadcastManager manager;
 	private Context context;
 	private InputStream in;
@@ -76,12 +76,5 @@ public abstract class ThreadedRemoteConnection extends Thread
 	protected Context getContext(){
 		return context;
 	}
-	
-	
-	/**
-	 * Cancels any looping processes defined in
-	 * this connection's {@link #run()} method
-	 */
-	public abstract void cancel();
 
-}
+} // end of ThreadedRemoteConnection class

@@ -10,13 +10,10 @@ import ARC.Constants;
  * This class models a container for a sensor's features, and is designed to be
  * extended for customization to a particular sensor.
  * 
- * TODO: make app start on phone start up and dim (or turn off) screen
- * also make phone wake back up on usb connected
- * 
  * @author Josh Noel
  * @see {@link Feature}
  */
-public class FeatureSet {
+public abstract class FeatureSet {
 
 	// **************************************************
 	// |-- COMMON CONSTANTS TO ALL SUPPORTED FEATURES --|

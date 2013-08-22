@@ -65,12 +65,18 @@ public class LocationSensor extends GenericDeviceSensor implements LocationListe
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void releaseSensor() {
 		getActivity().unregisterReceiver(receiver);
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void killTask() {
 		taskCompleted = true;
@@ -80,6 +86,9 @@ public class LocationSensor extends GenericDeviceSensor implements LocationListe
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void startNewTask(int taskID, int[] args) {
 		
@@ -111,29 +120,43 @@ public class LocationSensor extends GenericDeviceSensor implements LocationListe
 		
 	}
 
-	
+
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean taskCompleted() {
 		return taskCompleted;
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public String getName() {
 		return TAG;
 	}
 
-	
+
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void updateSensorProperties(int taskID) {
 
 		setTaskID(taskID);
 		
 		if(getBooleanProperty(LocationFeatureSet.PROXIMITY_ALERT)){
-			double latitude = getDoubleProperty(LocationFeatureSet.PROXIMITY_ALERT_LATITUDE);
-			double longitude = getDoubleProperty(LocationFeatureSet.PROXIMITY_ALERT_LONGITUDE);
-			float radius = (float) getDoubleProperty(LocationFeatureSet.PROXIMITY_ALERT_RADIUS);
-			int expiration = getIntProperty(LocationFeatureSet.PROXIMITY_ALERT_EXPIRATION);
+			
+			double latitude = getDoubleProperty(
+					LocationFeatureSet.PROXIMITY_ALERT_LATITUDE);
+			double longitude = getDoubleProperty(
+					LocationFeatureSet.PROXIMITY_ALERT_LONGITUDE);
+			float radius = (float) getDoubleProperty(
+					LocationFeatureSet.PROXIMITY_ALERT_RADIUS);
+			int expiration = getIntProperty(
+					LocationFeatureSet.PROXIMITY_ALERT_EXPIRATION);
 			
 			if(latitude != Constants.Args.ARG_DOUBLE_NONE 
 					&& longitude != Constants.Args.ARG_DOUBLE_NONE
@@ -141,15 +164,17 @@ public class LocationSensor extends GenericDeviceSensor implements LocationListe
 				
 				PendingIntent intent = PendingIntent.getBroadcast(getActivity(), 0, 
 						new Intent(ACTION_PROXIMITY_ALERT), 0);
-				manager.addProximityAlert(latitude, longitude, radius, expiration, intent);
+				
+				manager.addProximityAlert(latitude, longitude,
+						radius, expiration, intent);
 			} else {
-				sendTaskErroredOut("latitude, longitude and radius must be set when proximity alert is on");
+				sendTaskErroredOut(
+						"latitude, longitude and radius must be set when proximity alert is on");
 			}
 			
 		}
 		
 	}
-
 
 
 	@Override

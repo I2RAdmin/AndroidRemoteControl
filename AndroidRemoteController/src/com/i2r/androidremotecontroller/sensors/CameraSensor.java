@@ -52,7 +52,6 @@ public class CameraSensor extends GenericDeviceSensor {
 		this.pictureCount = 0;
 		this.camera = camera;
 		
-		// TODO: find display orientation before setting it
 		this.camera.setDisplayOrientation(90);
 		this.holder = holder;
 		this.holder.addCallback(surface);
@@ -62,6 +61,9 @@ public class CameraSensor extends GenericDeviceSensor {
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void releaseSensor() {
 		
@@ -77,6 +79,9 @@ public class CameraSensor extends GenericDeviceSensor {
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void killTask() {
 		Log.d(TAG, "killing task : " + getTaskID());
@@ -85,6 +90,9 @@ public class CameraSensor extends GenericDeviceSensor {
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void startNewTask(int taskID, int[] params) {
 		Log.d(TAG, "starting new task : " + taskID);
@@ -112,18 +120,27 @@ public class CameraSensor extends GenericDeviceSensor {
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean taskCompleted() {
 		return !waitingOnPicture && (forceClose || done());
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public String getName(){
 		return TAG;
 	}
 	
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void updateSensorProperties(int taskID){
 		
