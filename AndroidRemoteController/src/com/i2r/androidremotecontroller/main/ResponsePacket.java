@@ -444,6 +444,22 @@ public class ResponsePacket {
 		return builder.toString();
 	}
 	
+	
+	
+	/**
+	 * Static convenience method for pinging a connection.
+	 * @param connection - the connection to ping
+	 * @return true if the connection was pinged successfully,
+	 * false otherwise.
+	 * @see {@link #getNotificationPacket(int, char)}
+	 */
+	public static boolean sendPing(RemoteConnection connection){
+		return getNotificationPacket(0, 
+				Constants.Notifications.PROXIMITY_UPDATE)
+				.send(connection);
+	}
+	
+	
 
 	/**
 	 * Query for a ResponsePacket object that notifies the

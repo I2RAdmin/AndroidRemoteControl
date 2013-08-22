@@ -24,8 +24,7 @@ public class ConnectionManager<E> {
 	
 	private Link<E> linker;
 	private LocalBroadcastManager manager;
-	private RemoteConnection connection;
-	private Thread runningConnection;
+	private ThreadedRemoteConnection connection;
 	private ConnectionFinder finder;
 	
 	/**
@@ -38,7 +37,7 @@ public class ConnectionManager<E> {
 	public ConnectionManager(Link<E> linker){
 		this.linker = linker;
 		this.manager = LocalBroadcastManager.getInstance(linker.getContext());
-		this.runningConnection = null;
+		this.connection = null;
 		this.finder = null;
 	}
 	
@@ -73,8 +72,7 @@ public class ConnectionManager<E> {
 		
 		if(connection != null){
 			Log.d(TAG, "starting data transfer on connection thread");
-			runningConnection = new Thread(connection, "runnningConnectionThread");
-			runningConnection.start();
+			connection.start();
 		}
 	}
 	
@@ -91,12 +89,16 @@ public class ConnectionManager<E> {
 	    linker.haltConnectionDiscovery();
 		
 		if(connection != null){
-			connection.disconnect();
+			connection.cancel();
 			connection = null;
 		}
 		
-		runningConnection = null;
-		finder = null;
+		
+		if(finder != null){
+			finder.cancel();
+			finder = null;
+		}
+		
 	}
 	
 	
@@ -158,6 +160,12 @@ public class ConnectionManager<E> {
 	 */
 	private class ConnectionFinder extends Thread {
 		
+		private boolean cancelled;
+		
+		public ConnectionFinder(){
+			this.cancelled = false;
+		}
+		
 		@Override
 		public void run() {
 			connection = null;
@@ -172,7 +180,7 @@ public class ConnectionManager<E> {
 				linker.searchForLinks();
 				
 				// wait for linker to find a fresh list of peers
-				while(linker.isSearchingForLinks()){}
+				while(linker.isSearchingForLinks() && !cancelled){}
 				
 				// TODO: make this a list to choose from, if needed
 				connection = linker.connectTo(linker.getLinks().get(0));
@@ -181,8 +189,10 @@ public class ConnectionManager<E> {
 			if(connection != null){
 				Log.d(TAG, "connection found");
 			} else {
+				linker.haltConnectionDiscovery();
 				Log.e(TAG, "no connection found");
 			}
+			
 			
 			// notify main Activity that connection search has finished
 			Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
@@ -190,6 +200,14 @@ public class ConnectionManager<E> {
 			intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, message);
 			manager.sendBroadcast(intent);
 		}
-	}
+		
+		
+		public void cancel(){
+			this.cancelled = true;
+			linker.haltConnectionDiscovery();
+		}
+		
+	} // end of ConnectionFinder class
 	
-}
+
+} // end of ConnectionManager class

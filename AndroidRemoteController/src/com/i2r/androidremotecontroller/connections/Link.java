@@ -21,10 +21,10 @@ public interface Link<E> {
 	 * Used for server side connecting. This method
 	 * will typically block in concrete implementations,
 	 * and should be called in a separate worker thread.
-	 * @return a {@link RemoteConnection} to a controller
+	 * @return a {@link ThreadedRemoteConnection} to a controller
 	 * device if one was found, else returns null.
 	 */
-	public RemoteConnection listenForRemoteConnection();
+	public ThreadedRemoteConnection listenForRemoteConnection();
 	
 	
 	/**
@@ -33,11 +33,11 @@ public interface Link<E> {
 	 * a new connection. Unlike {@link #listenForRemoteConnection()},
 	 * this method will return immediately.
 	 * @param remote - the remote device to connect to.
-	 * @return a {@link RemoteConnection} to the remote
+	 * @return a {@link ThreadedRemoteConnection} to the remote
 	 * device if the device accepted this request, else
 	 * returns null.
 	 */
-	public RemoteConnection connectTo(E remote);
+	public ThreadedRemoteConnection connectTo(E remote);
 
 	
 	/**

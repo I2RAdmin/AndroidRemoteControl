@@ -36,6 +36,27 @@ public class SensorDurationHandler {
 		this.id = Constants.Args.ARG_STRING_NONE;
 		this.index = Constants.Args.ARG_NONE;
 	}
+	
+	
+	
+	/**
+	 * Constructor<br>
+	 * Creates a new DurationHandler with no start time and a max duration of
+	 * the value given.
+	 * {@link #maxReached()} will always return false in this state. The id and
+	 * index of this handler are set to the "NONE" constants defined in
+	 * {@link Constants#Args}
+	 * @param duration - the duration to set this handler's max value to.
+	 * @see {@link Constants#Args}
+	 */
+	public SensorDurationHandler(long duration) {
+		this.max = duration;
+		this.id = Constants.Args.ARG_STRING_NONE;
+		this.index = Constants.Args.ARG_NONE;
+		this.startTime = Constants.Args.ARG_NONE;
+	}
+	
+	
 
 	/**
 	 * Constructor<br>

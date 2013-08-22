@@ -6,6 +6,9 @@ import ARC.Constants;
 import ARC.Constants.Args;
 import android.util.Log;
 
+import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.exceptions.PacketStitchException;
+
 
 /**
  * This class models a container for the commands parsed
@@ -67,6 +70,41 @@ public class CommandPacket {
 			}
 		}
 	}
+	
+	
+	
+	
+	/**
+	 * Constructor<br>
+	 * Creates a new CommandPacket with the given parameters.
+	 * @param taskID - the task id to be assigned to this packet
+	 * @param command - the command for this packet
+	 * @param params - the parameters of this packet
+	 */
+	private CommandPacket(int taskID, int command, String[] params){
+		this.taskID = taskID;
+		this.command = command;
+		this.packetEnd = Constants.Delimiters.PACKET_END;
+		this.parameters = params;
+		
+		ArrayList<Integer> intParams = new ArrayList<Integer>();
+		for(int i = 0; i < params.length; i++){
+			try{
+				intParams.add(Integer.valueOf(Integer.parseInt(params[i])));
+			} catch (NumberFormatException e){
+				// not an integer, move on
+			}
+		}
+		
+		if(!intParams.isEmpty()){
+			this.intParams = new int[intParams.size()];
+			for(int i = 0; i < intParams.size(); i++){
+				this.intParams[i] = intParams.get(i).intValue();
+			}
+		}
+	}
+	
+	
 	
 
 	/**
@@ -258,6 +296,45 @@ public class CommandPacket {
 	}
 	
 
+	
+	/**
+	 * This static method attempts to stitch two partial packets together
+	 * into one new complete {@link CommandPacket}. As of now, in order for
+	 * two packets to be stitched together correctly, they must have the
+	 * same task ID and command, and neither must be a complete packet - i.e.,
+	 * neither's {@link #isCompleteCommand()} can return true in order for
+	 * this to stitch properly. If any of these conditions is not met,
+	 * a {@link PacketStitchException} will be thrown. 
+	 * @param first - the first packet to stitch
+	 * @param second - the second packet to stitch
+	 * @return a new CommandPacket which has the same task id and command
+	 * as the two given, but its parameters are the composite of both
+	 * packets' parameters.
+	 * @throws PacketStitchException
+	 */
+	public static CommandPacket stitch(CommandPacket first,
+					CommandPacket second) throws PacketStitchException {
+		if(first.getTaskID() != second.getTaskID() ||
+				first.getCommand() != second.getCommand() ||
+				first.isCompleteCommand() ||
+				second.isCompleteCommand()){
+			throw new PacketStitchException("packets do not match");
+		}
+		
+		int length = first.parameters.length + second.parameters.length;
+		String[] resultParams = new String[length];
+		
+		for(int i = 0; i < first.parameters.length; i++){
+			resultParams[i] = first.parameters[i];
+		}
+		
+		for(int i = 0; i < second.parameters.length; i++){
+			resultParams[i + first.parameters.length] = second.parameters[i];
+		}
+		
+		
+		return new CommandPacket(first.getTaskID(), first.getCommand(), resultParams);
+	}
 
 	
 	

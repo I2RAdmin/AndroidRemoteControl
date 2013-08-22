@@ -70,15 +70,18 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public RemoteConnection listenForRemoteConnection() {
+	public ThreadedRemoteConnection listenForRemoteConnection() {
 		Socket socket = null;
-		GenericRemoteConnection connection = null;
+		GenericThreadedRemoteConnection connection = null;
 		try {
 			ServerSocket listener = new ServerSocket(Constants.Info.WIFI_PORT);
 			socket = listener.accept();
 			if (socket != null) {
-				connection = new GenericRemoteConnection(activity,
+				connection = new GenericThreadedRemoteConnection(activity,
 						socket.getInputStream(), socket.getOutputStream());
 			}
 		} catch (IOException e) {
@@ -88,13 +91,16 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public RemoteConnection connectTo(WifiP2pDevice remote) {
+	public ThreadedRemoteConnection connectTo(WifiP2pDevice remote) {
 
 		WifiP2pDevice device = (WifiP2pDevice) remote;
 		WifiP2pConfig config = new WifiP2pConfig();
 		config.deviceAddress = device.deviceAddress;
-		GenericRemoteConnection connection = null;
+		GenericThreadedRemoteConnection connection = null;
 
 		try {
 
@@ -102,7 +108,7 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 					Constants.Info.WIFI_PORT);
 
 			if (socket != null) {
-				connection = new GenericRemoteConnection(activity,
+				connection = new GenericThreadedRemoteConnection(activity,
 						socket.getInputStream(), socket.getOutputStream());
 
 				// TODO: figure out what to do with this
@@ -118,6 +124,9 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void searchForLinks() {
 		peerListener.devices.clear();
@@ -128,6 +137,9 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void haltConnectionDiscovery() {
 		manager.stopPeerDiscovery(channel, null);
@@ -135,21 +147,39 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public List<WifiP2pDevice> getLinks() {
 		return peerListener.devices;
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isServerLink() {
 		return isServer;
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isSearchingForLinks() {
 		return searchingForLinks;
+	}
+	
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Context getContext() {
+		return activity;
 	}
 	
 
@@ -231,12 +261,7 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 			}
 		}
 
-	}
+	} // end of GenericActionListener class
 
-
-	@Override
-	public Context getContext() {
-		return activity;
-	}
 
 } // end of WifiDirectLink class

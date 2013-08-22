@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.exceptions.PacketStitchException;
 import com.i2r.androidremotecontroller.sensors.CameraSensor;
 import com.i2r.androidremotecontroller.sensors.EnvironmentSensorPool;
 import com.i2r.androidremotecontroller.sensors.GenericDeviceSensor;
@@ -49,6 +50,7 @@ public class CommandFilter {
 	private LocalBroadcastManager manager;
 	private Camera camera;
 	private LinkedList<CommandPacket> commandQueue;
+	private LinkedList<CommandPacket> stitchQueue;
 	private GenericDeviceSensor[] sensors;
 	private RemoteConnection connection;
 	
@@ -66,6 +68,7 @@ public class CommandFilter {
 		this.camera = camera;
 		this.manager = LocalBroadcastManager.getInstance(activity);
 		this.commandQueue = new LinkedList<CommandPacket>();
+		this.stitchQueue = new LinkedList<CommandPacket>();
 		this.connection = null;
 		
 		this.sensors = new GenericDeviceSensor[SENSOR_SIZE];
@@ -97,33 +100,7 @@ public class CommandFilter {
 			
 			// if the packet is legitimate, add it to the queue
 			for(int i = 0; i < packets.length; i++){
-				if(packets[i] != null && packets[i].isCompleteCommand()){
-					
-					// high priority packets get executed immediately
-					if(packets[i].hasHighPriority()){
-						Log.d(TAG, "executing high priority command:\n" + packets[i].toString());
-						execute(packets[i]);
-						
-						// low priority packets get placed in queue
-					} else {
-						Log.d(TAG, "queueing command:\n" + packets[i].toString());
-						commandQueue.add(packets[i]);
-					}
-					
-					// packet is incomplete command, see if it is blank
-				} else if(packets[i] != null && !packets[i].isCompleteCommand()){
-					
-					// TODO: hold partial command and wait to stitch
-					if(!packets[i].isBlankCommand()){
-						Log.d(TAG, "partial command received");
-						
-					} else {
-						Log.e(TAG, "blank command recieved, no action performed");
-					}
-					
-				} else {
-					Log.e(TAG, "command " + i + " could not be parsed");
-				}
+				filterPacket(packets[i]);
 			}
 			
 			// error parsing received data, revert back to main activity
@@ -135,6 +112,66 @@ public class CommandFilter {
 		
 	}
 	
+	
+	/**
+	 * Helper method for {@link #parseCommand(String)}
+	 * @param packet - the packet to probe for information
+	 */
+	private void filterPacket(CommandPacket packet){
+		
+		// packet is valid, continue with normal execution
+		if(packet != null && packet.isCompleteCommand()){
+			
+			// high priority packets get executed immediately
+			if(packet.hasHighPriority()){
+				Log.d(TAG, "executing high priority command:\n" + packet.toString());
+				execute(packet);
+				
+				// low priority packets get placed in queue
+			} else {
+				Log.d(TAG, "queueing command:\n" + packet.toString());
+				commandQueue.add(packet);
+			}
+			
+			// packet is incomplete command, see if it is blank
+		} else if(packet != null && !packet.isCompleteCommand()){
+			
+			// packet is not blank, so it must be partial
+			if(!packet.isBlankCommand()){
+				Log.d(TAG, "partial command received");
+				stitch(packet);
+				
+				// packet is blank, do nothing
+			} else {
+				Log.e(TAG, "blank command recieved, no action performed");
+			}	
+			
+			// packet is null, do nothing
+		} else {
+			Log.e(TAG, "packet is null");
+		}
+	}
+	
+	
+	/**
+	 * Helper method for {@link #parseCommand(String)}
+	 * @param packet - the partial packet to attempt
+	 * to stitch a complete packet out of.
+	 */
+	private void stitch(CommandPacket packet){
+		if(!stitchQueue.isEmpty()){
+			try{
+				CommandPacket result = 
+						CommandPacket.stitch(stitchQueue.getFirst(), packet);
+				commandQueue.add(result);
+			} catch (PacketStitchException e){
+				Log.e(TAG, "packet stitch failed, dumping packets");
+			}
+			stitchQueue.remove();
+		} else {
+			stitchQueue.add(packet);
+		}
+	}
 	
 	
 	

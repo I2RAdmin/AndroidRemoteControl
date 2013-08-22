@@ -574,6 +574,15 @@ public final class Constants {
 		
 		
 		/**
+		 * Used to notify the controller when a picture
+		 * has finished streaming to it. This is so the
+		 * controller can differentiate between pictures
+		 * in the stream.
+		 */
+		public static final char PICTURE_COMPLETE = '$';
+		
+		
+		/**
 		 * Used to notify the remote controller when this
 		 * android device is entering or exiting a proximity
 		 * specified by the controller (via GPS sensors)

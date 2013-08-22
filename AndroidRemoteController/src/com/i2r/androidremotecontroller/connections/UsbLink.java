@@ -111,8 +111,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * convenience purposes with the ConnectionManager
 	 */
 	@Override
-	public RemoteConnection listenForRemoteConnection() {
-		RemoteConnection connection = null;
+	public ThreadedRemoteConnection listenForRemoteConnection() {
+		GenericThreadedRemoteConnection connection = null;
 		
 		UsbAccessory[] a = usbManager.getAccessoryList();
 		
@@ -155,15 +155,15 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * that were obtained from the given accessory, or null if no connection
 	 * with the given accessory could be created.
 	 */
-	private RemoteConnection getConnectionFromAccessory(UsbAccessory accessory){
-		RemoteConnection connection = null;
+	private GenericThreadedRemoteConnection getConnectionFromAccessory(UsbAccessory accessory){
+		GenericThreadedRemoteConnection connection = null;
 		ParcelFileDescriptor d = usbManager.openAccessory(accessory);
 		
 		if(d != null){
 			Log.d(TAG, "creating streams from accessory descriptor");
 			FileInputStream input = new FileInputStream(d.getFileDescriptor());
 			FileOutputStream output = new FileOutputStream(d.getFileDescriptor());
-			connection = new GenericRemoteConnection(context, input, output);
+			connection = new GenericThreadedRemoteConnection(context, input, output);
 		} else {
 			Log.e(TAG, "error opening file descriptor");
 		}
@@ -180,8 +180,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * as the host device is the one powering the bus
 	 */
 	@Override
-	public RemoteConnection connectTo(UsbDevice remote) {
-		RemoteConnection connection = null;
+	public GenericThreadedRemoteConnection connectTo(UsbDevice remote) {
+		GenericThreadedRemoteConnection connection = null;
 		if(isCorrectDevice(remote)){
 			if(usbManager.hasPermission(remote)){
 				
@@ -202,6 +202,9 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void searchForLinks() {
 		if(!listeningForConnection){
@@ -214,12 +217,18 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isSearchingForLinks() {
 		return false;
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void haltConnectionDiscovery() {
 		if(listeningForConnection){
@@ -230,6 +239,9 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public List<UsbDevice> getLinks() {
 		List<UsbDevice> links = null;
@@ -242,12 +254,23 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isServerLink() {
 		return isServer;
 	}
 
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Context getContext() {
+		return context;
+	}
+	
 	
 	/**
 	 * Helper method for {@link #connectTo(UsbDevice)}
@@ -274,11 +297,10 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		return true;
 	}
 	
-	
-	// TODO: (MUY IMPORTANTE' ==>) look into ServerSocket and InetAddress
-	
-	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		
@@ -468,10 +490,4 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		return interfaces;
 	}
 
-
-	@Override
-	public Context getContext() {
-		return context;
-	}
-	
-}
+} // end of UsbLink class

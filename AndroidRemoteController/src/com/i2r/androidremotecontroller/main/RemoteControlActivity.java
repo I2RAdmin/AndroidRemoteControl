@@ -1,6 +1,5 @@
 package com.i2r.androidremotecontroller.main;
 
-import ARC.Constants;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -39,6 +38,8 @@ public class RemoteControlActivity extends Activity {
 
 	private static final String TAG = "RemoteControlActivity";
 
+	private static final int PING_FREQUENCY = 30000;
+	
 	/**
 	 * Used for filtering {@link Intent}s in this application. This constant is
 	 * called whenever a command filter has finished a short term task.
@@ -71,6 +72,7 @@ public class RemoteControlActivity extends Activity {
 	private CommandFilter cFilter;
 	private TextView action;
 	private Camera camera;
+	private Pinger pinger;
 	private boolean started;
 
 	/**
@@ -102,6 +104,7 @@ public class RemoteControlActivity extends Activity {
 
 					Log.d(TAG, "update broadcast from connection recieved");
 					action.setText("pasring command");
+					pinger.reset();
 					master.updateByRemoteControl(intent.getStringExtra(EXTRA_COMMAND));
 
 					// if the source of the intent was a new connection
@@ -190,8 +193,9 @@ public class RemoteControlActivity extends Activity {
 				started = true;
 				action.setText("listening for connection to remote device...");
 				Log.d(TAG, "remote control started");
+				this.pinger = new Pinger(PING_FREQUENCY);
+				pinger.start();
 				master.start();
-				startPing(30000);
 			}
 
 			// goes back to main activity if connectionType parameter was not
@@ -234,48 +238,60 @@ public class RemoteControlActivity extends Activity {
 
 		if (master != null) {
 			master.stop();
+			master = null;
+			System.gc();
 		}
 
 		action.setText("remote control stopped, finishing...");
 		finish();
 	}
 	
+
+	
 	
 	/**
 	 * Used to periodically test the connection for
 	 * validity, since there are some cases in
 	 * which the connection does not close properly.
-	 * @param duration - the frequency in milliseconds
-	 * to ping the remote device. (i.e., every x amount
-	 * of milliseconds, send a ping)
 	 */
-	private synchronized void startPing(final int duration){
-		new Thread(new Runnable(){ public void run(){
-			
-			SensorDurationHandler handler = new SensorDurationHandler();
-			handler.setMax(duration).start();
-			
+	private class Pinger extends Thread {
+		
+		private SensorDurationHandler handler;
+		
+		public Pinger(int frequency){
+			this.handler = new SensorDurationHandler(frequency);
+			handler.start();
+		}
+		
+		
+		@Override
+		public void run(){
 			while(started){
 				if(handler.maxReached()){
-					boolean connected = ResponsePacket.getNotificationPacket(0, 
-							Constants.Notifications.PROXIMITY_UPDATE)
-							.send(master.getConnectionManager().getConnection());
+					boolean connected = ResponsePacket.sendPing(
+							master.getConnectionManager()
+							.getConnection());
 					
 					if(!connected){
 						master.initializeConnection();
 					}
 					
 					handler.start();
+					
 				} else {
 					try{
-						Thread.sleep(duration);
+						Thread.sleep(1000);
 					} catch (InterruptedException e){}
 				}
 			}
-			
-		}}, "ARC-ping-thread").start();
-	}
-	
+		}
+		
+		
+		public void reset(){
+			handler.start();
+		}
+		
+	} // end of Pinger class
 	
 
 }// end of SelectorActivity class

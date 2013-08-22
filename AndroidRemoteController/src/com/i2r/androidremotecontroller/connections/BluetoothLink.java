@@ -67,10 +67,12 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	// See the Link interface for documentation of these overrides ---------|
 	//**********************************************************************|
 	
-	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public RemoteConnection listenForRemoteConnection() {
-		GenericRemoteConnection connection = null;
+	public ThreadedRemoteConnection listenForRemoteConnection() {
+		GenericThreadedRemoteConnection connection = null;
 		socket = null;
 		
 		try{
@@ -79,13 +81,15 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 			
 			if(socket != null){
 				Log.d(TAG, "connection accepted");
-				connection = new GenericRemoteConnection(activity, 
+				connection = new GenericThreadedRemoteConnection(activity, 
 						socket.getInputStream(), socket.getOutputStream());
 			} else {
 				Log.e(TAG, "no connection found");
 			}
 			
-			listener.close();
+			if(listener != null){
+				listener.close();
+			}
 			
 		} catch(IOException e){
 			e.printStackTrace();
@@ -95,15 +99,17 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	}
 	
 	
-	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public RemoteConnection connectTo(BluetoothDevice remote) {
-		GenericRemoteConnection connection = null;
+	public ThreadedRemoteConnection connectTo(BluetoothDevice remote) {
+		GenericThreadedRemoteConnection connection = null;
 		try{
 			Log.d(TAG, "creating connection to device : " + remote.getName());
 			socket = remote.createInsecureRfcommSocketToServiceRecord(uuid);
 			socket.connect();
-			connection = new GenericRemoteConnection(activity, 
+			connection = new GenericThreadedRemoteConnection(activity, 
 					socket.getInputStream(), socket.getOutputStream());
 			Log.d(TAG, "successfully connected to  " + remote.getName());
 		} catch (IOException e) {
@@ -113,6 +119,9 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	}
 	
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void searchForLinks() {
 		Log.d(TAG, "searching for bluetooth links");
@@ -124,7 +133,9 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	}
 
 	
-	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public List<BluetoothDevice> getLinks() {
 		ArrayList<BluetoothDevice> list = new ArrayList<BluetoothDevice>();
@@ -133,7 +144,9 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	}
 	
 	
-	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void haltConnectionDiscovery() {
 		
@@ -142,7 +155,9 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 		if(listener != null){
 			try {
 				listener.close();
-			} catch (IOException e) {}
+			} catch (IOException e) {
+				Log.e(TAG, e.getMessage());
+			}
 			
 			listener = null;
 		}
@@ -151,7 +166,9 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 		if(socket != null){
 			try{
 				socket.close();
-			} catch(IOException e){}
+			} catch(IOException e){
+				Log.e(TAG, e.getMessage());
+			}
 			
 			socket = null;
 		}
@@ -160,19 +177,34 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 		if(adapter.isDiscovering()){
 			adapter.cancelDiscovery();
 		}
+		
 	}
 
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isServerLink() {
 		return isServer;
 	}
 
 
-	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isSearchingForLinks() {
 		return adapter.isDiscovering();
+	}
+	
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Context getContext() {
+		return activity;
 	}
 	
 	
@@ -221,14 +253,14 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 				}
 			}
 		}
+		
+		
+		if(!controllerFound){
+			device = null;
+		}
 
 		return device;
 	}
 
 
-	@Override
-	public Context getContext() {
-		return activity;
-	}
-
-}
+} // end of BluetoothLink class

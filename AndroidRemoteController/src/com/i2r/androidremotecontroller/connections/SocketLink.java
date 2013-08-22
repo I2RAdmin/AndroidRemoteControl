@@ -48,15 +48,18 @@ public class SocketLink implements Link<Object> {
 	}
 	
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public RemoteConnection listenForRemoteConnection() {
-		RemoteConnection connection = null;
+	public ThreadedRemoteConnection listenForRemoteConnection() {
+		GenericThreadedRemoteConnection connection = null;
 		try {
 			listener = new ServerSocket(Constants.Info.WIFI_PORT);
 			 socket = listener.accept();
 
 			if (socket != null) {
-				connection = new GenericRemoteConnection(activity,
+				connection = new GenericThreadedRemoteConnection(activity,
 						socket.getInputStream(), socket.getOutputStream());
 			}
 			
@@ -70,13 +73,16 @@ public class SocketLink implements Link<Object> {
 	}
 
 	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public RemoteConnection connectTo(Object remote) {
-		RemoteConnection connection = null;
+	public ThreadedRemoteConnection connectTo(Object remote) {
+		GenericThreadedRemoteConnection connection = null;
 		try {
 			socket = new Socket(Constants.Info.CONTROLLER_IP_ADDRESS,
 					Constants.Info.WIFI_PORT);
-			connection = new GenericRemoteConnection(activity, 
+			connection = new GenericThreadedRemoteConnection(activity, 
 					socket.getInputStream(), socket.getOutputStream());
 		} catch (UnknownHostException e) {
 			Log.e(TAG, e.getMessage());
@@ -87,16 +93,28 @@ public class SocketLink implements Link<Object> {
 		return connection;
 	}
 
+	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void searchForLinks() {
 		
 	}
 
+	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isSearchingForLinks() {
 		return false;
 	}
 
+	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void haltConnectionDiscovery() {
 		if(listener != null){
@@ -115,6 +133,9 @@ public class SocketLink implements Link<Object> {
 	}
 	
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public List<Object> getLinks() {
 		ArrayList<Object> temp = new ArrayList<Object>(1);
@@ -122,16 +143,22 @@ public class SocketLink implements Link<Object> {
 		return temp;
 	}
 
+	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public boolean isServerLink() {
 		return isServer;
 	}
 
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public Context getContext() {
 		return activity;
 	}
 	
-
-}
+} // end of SocketLink class
