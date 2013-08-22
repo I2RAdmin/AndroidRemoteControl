@@ -62,15 +62,9 @@ public class ConnectionManager<E> {
 	 * If this manager's RemoteConnection instance is
 	 * null, this method does nothing.
 	 */
-	public void startDataTransfer(){
-		
-		Log.d(TAG, "stopping connection discovery");
-		if(linker.isSearchingForLinks()){
-			linker.haltConnectionDiscovery();
-			finder = null;
-		}
-		
-		if(connection != null){
+	public void startDataTransfer(){	
+		if(connection != null && !connection.isAlive() &&
+				!connection.isInterrupted()){
 			Log.d(TAG, "starting data transfer on connection thread");
 			connection.start();
 		}
@@ -86,6 +80,7 @@ public class ConnectionManager<E> {
 	public void cancel(){
 		
 		Log.d(TAG, "all connections canceled");
+		linker.haltConnectionDiscovery();
 		
 		if(connection != null){
 			connection.disconnect();

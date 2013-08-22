@@ -4,6 +4,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
+/**
+ * This class models a simple boot on load
+ * implementation for this application.
+ * @author Josh Noel
+ *
+ */
 public class StartOnBoot extends BroadcastReceiver {
 
 	private static final String BOOT_UP = "android.intent.action.BOOT_COMPLETED";

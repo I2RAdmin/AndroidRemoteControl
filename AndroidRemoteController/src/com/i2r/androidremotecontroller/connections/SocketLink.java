@@ -63,11 +63,9 @@ public class SocketLink implements Link<Object> {
 						socket.getInputStream(), socket.getOutputStream());
 			}
 			
-			listener.close();
-			
 		} catch (IOException e) {
 			Log.e(TAG, "error creating connection from port");
-			e.printStackTrace();
+			connection = null;
 		}
 		return connection;
 	}
@@ -86,8 +84,10 @@ public class SocketLink implements Link<Object> {
 					socket.getInputStream(), socket.getOutputStream());
 		} catch (UnknownHostException e) {
 			Log.e(TAG, e.getMessage());
+			connection = null;
 		} catch (IOException e) {
 			Log.e(TAG, e.getMessage());
+			connection = null;
 		}
 		
 		return connection;
@@ -116,7 +116,7 @@ public class SocketLink implements Link<Object> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void haltConnectionDiscovery() {
+	public synchronized void haltConnectionDiscovery() {
 		if(listener != null){
 			try{
 				listener.close();

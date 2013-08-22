@@ -397,25 +397,17 @@ public class CameraSensor extends GenericDeviceSensor {
 		 * saves to the SD card if this flag is true.
 		 */
 		private void saveData(final byte[] data, final boolean saveToSD){
-			
-			StringBuilder builder = new StringBuilder();
-			builder.append("write-picture-");
-			builder.append(getTaskID());
-			builder.append("-");
-			builder.append(pictureCount);
-			
-			new Thread(new Runnable() { public void run(){
 				
-				if(saveToSD){
-					saveDataToSD(data, Long.toString(System.currentTimeMillis()), ".jpg");
-				} else {
-					sendData(Constants.DataTypes.IMAGE, data);
-					ResponsePacket.getNotificationPacket(getTaskID(), 
-							Constants.Notifications.PICTURE_COMPLETE)
-							.send(getConnection());
-				}
-				
-			}}, builder.toString()).start();
+			if (saveToSD) {
+				saveDataToSD(data, Long.toString(System.currentTimeMillis()),
+						".jpg");
+			} else {
+				sendData(Constants.DataTypes.IMAGE, data);
+				ResponsePacket.getNotificationPacket(getTaskID(),
+						Constants.Notifications.PICTURE_COMPLETE).send(
+						getConnection());
+			}
+
 		}
 
 	} // end of GenericPictureCallback class

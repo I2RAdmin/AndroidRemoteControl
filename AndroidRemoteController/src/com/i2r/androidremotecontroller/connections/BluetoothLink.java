@@ -87,12 +87,9 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 				Log.e(TAG, "no connection found");
 			}
 			
-			if(listener != null){
-				listener.close();
-			}
-			
 		} catch(IOException e){
-			e.printStackTrace();
+			Log.e(TAG, "exception while listening for bluetooth link");
+			connection = null;
 		}
 		
 		return connection;
@@ -113,7 +110,8 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 					socket.getInputStream(), socket.getOutputStream());
 			Log.d(TAG, "successfully connected to  " + remote.getName());
 		} catch (IOException e) {
-			e.printStackTrace();
+			Log.e(TAG, "error while searching for bluetooth link");
+			connection = null;
 		}
 		return connection;
 	}
@@ -148,7 +146,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void haltConnectionDiscovery() {
+	public synchronized void haltConnectionDiscovery() {
 		
 		Log.d(TAG, "halting connection discovery for bluetooth");
 		
