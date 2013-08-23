@@ -22,16 +22,21 @@ public final class R {
     }
     public static final class drawable {
         public static final int ic_launcher=0x7f020000;
+        public static final int test_icon_hdpi=0x7f020001;
+        public static final int test_icon_mdpi=0x7f020002;
+        public static final int test_icon_xdpi=0x7f020003;
     }
     public static final class id {
-        public static final int action_settings=0x7f080004;
-        public static final int current_action_text_view=0x7f080002;
-        public static final int logo_text_view=0x7f080000;
-        public static final int preview=0x7f080001;
-        public static final int stop_remote_control=0x7f080003;
+        public static final int action_settings=0x7f080005;
+        public static final int connection_list_view=0x7f080000;
+        public static final int current_action_text_view=0x7f080003;
+        public static final int logo_text_view=0x7f080001;
+        public static final int preview=0x7f080002;
+        public static final int stop_remote_control=0x7f080004;
     }
     public static final class layout {
-        public static final int activity_main=0x7f030000;
+        public static final int activity_connection_select=0x7f030000;
+        public static final int activity_remote_control=0x7f030001;
     }
     public static final class menu {
         public static final int main=0x7f070000;
@@ -39,15 +44,20 @@ public final class R {
     public static final class string {
         public static final int action_settings=0x7f050001;
         public static final int app_name=0x7f050000;
+        public static final int bluetooth_button_text=0x7f05000a;
         public static final int current_action=0x7f050006;
+        public static final int exit_button_text=0x7f05000c;
         public static final int hello_world=0x7f050002;
         public static final int i2r=0x7f050003;
         public static final int start_capture_sequence=0x7f050008;
         public static final int start_remote_control=0x7f050005;
         public static final int stop_capture_sequence=0x7f050007;
         public static final int stop_remote_control=0x7f050004;
+        public static final int usb_button_text=0x7f05000b;
+        public static final int wifi_button_text=0x7f050009;
     }
     public static final class style {
+        public static final int ARC_Theme=0x7f060002;
         /** 
         Base application theme, dependent on API level. This theme is replaced
         by AppBaseTheme from res/values-vXX/styles.xml on newer devices.

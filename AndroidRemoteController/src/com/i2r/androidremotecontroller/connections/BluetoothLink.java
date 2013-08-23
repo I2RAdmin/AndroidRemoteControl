@@ -6,21 +6,22 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import ARC.Constants;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.Intent;
 import android.os.ParcelUuid;
 import android.util.Log;
 
-import com.i2r.androidremotecontroller.exceptions.NoBluetoothAdapterFoundException;
-import com.i2r.androidremotecontroller.exceptions.NoBluetoothSocketFoundException;
+import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
 
 /**
  * This class models a Linker object to pair (but not necessarily connect)
- * this device with another bluetooth device 
+ * this device with a controlling bluetooth device (PC client)
  * @author Josh Noel
  */
 public class BluetoothLink implements Link<BluetoothDevice> {
@@ -32,54 +33,47 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	private Activity activity;
 	private String name;
 	private BluetoothServerSocket listener;
+	private BluetoothSocket socket;
+	private boolean isServer;
 	
-	// constructor
-	public BluetoothLink(BluetoothAdapter adapter, UUID uuid, String name, Activity activity)
-														throws NoBluetoothAdapterFoundException {
+	/**
+	 * Constructor<br>
+	 * creates a new BluetoothLink that accepts connections only with other
+	 * devices that have the UUID given.
+	 * @param activity - a reference to the activity that made this link.
+	 * @param isServer - flag to tell this link to act as a server or a client link
+	 * @throws ServiceNotFoundException if the given {@link BluetoothAdapter} is null.
+	 * @see {@link ConnectionManager#CONNECTION_TYPE_CLIENT}
+	 * @see {@link ConnectionManager#CONNECTION_TYPE_SERVER}
+	 */
+	public BluetoothLink(Activity activity, boolean isServer) throws ServiceNotFoundException {
+		
+		this.adapter = BluetoothAdapter.getDefaultAdapter();
 		
 		if(adapter == null){
 			// ABANDON SHIP!!!
-			throw new NoBluetoothAdapterFoundException();
+			throw new ServiceNotFoundException("bluetooth adapter is null");
 		}
 		
-		this.uuid = uuid;
-		this.name = name;
-		this.adapter = adapter;
+		this.uuid = UUID.fromString(Constants.Info.UUID);
+		this.name = Constants.Info.SERVICE_NAME;
 		this.activity = activity;
+		this.isServer = isServer;
 		this.listener = null;
 	}
 	
 	
 	//**********************************************************************|
-	// See {@link Link} for documentation of these overrides ---------------|
+	// See the Link interface for documentation of these overrides ---------|
 	//**********************************************************************|
 	
-	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public RemoteConnection connectTo(Object remote) {
-		BluetoothDevice device = (BluetoothDevice) remote;
-		BluetoothConnection connection;
-		try{
-			Log.d(TAG, "creating connection to device : " + device.getName());
-			BluetoothSocket socket = device.createInsecureRfcommSocketToServiceRecord(uuid);
-			socket.connect();
-			connection = new BluetoothConnection(socket, activity);
-			Log.d(TAG, "successfully connected to  " + device.getName());
-		} catch (NoBluetoothSocketFoundException e) {
-			connection = null;
-			e.printStackTrace();
-		} catch (IOException e) {
-			connection = null;
-			e.printStackTrace();
-		}
-		return connection;
-	}
-
-	
-	@Override
-	public RemoteConnection listenForRemoteConnection() {
-		BluetoothConnection connection = null;
-		BluetoothSocket socket = null;
+	public ThreadedRemoteConnection listenForRemoteConnection() {
+		GenericThreadedRemoteConnection connection = null;
+		socket = null;
 		
 		try{
 			listener = adapter.listenUsingInsecureRfcommWithServiceRecord(name, uuid);
@@ -87,14 +81,17 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 			
 			if(socket != null){
 				Log.d(TAG, "connection accepted");
-				connection = new BluetoothConnection(socket, activity);
+				connection = new GenericThreadedRemoteConnection(activity, 
+						socket.getInputStream(), socket.getOutputStream());
 			} else {
 				Log.e(TAG, "no connection found");
 			}
 			
+			if(listener != null){
+				listener.close();
+			}
+			
 		} catch(IOException e){
-			e.printStackTrace();
-		} catch (NoBluetoothSocketFoundException e) {
 			e.printStackTrace();
 		}
 		
@@ -102,15 +99,43 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	}
 	
 	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public ThreadedRemoteConnection connectTo(BluetoothDevice remote) {
+		GenericThreadedRemoteConnection connection = null;
+		try{
+			Log.d(TAG, "creating connection to device : " + remote.getName());
+			socket = remote.createInsecureRfcommSocketToServiceRecord(uuid);
+			socket.connect();
+			connection = new GenericThreadedRemoteConnection(activity, 
+					socket.getInputStream(), socket.getOutputStream());
+			Log.d(TAG, "successfully connected to  " + remote.getName());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return connection;
+	}
+	
+	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void searchForLinks() {
+		Log.d(TAG, "searching for bluetooth links");
 		if(!adapter.isEnabled()){
 			activity.startActivity(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));
+		} else {
+			adapter.startDiscovery();
 		}
 	}
 
 	
-	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public List<BluetoothDevice> getLinks() {
 		ArrayList<BluetoothDevice> list = new ArrayList<BluetoothDevice>();
@@ -119,34 +144,68 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	}
 	
 	
-	
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public void haltConnectionDiscovery() {
-		try {
-			listener.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		
+		Log.d(TAG, "halting connection discovery for bluetooth");
+		
+		if(listener != null){
+			try {
+				listener.close();
+			} catch (IOException e) {
+				Log.e(TAG, e.getMessage());
+			}
+			
+			listener = null;
 		}
 		
-		listener = null;
+		
+		if(socket != null){
+			try{
+				socket.close();
+			} catch(IOException e){
+				Log.e(TAG, e.getMessage());
+			}
+			
+			socket = null;
+		}
+		
 		
 		if(adapter.isDiscovering()){
 			adapter.cancelDiscovery();
 		}
+		
 	}
 
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public boolean isListeningForConnections() {
-		return listener != null;
+	public boolean isServerLink() {
+		return isServer;
 	}
 
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public boolean isSearchingForConnections(){
+	public boolean isSearchingForLinks() {
 		return adapter.isDiscovering();
 	}
-
+	
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Context getContext() {
+		return activity;
+	}
 	
 	
 	/**
@@ -160,7 +219,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	 * @param uuid - the UUID to use for comaprison when finding the device
 	 * @return the device that contains the matching UUID of the one given, or null if no match was found
 	 */
-	public static BluetoothDevice findDeviceByUUID(UUID uuid) throws NoBluetoothAdapterFoundException {
+	public static BluetoothDevice findDeviceByUUID(UUID uuid) throws ServiceNotFoundException {
 		
 		BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
 		
@@ -168,7 +227,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 		// AKA - ABANDON SHIP!!!1!11!
 		if(adapter == null){
 			Log.e(TAG, "ERROR - bluetooth adapter is null");
-			throw new NoBluetoothAdapterFoundException("bluetooth adapter is null");
+			throw new ServiceNotFoundException("bluetooth adapter is null");
 		}
 		
 		// get the iterator for all the devices paired with this device
@@ -194,8 +253,14 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 				}
 			}
 		}
+		
+		
+		if(!controllerFound){
+			device = null;
+		}
 
 		return device;
 	}
 
-}
+
+} // end of BluetoothLink class
