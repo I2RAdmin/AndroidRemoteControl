@@ -543,7 +543,7 @@ public class ARCCommand {
 	
 	private List<String> checkRecordAudioArgs(List<String> arguments) throws UnsupportedValueException{
 		if(arguments.size() > 0){
-			dev.checkSingleArg(Sensor.MICROPHONE, "recording-duration", arguments.get(0));
+			dev.checkSingleArg(Sensor.MICROPHONE, "audio-recording-duration", arguments.get(0));
 			return arguments;
 		}else{
 			return defaultArguments(CommandHeader.RECORD_AUDIO);

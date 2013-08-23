@@ -59,10 +59,12 @@ public enum Sensor {
 			sensorAlias.put(s.getAlias(), s);
 		}
 	}
+	
 	/**
 	 * Private internal {@link Integer} used for assigning Enumeration constants codes to communicate with the remote device
 	 */
 	private Integer type;
+	
 	/**
 	 * Private internal {@link String} used for assigning Sensor constants human readable Strings for the UI
 	 */

@@ -93,8 +93,6 @@ public class TaskStack {
 	public synchronized void removeTask(int taskID){
 		logger.debug("Attempting to remove task " + taskID);
 		
-		//while(!processingTaskLock.compareAndSet(false, false));
-		
 		//if the task has been holding on to data...
 		if(taskMap.get(taskID).taskData != null){
 			//attempt to save it
@@ -185,6 +183,10 @@ public class TaskStack {
 		return false;
 	}
 
+	/**
+	 * Clear out any data in a the {@link Task#taskData}
+	 * 
+	 */
 	public void clear() {
 		//wipe the task stack out
 		//make an attempt to save any data currently floating around

@@ -96,22 +96,27 @@ public class ResponseAction {
 			if(response.otherArgs.get(0).equals(DataResponse.TASK_ERRORED_ARGUMENT)){
 				
 				//tell the user that the task has errored
-				cntrl.ui.write(response.taskID + " has errored out.");
+				dev.report(response.taskID + " has errored out.");
 			
 			//if the response's additional data is that the task referenced an unsupported sensor...	
 			}else if(response.otherArgs.get(0).equals(DataResponse.UNSUPPORTED_SENSOR)){
 				
 				//tell the user that the sensor referenced was unsupported
-				cntrl.ui.write(response.taskID + " asked for an unsupported sensor.");
+				dev.report(response.taskID + " asked for an unsupported sensor.");
 			}
 		
 			//if there is any additional data...
 			if(response.otherArgs.size() > 1){
+				StringBuilder sb = new StringBuilder();
+				
 				//for every data element with index > 1, index < size...
 				for(int i = 1; i < response.otherArgs.size(); i++){
 					//pass it to the UI
-					cntrl.ui.write(response.otherArgs.get(i));
+					sb.append(response.otherArgs.get(i));
+					sb.append('\n');
 				}
+				
+				dev.report(sb.toString());
 			}
 			
 			//remove the task associated with the response
@@ -129,7 +134,7 @@ public class ResponseAction {
 					Task t = dev.deviceTasks.getTask(response.taskID);
 					
 					// and save the data associated with it
-					t.pushAllData();
+					t.saveFile(t.pos);
 					
 					// increment the file position
 					t.pos++;
@@ -189,7 +194,7 @@ public class ResponseAction {
 	private void removeTask(){
 		//tell the remote client remove it from the stack
 		//FIXME: not removing tasks right now
-		//dev.removePendingTask(response.taskID);
+		dev.removePendingTask(response.taskID);
 	}
 	
 	/**
@@ -202,6 +207,7 @@ public class ResponseAction {
 	 */ 
 	private void saveData(){
 		Thread t = new Thread(new SaveDataRunnable(response));
+		t.setName("Save-Data-Thread");
 		t.start();
 	}
 
@@ -331,7 +337,7 @@ public class ResponseAction {
 	 * through this constructor and the {@link Runnable#run()} method defines what the thread does when {@link Thread#start()} is called.
 	 * <p>
 	 * The save data thread takes a section of data in the {@link DataResponse#fileData} and appends it to a {@link Task}'s {@link DataSegment}
-	 * so it can be saved when there is time to do so
+	 * so it can be saved when there is time to do so.
 	 **************/
 	private class SaveDataRunnable implements Runnable{
 		

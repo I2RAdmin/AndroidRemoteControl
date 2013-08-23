@@ -130,6 +130,11 @@ public class Task {
 		}
 	}
 
+	/**
+	 * Save a single file from this {@link Task}'s {@link Task#taskData}.  Dumps one {@link DataSegment} to a file.
+	 * 
+	 * @param dataPos the position of the data segment to save to a file.
+	 */
 	public void saveFile(int dataPos){
 		//get the file data
 		DataSegment file = taskData.get(dataPos);
@@ -147,8 +152,8 @@ public class Task {
 	}
 	
 	/**
-	 * Push the data in this task to a set of files.
-	 * The data path will be the main directory of the eventual code
+	 * Push the data in this task's {@link Task#taskData} to a set of files.
+	 * The data path will be the main directory of the eventual code.
 	 */
 	public void pushAllData() {
 		//for each position in the taskData map
@@ -158,8 +163,16 @@ public class Task {
 		}
 	}
 
+	/**
+	 * Clear out this tasks's {@link Task#taskData}.
+	 * Does not attempt to save the data, just destroys it.
+	 * 
+	 * Use with care.
+	 */
 	public void clearData() {
+		//if this task has data...
 		if(taskData != null){
+			//clear it
 			taskData.clear();
 		}
 		

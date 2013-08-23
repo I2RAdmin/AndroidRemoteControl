@@ -79,6 +79,7 @@ public class RemoteClient {
 			dataManager.read();
 			Thread t = new Thread(new PingConnectionRunnable(this));
 			t.start();
+			
 			logger.debug("Established Connection");
 			report("Established Connection");
 			return true;
@@ -338,6 +339,4 @@ public class RemoteClient {
 			}
 		}
 	 }
-
-	
 }

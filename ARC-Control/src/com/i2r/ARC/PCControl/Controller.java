@@ -210,15 +210,19 @@ public class Controller{
 			stillSearchLocks.add(threadLock);
 			if (connType.equals(TYPE_BLUETOOTH)) {
 				Thread t = new Thread(new EstablishConnectionsRunnable(new BluetoothLink(), "Bluetooth URL", stillSearchLocks.size() - 1));
+				t.setName("Bluetooth-Search-Thread");
 				t.start();
 			} else if (connType.equals(TYPE_USB)) {
 				Thread t = new Thread(new EstablishConnectionsRunnable(new USBLink(), "USB port", stillSearchLocks.size() - 1));
+				t.setName("USB-Search-Thread");
 				t.start();
 			} else if (connType.equals(TYPE_SMS)) {
 				Thread t = new Thread(new EstablishConnectionsRunnable(new SMSLink(), "SMS gateway", stillSearchLocks.size() - 1));
+				t.setName("SMS-Search-Thread");
 				t.start();
 			} else if (connType.equals(TYPE_WIFI)) {
 				Thread t = new Thread(new EstablishConnectionsRunnable(new WifiLink(), "Wifi IP", stillSearchLocks.size() - 1));
+				t.setName("WIFI-Search-Thread");
 				t.start();
 			} else if (connType.equals(TYPE_LOCAL)) {
 				ui.write("Creating a Local Connection");
@@ -391,7 +395,7 @@ public class Controller{
 		@Override
 		public void run() {
 			List<String> connStrings;
-			logger.debug("starting connection search..");
+			logger.debug("starting connection search...");
 			link.searchForConnections();
 			boolean foundConnections = false;
 
