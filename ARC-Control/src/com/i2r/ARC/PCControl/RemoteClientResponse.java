@@ -7,18 +7,19 @@ import org.apache.log4j.Logger;
 
 /**
  * This object packages a response from some remote device.
- * Due to contract knowledge, we can assume that the responses will come as a taskID plus some other values.
  * 
- * Data comes on from the parser as an array of bytes and a taskID
- * TODO: this will be expanded.
- * The {@link DataResponse} object parses the byte array, and sets the appropriate fields based on how it can interpret the byte values.
+ * Data comes on from the parser as a task ID, response type and an array of bytes.
+ * The {@link RemoteClientResponse} object parses the byte array, and sets the appropriate fields based on the response type.
  * 
- * <b> NOTE </b> It is important to note that a {@link DataResponse} does not actually perform any of the actions that its various constructors
- * encapsulate.  Think about them as the required data to perform an action, however, the actual doing of the action might be at a later time.
+ * <b> NOTE </b> It is important to note that a {@link RemoteClientResponse} does not actually perform any of the actions that the response
+ * encapsulates.  Think about them as the required data to perform an action, however, the actual doing of the action might be at a later time.
  * 
  * @author Johnathan Pagnutti
  */
-public class DataResponse {
+public class RemoteClientResponse {
+	
+	//TODO:
+	//I actually don't want to comment these constants right now.  They may get folded into the dataType enumeration
 	public static final int DATA_TYPE_NOTIFY = 0;
 	
 	public static final int DATA_TYPE_CAMERA_ARGS = 1;
@@ -31,19 +32,65 @@ public class DataResponse {
 	public static final int DATA_TYPE_ENVIRONMENT = 13;
 	public static final int DATA_TYPE_LOCATION = 14;
 	
+	/**
+	 * This is the notify code that a task has been successfully completed.
+	 */
 	public static final String REMOVE_TASK_ARGUMENT = "#";
+	
+	/**
+	 * This is the notify code that a task has errored out.
+	 */
 	public static final String TASK_ERRORED_ARGUMENT = "!";
+	
+	/**
+	 * This is the notify code that a requested sensor is unsupported
+	 */
 	public static final String UNSUPPORTED_SENSOR = "@";
+	
+	/**
+	 * This is the notify code that the device has gotten within/no longer within some proximity
+	 */
 	public static final String PROXIMITY_ALERT = "P";
+	
+	/**
+	 * This is the notify code to move on to the next picture
+	 */
 	public static final String NEXT_PICTURE = "$";
 	
+	/**
+	 * This is the action code to remove a task from the task stack
+	 */
 	public static int REMOVE_TASK = 0;
+	
+	/**
+	 * This is the action code to save some task data to a file
+	 */
 	public static int SAVE_FILE = 1;
+	
+	/**
+	 * This is the action code to stream data
+	 * TODO: not really implemented yet
+	 */
 	public static int STREAM = 2;
+	
+	/**
+	 * This is the action code to notify the user of something on the remote device
+	 */
 	public static int NOTIFY = 3;
 	
+	/**
+	 * This is the action code to set the {@link Sensor#CAMERA} in a {@link RemoteClient}'s {@link Capabilities} map.
+	 */
 	public static int CAMERA_ARGS = 4;
+	
+	/**
+	 * This is the action code to set the {@link Sensor#MICROPHONE} in a {@link RemoteClient}'s {@link Capabilities} map.
+	 */
 	public static int MICROPHONE_ARGS = 5;
+	
+	/**
+	 * This is the action code to set the {@link Sensor#ENVIRONMENT} in a {@link RemoteClient}
+	 */
 	public static int ENVIRONMENT_ARGS = 6;
 	public static int LOCATION_ARGS = 7;
 	
@@ -91,9 +138,9 @@ public class DataResponse {
 	 * 
 	 * @requires fileSize == data.length
 	 */
-	static final Logger logger = Logger.getLogger(DataResponse.class);
+	static final Logger logger = Logger.getLogger(RemoteClientResponse.class);
 	
-	public DataResponse(int taskID, int dataType, byte[] data){
+	public RemoteClientResponse(int taskID, int dataType, byte[] data){
 		logger.debug("Creating a Response for task " + taskID);
 		
 		//taskID will always be set.

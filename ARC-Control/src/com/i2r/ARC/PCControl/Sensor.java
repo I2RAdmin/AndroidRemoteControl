@@ -13,7 +13,7 @@ import java.util.Map;
  * From the camera to the accelerometer, it all becomes a sensor.
  * <p>
  * Each element has two components: the <code>int</code> internal code for a sensor used for communication between the device
- * and the PC client, and the <code>String</code> name that an end user can read and action in to access that sensor
+ * and the PC client, and the <code>String</code> name that an end user can read and type in to access that sensor.
  * @author Johnathan Pagnutti
  *
  */
@@ -33,7 +33,7 @@ public enum Sensor {
 	ENVIRONMENT(12, "Environment"),
 	
 	/*
-	 * The passive location sensor.  As of the time of coding, was pretty much either a GPS or a network sensor
+	 * The passive location sensor collection.  As of the time of coding, was pretty much either a GPS or a network sensor
 	 */
 	LOCATION(15, "Location");
 	
@@ -53,7 +53,7 @@ public enum Sensor {
 	static{
 		//For each sensor listed in the definition of the Sensor class
 		for(Sensor s: EnumSet.allOf(Sensor.class)){
-			//add it to the action map
+			//add it to the type map
 			sensorType.put(s.getType(), s);
 			//add it to the readable string map
 			sensorAlias.put(s.getAlias(), s);
@@ -61,7 +61,7 @@ public enum Sensor {
 	}
 	
 	/**
-	 * Private internal {@link Integer} used for assigning Enumeration constants codes to communicate with the remote device
+	 * Private internal {@link Integer} used for assigning Sensor constants codes to communicate with the remote device
 	 */
 	private Integer type;
 	
@@ -72,7 +72,7 @@ public enum Sensor {
 	
 	/**
 	 * Constructor.  Private to the class.
-	 * @param action the integer code for a particular sensor
+	 * @param type the Integer code for a particular sensor
 	 * @param alias the String readable name for a particular sensor
 	 */
 	private Sensor(Integer type, String alias){
@@ -82,7 +82,7 @@ public enum Sensor {
 	
 	/**
 	 * Get the code that a particular sensor uses to communicate with a remote device
-	 * @return the action of a Sensor
+	 * @return the code of a Sensor
 	 */
 	public Integer getType(){
 		return type;
@@ -97,8 +97,8 @@ public enum Sensor {
 	}
 	
 	/**
-	 * Get the Sensor constant from an {@link Integer} code
-	 * @param action the code to use to get a Sensor Constant
+	 * Get the Sensor constant from a {@link Integer} code
+	 * @param type the code to use to get a Sensor Constant
 	 * @return the sensor constant
 	 * @throws UnsupportedValueException if the code provided is not valid
 	 */
@@ -108,7 +108,7 @@ public enum Sensor {
 			//throw an exception
 			throw new UnsupportedValueException(type + " is not a valid sensor.");
 		}
-		//return the sensor constant mapped to the passed in integer
+		//return the sensor constant mapped to the passed in Integer
 		return sensorType.get(type);
 	}
 	
@@ -117,7 +117,7 @@ public enum Sensor {
 	 * 
 	 * @param alias the human readable name to use to get a Sensor constant
 	 * @return the sensor constant associated with this human readable name
-	 * @throws UnsupportedValueException
+	 * @throws UnsupportedValueException if the human readable name provided was not valid
 	 */
 	public static Sensor get(String alias) throws UnsupportedValueException{
 		//if the provided sensor name is not a key in the sensor name map

@@ -27,11 +27,11 @@ public class WifiConnection extends RemoteConnection<byte[]> {
 	static final Logger logger = Logger.getLogger(WifiConnection.class);
 	
 	/**
-	 * Ok, smalls, check it.  The connectionURL in this case is the string Inet address of the phone.  How am I gonna get that?
+	 * Ok, smalls, check it.  The connString in this case is the string Inet address of the phone.  How am I gonna get that?
 	 * By being champion.  The gateway of the network connection should be the phone's IP, so the {@link WifiLink} class can pass that to me.
 	 * Boom.
 	 * 
-	 * @param connectionURL 
+	 * @param connString 
 	 * @throws IOException 
 	 * @throws UnknownHostException 
 	 */

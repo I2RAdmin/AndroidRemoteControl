@@ -1,6 +1,6 @@
 package com.i2r.ARC.PCControl.DataManager;
 
-import com.i2r.ARC.PCControl.DataResponse;
+import com.i2r.ARC.PCControl.RemoteClientResponse;
 
 /**
  * Class to parse the data Recieved from some some external source
@@ -22,15 +22,15 @@ public interface DataParser<T>{
 	 * that data into whatever the parser expects to be seeing next.  Actual parser behavior can vary wildly from implementation to
 	 * implementation.
 	 * 
-	 * After enough data has been seen that some action can be taken, a {@link DataResponse} object is created.  It is not required that
-	 * the parser act, or tell another part of the program to act, on the created {@link DataResponse}.
+	 * After enough data has been seen that some action can be taken, a {@link RemoteClientResponse} object is created.  It is not required that
+	 * the parser act, or tell another part of the program to act, on the created {@link RemoteClientResponse}.
 	 * 
 	 * @param dataToParse a data element from some data source.  The action of the element is determined at runtime
 	 *
 	 * @requires that some sort of data source be attached to the parser
-	 * @ensures very little.  An attempt is made to create a valid response object (such as {@link DataResponse}), 
+	 * @ensures very little.  An attempt is made to create a valid response object (such as {@link RemoteClientResponse}), 
 	 * 			however, as response objects are not defined by the contract, they can vary wildly and are 
-	 * 			usually part of another class.  In addition, there is no requirement that the parser must act on a created {@link DataResponse}
+	 * 			usually part of another class.  In addition, there is no requirement that the parser must act on a created {@link RemoteClientResponse}
 	 *
 	 * 			In short, expect a velociraptor to come attack you whenever this method is called.
 	 */

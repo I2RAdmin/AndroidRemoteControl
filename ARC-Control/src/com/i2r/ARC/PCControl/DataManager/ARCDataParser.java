@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
 
-import com.i2r.ARC.PCControl.DataResponse;
+import com.i2r.ARC.PCControl.RemoteClientResponse;
 import com.i2r.ARC.PCControl.RemoteClient;
 import com.i2r.ARC.PCControl.ResponseAction;
 import com.i2r.ARC.PCControl.link.RemoteLink;
@@ -385,7 +385,7 @@ public class ARCDataParser implements DataParser<byte []> {
 		}
 
 		private void respondWithParsedData() {
-			new ResponseAction(new DataResponse(taskID, argumentType, fileBytes), dev).performAction();
+			new ResponseAction(new RemoteClientResponse(taskID, argumentType, fileBytes), dev).performAction();
 		}
 
 		private void parseArgumentData() {

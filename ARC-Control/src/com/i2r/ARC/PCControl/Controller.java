@@ -42,7 +42,7 @@ public class Controller{
 	public final Object responseLock = new Object();
 	List<AtomicBoolean> stillSearchLocks;
 	
-	DataResponse response;
+	RemoteClientResponse response;
 	
 	AtomicBoolean startLock;
 	

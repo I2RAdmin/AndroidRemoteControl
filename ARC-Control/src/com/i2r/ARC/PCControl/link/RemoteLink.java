@@ -40,7 +40,7 @@ public interface RemoteLink<T> {
 	 * Establish a connection from a potential connection URL or a default.
 	 * Parameterized to handle data of a specified action.
 	 * 
-	 * @param connectionURL the URL of the connection to create, or null to use a default
+	 * @param connString the URL of the connection to create, or null to use a default
 	 * @return a {@link RemoteConnection} object to use to get the input and output streams of the connection.
 	 * 			Typed to the same action as the remote link.
 	 */
