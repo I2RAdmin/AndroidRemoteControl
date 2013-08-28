@@ -87,10 +87,6 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 				Log.e(TAG, "no connection found");
 			}
 			
-			if(listener != null){
-				listener.close();
-			}
-			
 		} catch(IOException e){
 			e.printStackTrace();
 		}

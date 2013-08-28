@@ -403,19 +403,16 @@ public class CameraSensor extends GenericDeviceSensor {
 			builder.append(getTaskID());
 			builder.append("-");
 			builder.append(pictureCount);
-			
-			new Thread(new Runnable() { public void run(){
 				
-				if(saveToSD){
-					saveDataToSD(data, Long.toString(System.currentTimeMillis()), ".jpg");
-				} else {
-					sendData(Constants.DataTypes.IMAGE, data);
-					ResponsePacket.getNotificationPacket(getTaskID(), 
-							Constants.Notifications.PICTURE_COMPLETE)
-							.send(getConnection());
-				}
-				
-			}}, builder.toString()).start();
+			if (saveToSD) {
+				saveDataToSD(data, Long.toString(System.currentTimeMillis()),
+						".jpg");
+			} else {
+				sendData(Constants.DataTypes.IMAGE, data);
+				ResponsePacket.getNotificationPacket(getTaskID(),
+						Constants.Notifications.PICTURE_COMPLETE).send(
+						getConnection());
+			}
 		}
 
 	} // end of GenericPictureCallback class
