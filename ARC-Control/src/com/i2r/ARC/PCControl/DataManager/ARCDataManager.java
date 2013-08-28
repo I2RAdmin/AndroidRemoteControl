@@ -84,6 +84,9 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 			
 			//write data out to the remote connection
 			dataOut.write(dataByes);
+			
+			//flush the stream to ensure things are getting written
+			dataOut.flush();
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);
 			//lost connection somehow, shit shit shit...

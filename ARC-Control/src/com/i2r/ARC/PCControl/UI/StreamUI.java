@@ -20,7 +20,6 @@ import com.i2r.ARC.PCControl.UnsupportedValueException;
  * More Generic GenericUI setup.  Reads in things from a {@link InputStream} source, writes out things to a {@link OutputStream} destination.  The
  * concept is to combine this with some sort of operating system piping, to allow for GenericUI to come from anywhere that isn't a GUI.
  * 
- * Fuck GUIs.
  * @author Johnathan
  * @param <U> A subtype of {@link OutputStream} that will be writing data out to the user. 
  * @param <T> A subtype of {@link InputStream} that will read data in from the user.
@@ -39,7 +38,7 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 	
 	static final Logger logger = Logger.getLogger(StreamUI.class);
 	
-	public static final String END_READING_FLAG = "stop";
+	public static final String[] STOP_UI_FLAGS = new String[]{"stop", "quit", "exit", "close"};
 	
 	public StreamUI(T source, U dest, Controller creator){
 		inClosed = new AtomicBoolean(false);
@@ -92,7 +91,6 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 		
 		private StreamUIReadRunnable(T inStream){
 			readScan = new Scanner(inStream);
-			readScan.useDelimiter(" ");
 		}
 		
 		@Override
@@ -100,19 +98,44 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 			//implementation of the read method
 			while(true){
 				while(!readScan.hasNextLine());
-				String line = readScan.nextLine();
+				//shift the input line to lower case for case insensitivity.
+				String line = readScan.nextLine().toLowerCase();
 				logger.debug("Read in: " + line);
 
-				if(line.equals(END_READING_FLAG)){
-					inClosed.set(true);
-					break;
+				boolean endFlag = false;
+				for(String endString : STOP_UI_FLAGS){
+					if(line.equals(endString)){
+						endFlag = true;
+						
+						try {
+							dest.write("Shutting down UI...".getBytes());
+						} catch (IOException e) {
+							logger.error(e.getMessage(), e);
+						}
+						
+						break;
+					}
 				}
 
+				if(endFlag){
+					inClosed.set(true);
+					try {
+						source.close();
+					} catch (IOException e) {
+						logger.error(e.getMessage(), e);
+					}
+					break;
+				}
+				
 				int remoteDeviceIndex = -2;
+				
 				try{
 					
-					remoteDeviceIndex = Integer.valueOf(line.substring(0, line.indexOf(' ')));
-				
+					if(line.substring(0, line.indexOf(' ')).equals("local")){
+						remoteDeviceIndex = -1;
+					}else if(line.substring(0, line.indexOf(' ')).matches("[0-9]+")){
+						remoteDeviceIndex = Integer.valueOf(line.substring(0, line.indexOf(' ')));
+					}
 				}catch(NumberFormatException e){
 					try {
 						dest.write("Malformed Command, could not get a Remote Device or local reference.".getBytes());
@@ -142,6 +165,7 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 					try {
 						dest.write(uiMessage.getBytes());
 						dest.write(e.getMessage().getBytes());
+						dest.write("\n".getBytes());
 					} catch (IOException e1) {
 						logger.error(e1.getMessage(), e1);
 						continue;

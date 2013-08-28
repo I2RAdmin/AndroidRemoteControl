@@ -409,7 +409,11 @@ public class ARCCommand {
 					String value = subArgs.get(i);
 					i++;
 				
-					dev.checkSingleArg(sensor, key, value);
+					String[] safeVals = dev.checkSingleArg(sensor, key, value);
+					if(safeVals != null){
+						subArgs.set(i - 2, safeVals[0]);
+						subArgs.set(i - 1, safeVals[1]);
+					}
 				}
 				break;
 			case ENVIRONMENT:
@@ -421,7 +425,11 @@ public class ARCCommand {
 					String value = subArgs.get(j);
 					j++;
 				
-					dev.checkSingleArg(sensor, key, value);
+					String[] safeVals = dev.checkSingleArg(sensor, key, value);
+					if(safeVals != null){
+						subArgs.set(j - 2, safeVals[0]);
+						subArgs.set(j - 1, safeVals[1]);
+					}
 					
 					//remove the _, which we use to delimit sensors from the spaces in a user command
 					subArgs.set(j - 2, key.replace("_", " "));

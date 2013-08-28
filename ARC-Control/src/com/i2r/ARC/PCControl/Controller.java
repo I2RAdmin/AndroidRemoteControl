@@ -254,7 +254,7 @@ public class Controller{
 			return;
 		}
 		
-		ui.write("For local commands, use index -1");
+		ui.write("For local commands, use index -1 or the string \"local\" (no quotes)");
 		
 		//establish the in side of the UI (from user)
 		ui.read();
@@ -345,7 +345,7 @@ public class Controller{
 			}
 			break;
 		case HELP:
-			ui.write("Help document is currently being written.");
+			ui.write("See README.txt.");
 			break;
 		case PAUSE:
 			RemoteClient devToPause = getDevice(Integer.parseInt(arcCommand.getArguments().get(0)));
