@@ -371,6 +371,16 @@ public class Controller{
 				ui.write("Successfully Connected to the remote device!");
 			}
 			break;
+		case FREEZE:
+			ui.write("Freezing the Android Remote Controller for " + arcCommand.getArguments().get(0) + "ms.");
+			try {
+				Thread.sleep(Long.parseLong(arcCommand.getArguments().get(0)));
+			} catch (NumberFormatException e) {
+				throw new UnsupportedValueException(arcCommand.getArguments().get(0) + " is not a valid number.");
+			} catch (InterruptedException e) {
+				logger.error(e.getMessage(), e);
+			}
+			break;
 		default:
 			throw new UnsupportedValueException(arcCommand.getHeader().getAlias() + " is not a valid local command.");
 		}

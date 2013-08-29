@@ -25,6 +25,7 @@ public enum CommandHeader {
 	LIST_DEVICES(-11, "devices"),
 	PAUSE(-12, "pause"),
 	CONNECT(-13, "connect"),
+	FREEZE(-14, "freeze"),
 	HELP(-15, "help");
 	
 	private static final Map<Integer, CommandHeader> headerType = new HashMap<Integer, CommandHeader>();

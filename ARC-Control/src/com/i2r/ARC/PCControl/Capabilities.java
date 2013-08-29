@@ -176,19 +176,19 @@ public class Capabilities {
 		//the key does point to a valid feature!
 		
 		//Get the data action for this feature
-		DataType type = featureDataTypes.get(key);
+		DataType type = featureDataTypes.get(returnTuple[0]);
 		
 		//check to see if the value could be interpreted as the data action for this feature
 		if(!checkType(type, value)){
 			//it can't, log and throw an error
-			throw new UnsupportedValueException("Data for " + key + " was of the incorrect action (needed to be: " + type.getAlias() + ")");
+			throw new UnsupportedValueException("Data for " + returnTuple[0] + " was of the incorrect action (needed to be: " + type.getAlias() + ")");
 		}
 		
 		//it can!
 		
 		//get the limiter for this feature, and the acceptable arguments for this feature
-		Limiter limit = featureLimiters.get(key);
-		List<String> limitVals = featureLimitArguments.get(key);
+		Limiter limit = featureLimiters.get(returnTuple[0]);
+		List<String> limitVals = featureLimitArguments.get(returnTuple[0]);
 		
 		//check to see if the value falls under the acceptable arguments for this feature
 		String temp = checkLimit(type, limit, limitVals, value);
@@ -196,7 +196,7 @@ public class Capabilities {
 		//if temp is null...
 		if(temp == null){
 			//it does not.  Log and throw the error.
-			throw new UnsupportedValueException("Data for " + key + " did not fall within the limit.");
+			throw new UnsupportedValueException("Data for " + returnTuple[0] + " did not fall within the limit.");
 		}
 		
 		//it does!  Return the value, as we now know it is safe and can be supplied as an argument for this feature
