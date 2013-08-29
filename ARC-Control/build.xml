@@ -34,6 +34,8 @@
         </manifestclasspath>
     </target>
     
+    <!-- DEPENDANCY MANAGEMENT IS CURRENTLY NOT USED, DUE TO THE FACT THAT SEVERAL LIBRARIES ARE NOT IN EASLY ACCESSED REPOS -->
+    
     <!-- This task cleans the lib directory for a new round of importing.  Because fun. -->
     <target name="lib-clean">
         <delete dir="${lib.dir}" />
