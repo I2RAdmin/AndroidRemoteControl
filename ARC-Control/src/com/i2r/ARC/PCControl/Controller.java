@@ -26,67 +26,167 @@ import com.i2r.ARC.PCControl.link.lineLink.CommandLineLink;
 import com.i2r.ARC.PCControl.link.wifiLink.WifiLink;
 
 /**
- * The brains of the program, runs all the things
+ * The brains of the program, runs all the things.
  * 
- * @author Johnathan
- *
+ * The Controller is kind of massive.  Basic control flow works something like:
+ * Search For Remote Connections
+ * Report Found Remote Connections to User
+ * Connect to Remote Client
+ * Send Commands
+ * 
+ * The Controller is the bridge between the the UI and the remote devices that the UI is dealing with.  The Contoller manages
+ * which devices currently are connected, and how those devices are indexed to present to the user.  The controller also
+ * handles any local commands the user might send.  Individual {@link RemoteClient}s manage their own connections, as well
+ * as their own {@link TaskStack}s.  
+ * 
+ * TODO: clean a lot of this up.
+ * TODO: move local command handling to a separate class
+ * 
+ * FIXME: wifi works.. but it's unstable.  @see {@link WifiLink} for more information
+ * @author Johnathan Pagnutti
  */
 public class Controller{
-	RemoteLink<byte[]> link;
 	
+	/**
+	 * The UI that this controller is linked to.  The controller gets Commands from the UI, and either handles them (local commands)
+	 * or sends them to a {@link RemoteClient} to send to a remote device.
+	 * <p>
+	 * The UI is based around streams for flexibility, at the time of commenting, that happens to be the command line or I/O files.
+	 */
 	StreamUI<OutputStream, InputStream, String> ui;
+	
+	/**
+	 * This is the {@link List} of {@link RemoteClient}s that the controller knows about.  The user can attempt to connect to
+	 * any {@link RemoteClient} in this list
+	 */
 	List<RemoteClient> devices;
 	
+	/**
+	 * The controller is a singleton, we only ever want one
+	 */
 	private static Controller instance = new Controller();
 	
-	public final Object responseLock = new Object();
+	/**
+	 * This is a {@link List} of locks that are used to stop control flow until we're done searching for remote clients
+	 * FIXME: this implementation works, but not for the right reasons.  @see {@link Controller#genericRun()}
+	 */
 	List<AtomicBoolean> stillSearchLocks;
 	
-	RemoteClientResponse response;
-	
+	/**
+	 * This is the program start lock, locks the UI until after we're done with the search step
+	 * TODO: thinking of shifting away from this style, and moving to a "search" command typed in the UI.
+	 */
 	AtomicBoolean startLock;
 	
+	/**
+	 * The configuration properties for the program.
+	 * TODO: the properties that actually make sense are in flux.
+	 */
 	Properties prop;
 	
+	/**
+	 * The UI output property. This is where the program is going to get the UI Output stream, right now only makes sense for a file
+	 * or the command line 
+	 */
 	String UIOut;
-	String remoteOut;
+	
+	/**
+	 * The UI input property.  This is where the program is going to get the UI Input stream.  Right now, the only two supported
+	 * values are the command line and an input file
+	 */
 	String UIIn;
-	String remoteIn;
+	
+	/**
+	 * The property that sets the connection types to search.  This is set with the CONN_TYPE property in the configuration file.  
+	 * Right now, the only acceptable ones are wifi and bluetooth.  The local dubgging configuration also works.
+	 */
 	String connList;
+	
+	/**
+	 * The actual list of connection types derived from the {@link Controller#connList}
+	 */
 	List<String> connTypes;
 	
+	/**
+	 * The bluetooth connection type value string
+	 */
 	private static final String TYPE_BLUETOOTH = "BLUETOOTH";
+	
+	/**
+	 * The debugging local connection type value string
+	 */
 	private static final String TYPE_LOCAL = "LOCAL";
+	
+	/**
+	 * The USB connection type value string
+	 */
 	private static final String TYPE_USB = "USB";
+	
+	/**
+	 * The SMS connection type value string
+	 */
 	private static final String TYPE_SMS = "SMS";
+	
+	/**
+	 * The WIFI connection type value string
+	 */
 	private static final String TYPE_WIFI = "WIFI";
 	
+	/**
+	 * The commandline input value string
+	 */
 	private static final String TYPE_STANDARD_IN = "STANDARD_IN";
+	
+	/**
+	 * The commandline output value string
+	 */
 	private static final String TYPE_STANDARD_OUT = "STANDARD_OUT";
 	
-	private static final String TYPE_CLOSED = "CLOSED";
-	private static final String TYPE_OPEN = "OPEN";
-	
+	/**
+	 * The UI output property
+	 */
 	private static final String UI_OUT_PROPERTY = "UI_OUT";
+	
+	/**
+	 * The UI input property
+	 */
 	private static final String UI_IN_PROPERTY = "UI_IN";
-	private static final String REMOTE_OUT_PROPERTY = "REMOTE_OUT";
-	private static final String REMOTE_IN_PROPERTY = "REMOTE_IN";
+	
+	/**
+	 * The connection type property.  The values for this property can come in a comma separated list
+	 */
 	private static final String CONN_TYPE_PROPERTY = "CONN_TYPE";
 	
-	
+	/**
+	 * The default value of the UI output stream property
+	 */
 	private static final String UI_OUT_DEFAULT = TYPE_STANDARD_OUT;
+	
+	/**
+	 * The default value of the UI input property
+	 */
 	private static final String UI_IN_DEFAULT = TYPE_STANDARD_IN;
 	
-	private static final String REMOTE_OUT_DEFAULT = TYPE_OPEN;
-	private static final String REMOTE_IN_DEFAULT = TYPE_OPEN;
+	/**
+	 * THe default value of the connection type property
+	 */
+	private static final String CONN_TYPE_DEFAULT = TYPE_LOCAL;
 	
-	private static final String CONN_TYPE_DEFAULT = TYPE_BLUETOOTH;
-	
+	//logger
 	static final Logger logger = Logger.getLogger(Controller.class);
 	
-	private Controller(){
-	}
+	/**
+	 * blank constructor.
+	 * 
+	 * Singletons tend to not like constructors.  To initalize the class, use the {@link Controller#initalize()} method.
+	 */
+	private Controller(){}
 	
+	/**
+	 * Get the working instance of the controller
+	 * 
+	 * @return the singleton instance of the controller
+	 */
 	public static Controller getInstance(){
 		return instance;
 	}
@@ -118,16 +218,12 @@ public class Controller{
 			logger.debug("Loaded configuration, setting streams & connection");
 			UIOut = (prop.getProperty(UI_OUT_PROPERTY) == null) ? UI_OUT_DEFAULT : prop.getProperty(UI_OUT_PROPERTY);
 			UIIn = (prop.getProperty(UI_IN_PROPERTY) == null) ? UI_IN_DEFAULT : prop.getProperty(UI_IN_PROPERTY);
-			remoteOut = (prop.getProperty(REMOTE_OUT_PROPERTY) == null) ? REMOTE_OUT_DEFAULT : prop.getProperty(REMOTE_OUT_PROPERTY);
-			remoteIn = (prop.getProperty(REMOTE_IN_PROPERTY) == null) ? REMOTE_IN_DEFAULT : prop.getProperty(REMOTE_IN_PROPERTY);
 			connList = (prop.getProperty(CONN_TYPE_PROPERTY) == null) ? CONN_TYPE_DEFAULT : prop.getProperty(CONN_TYPE_PROPERTY);
 			
 		}else{
 			logger.debug("Configuration file not found, loading defaults.");
 			UIOut = UI_OUT_DEFAULT;
-			remoteOut = REMOTE_OUT_DEFAULT;
 			UIIn = UI_IN_DEFAULT;
-			remoteIn = REMOTE_IN_DEFAULT;
 			connList = CONN_TYPE_DEFAULT;
 		}
 		
@@ -229,7 +325,7 @@ public class Controller{
 				ui.write("This is a debuging configuration, if you see this message in prod, close the program and check the config file");
 				logger.debug("creating local connection");
 				// establish a local I/O stream connection
-				link = new CommandLineLink();
+				RemoteLink<byte[]> link = new CommandLineLink();
 
 				devices.add(new RemoteClient(link, ""));
 			}

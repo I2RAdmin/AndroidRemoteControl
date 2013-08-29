@@ -59,6 +59,7 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 	public void read() {
 		//create a new thread and start it
 		Thread t = new Thread(new ARCDataManagerRunnable(dataIn, parser));
+		t.setName("Read-Thread");
 		t.start();
 	}
 
@@ -85,7 +86,7 @@ public class ARCDataManager extends DataManager<Task, byte[]>{
 			//write data out to the remote connection
 			dataOut.write(dataByes);
 			
-			//flush the stream to ensure things are getting written
+			//flush the data stream, (backed by a buffer now, and is no longer ensured to write)
 			dataOut.flush();
 		} catch (IOException e) {
 			logger.error(e.getMessage(), e);

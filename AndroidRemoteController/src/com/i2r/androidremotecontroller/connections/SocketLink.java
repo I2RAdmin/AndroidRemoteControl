@@ -63,8 +63,6 @@ public class SocketLink implements Link<Object> {
 						socket.getInputStream(), socket.getOutputStream());
 			}
 			
-			listener.close();
-			
 		} catch (IOException e) {
 			Log.e(TAG, "error creating connection from port");
 			e.printStackTrace();
