@@ -79,9 +79,8 @@ public class ResponseAction {
 			
 		//if the response action is to stream data
 		}else if (response.action == RemoteClientResponse.STREAM){
-			//TODO: actually stream the data to a thing
-			//save the data associated with the response
-			saveData();
+			//append data associated with a response to the current data associated with a task
+			appendData();
 			
 		//if the response action is to remove a task
 		}else if (response.action == RemoteClientResponse.REMOVE_TASK){
@@ -194,6 +193,22 @@ public class ResponseAction {
 	}
 	
 	/**
+	 * Save the data associated with a {@link Task} to a file, and increment that {@link Task}'s {@link Task#pos} file counter.
+	 */
+	private void saveData() {
+		//get a reference to the task
+		Task ref = dev.deviceTasks.getTask(response.taskID);
+		
+		//if that reference is valid...
+		if(ref != null){
+			//save the data
+			ref.saveFile(ref.pos);
+			//increment the position
+			ref.pos++;
+		}
+	}
+
+	/**
 	 * The action that removes a task from the stack.
 	 * 
 	 * This method is called when we get a {@link RemoteClientResponse} with a {@link RemoteClientResponse#action} of type {@link RemoteClientResponse#REMOVE_TASK}
@@ -208,14 +223,13 @@ public class ResponseAction {
 	/**
 	 * The action that saves data from a task
 	 * 
-	 * This method is called when we get a {@link RemoteClientResponse} with a {@link RemoteClientResponse#action} of type {@link RemoteClientResponse#SAVE_FILE}
-	 * FIXME: or {@link RemoteClientResponse#STREAM}.
+	 * This method is called when we get a {@link RemoteClientResponse} with a {@link RemoteClientResponse#action} of type {@link RemoteClientResponse#STREAM}.
 	 * It is called to save data associated with the {@link RemoteClientResponse#taskID} of a {@link RemoteClientResponse}.  Starts the Save File thread, 
 	 * and does not block.
 	 */ 
-	private void saveData(){
+	private void appendData(){
 		Thread t = new Thread(new SaveDataRunnable(response));
-		t.setName("Save-Data-Thread");
+		t.setName("Append-Data-Thread-" + t.getId());
 		t.start();
 	}
 

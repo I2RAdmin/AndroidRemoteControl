@@ -193,6 +193,14 @@ public class RemoteClientResponse {
 					this.otherArgs.add(message);
 				}
 				
+			}else if (controlString.equals(NEXT_PICTURE)){
+				//save the current picture data and move on to the next chunk
+				logger.debug("Save File Task has been created.");
+				this.action = SAVE_FILE;
+				
+				otherArgs = new ArrayList<String>(1);
+				this.otherArgs.add(controlString);
+				
 			}else if(controlString.equals(PROXIMITY_ALERT)){
 				//alert the user to the fact that we have gotten close or moved away from some point
 				logger.debug("Notify Response created.");
@@ -238,17 +246,10 @@ public class RemoteClientResponse {
 		case(DATA_TYPE_AUDIO):
 		case(DATA_TYPE_ENVIRONMENT):
 		case(DATA_TYPE_LOCATION):
-			//send the audio to an audio buffer
-			logger.debug("Stream task created.");
-			this.action = STREAM;
-			this.dataBlockSize = data.length;
-			this.dataBlock = data;
-			break;
-			
 		case (DATA_TYPE_IMAGE):
-			//Save the image as a file
-			logger.debug("Save file task created.");
-			this.action = SAVE_FILE;
+			//send the audio to an audio buffer
+			logger.debug("Append Data task created.");
+			this.action = STREAM;
 			this.dataBlockSize = data.length;
 			this.dataBlock = data;
 			break;

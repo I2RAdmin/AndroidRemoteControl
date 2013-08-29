@@ -69,7 +69,7 @@ public class DataSegment {
 	public void saveSegmentAsFile(String fileNameHeader){
 		logger.debug("Starting save file thread for: " + fileNameHeader);
 		Thread t = new Thread(new SaveFileRunnable(fileNameHeader, this));
-		
+		t.setName("Save-File-Thread-" + t.getId());
 		t.start();
 	}
 	
@@ -93,6 +93,7 @@ public class DataSegment {
 			
 			logger.debug("... in save file thread.");
 			File file = new File(fileNameHeader + "." + fileType);
+			logger.debug("Filename: " + file.getName());
 			try {
 				OutputStream fileOut = new FileOutputStream(file);
 				fileOut.write(seg.getData());
