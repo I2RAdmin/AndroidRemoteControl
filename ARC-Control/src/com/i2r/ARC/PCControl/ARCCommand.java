@@ -449,7 +449,7 @@ public class ARCCommand {
 					}
 					
 					//remove the _, which we use to delimit sensors from the spaces in a user command
-					subArgs.set(j - 2, key.replace("_", " "));
+					subArgs.set(j - 2, safeVals[0].replace("_", " "));
 				}
 				break;
 			default:
