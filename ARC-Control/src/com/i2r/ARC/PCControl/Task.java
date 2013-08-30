@@ -152,14 +152,18 @@ public class Task {
 	}
 	
 	/**
-	 * Push the data in this task's {@link Task#taskData} to a set of files.
+	 * Push the remaining data in this task's {@link Task#taskData} to a set of files, which should just be the data
+	 * that the task's {@link Task#pos} variable, as pos is incremented after a file is saved.
 	 * The data path will be the main directory of the eventual code.
 	 */
 	public void pushAllData() {
 		//for each position in the taskData map
 		for(Integer dataPos : taskData.keySet()){
-			//safe the file
-			saveFile(dataPos);
+			//if we haven't gotten to saving the file yet...
+			if(dataPos >= this.pos){
+				//safe the file
+				saveFile(dataPos);
+			}
 		}
 	}
 

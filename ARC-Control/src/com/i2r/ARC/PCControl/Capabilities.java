@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
@@ -125,14 +126,20 @@ public class Capabilities {
 	/**
 	 * Checks a supplied argument to see if can be safely passed to a feature.  The argument must be of the correct {@link DataType},
 	 * and fall within the correct {@link List<String>} of acceptable arguments, set by the {@link Limiter} for this feature.
-	 * 
+	 * <p>
+	 * The strange return type comes in due to case insensitivity on the UI side.  According to the program, everything the user types is lower
+	 * case, however, we do not want to put this restriction on the information from the remote side of the connection.  As such, if the phone
+	 * requires some key or value to have a capital, we ensure that, in the transmission back to the phone, that requirement is ensured.
+	 * <p>
 	 * @param key the name of the feature to set a new value for
 	 * @param value the value we want to tell the remote device to set for a feature
-	 * @return the value supplied if it passes all the checks
+	 * 
+	 * @return the key/value pair as it is saved in the Capabilities maps for use to transmit back
 	 * 
 	 * @throws UnsupportedValueException if the key is not a valid feature, or the value is incorrect for the supplied key
 	 */
-	public String checkArg(String key, String value) throws UnsupportedValueException{
+	public String[] checkArg(String key, String value) throws UnsupportedValueException{
+		String[] returnTuple = new String[2];
 		
 		logger.debug("Feature keys: ");
 		logger.debug(featureDataTypes.size());
@@ -141,36 +148,60 @@ public class Capabilities {
 		}
 		
 		//check to see if the key provided is a valid feature name
+		boolean foundFeature = false;
+		
+		//for each feature name
+		for(String featureName : featureDataTypes.keySet()){
+			//check to see if it matches the lowercase version of the feature name (for case insensitivity)
+			if(key.equals(featureName.toLowerCase())){
+				//if we get a match, set the flag to true
+				foundFeature = true;
+				returnTuple[0] = featureName;
+				break;
+			}
+		}
+		
+		//if no match was ever found
+		if(!foundFeature){
+			throw new UnsupportedValueException(key + " not supported.");
+		}
+		
+		/*
 		if(!featureDataTypes.containsKey(key)){
 			//it isn't.  Log and throw an error
 			throw new UnsupportedValueException(key + " not supported.");
 		}
+		*/
 		
 		//the key does point to a valid feature!
 		
 		//Get the data action for this feature
-		DataType type = featureDataTypes.get(key);
+		DataType type = featureDataTypes.get(returnTuple[0]);
 		
 		//check to see if the value could be interpreted as the data action for this feature
 		if(!checkType(type, value)){
 			//it can't, log and throw an error
-			throw new UnsupportedValueException("Data for " + key + " was of the incorrect action (needed to be: " + type.getAlias() + ")");
+			throw new UnsupportedValueException("Data for " + returnTuple[0] + " was of the incorrect action (needed to be: " + type.getAlias() + ")");
 		}
 		
 		//it can!
 		
 		//get the limiter for this feature, and the acceptable arguments for this feature
-		Limiter limit = featureLimiters.get(key);
-		List<String> limitVals = featureLimitArguments.get(key);
+		Limiter limit = featureLimiters.get(returnTuple[0]);
+		List<String> limitVals = featureLimitArguments.get(returnTuple[0]);
 		
 		//check to see if the value falls under the acceptable arguments for this feature
-		if(!checkLimit(type, limit, limitVals, value)){
+		String temp = checkLimit(type, limit, limitVals, value);
+	
+		//if temp is null...
+		if(temp == null){
 			//it does not.  Log and throw the error.
-			throw new UnsupportedValueException("Data for " + key + " did not fall within the limit.");
+			throw new UnsupportedValueException("Data for " + returnTuple[0] + " did not fall within the limit.");
 		}
 		
 		//it does!  Return the value, as we now know it is safe and can be supplied as an argument for this feature
-		return value;
+		returnTuple[1] = temp;
+		return returnTuple;
 	}
 
 	/**
@@ -183,15 +214,16 @@ public class Capabilities {
 	 * @param limitVals the {@link List<String>} of acceptable arguments for a feature.  Used in conjunction with the limit so we
 	 * 			can check to make sure the value falls within the acceptable bounds of a feature
 	 * @param value The value we want to check for use with a feature
-	 * @return true if a feature can be set to a value, false otherwise
+	 * 
+	 * @return the string value how it is saved in the capabities maps if we can use the value passed in, null if otherwise
 	 */
-	private boolean checkLimit(DataType type, Limiter limit, List<String> limitVals, String value) {
+	private String checkLimit(DataType type, Limiter limit, List<String> limitVals, String value) {
 		//check the limit
 		switch(limit){
 		//if the limit is ANY
 		case ANY:
 			//always return true.
-			return true;
+			return value;
 		//if the limit is a range
 		case RANGE:
 			//check the data action
@@ -208,10 +240,10 @@ public class Capabilities {
 				//check to make sure the value falls between the minimum and the maximum (inclusive)
 				if(intVal >= intMin && intVal <= intMax){
 					//it do!  Return true
-					return true;
+					return value;
 				}else{
 					//it don't! return false
-					return false;
+					return null;
 				}
 			//if the data action is a double
 			case DOUBLE:
@@ -225,33 +257,33 @@ public class Capabilities {
 				//check to make sure the value falls between the minimum and the maximum (inclusive)
 				if(doubleVal >= doubleMin && doubleVal <= doubleMax){
 					//it do!  Return true
-					return true;
+					return value;
 				}else{
 					//it don't! return false
-					return false;
+					return value;
 				}
 			//if the data action is anything else
 			default:
 				//ranges don't make sense for that data action, just return false
-				return false;
+				return null;
 			}
 		//if the limiter is a set
 		case SET:
 			//for each string in limit vals
 			for(String setVal : limitVals){
 				//if the value is in the list of limit values
-				if(value.equals(setVal)){
+				if(value.equals(setVal.toLowerCase())){
 					//we can use it! return true
-					return true;
+					return setVal;
 				}
 			}
 			//the value was never found in the set of limit values, return false
-			return false;
+			return null;
 		//if the limiter is something else
 		case CONST:
 		default:
 			//constants can't be changed, and if we see anything else, it isn't supported.
-			return false;
+			return null;
 		}
 	}
 
@@ -297,6 +329,15 @@ public class Capabilities {
 	 * @return true if the value can be interpeted as a {@link DataType#STRING}, false if otherwise
 	 */
 	private boolean checkString(String value) {
+		String regex = "(?i)[\\x00-\\x7F&&[^\\x00-\\x1F\\x7F]]+";
+		
+		if(value.matches(regex)){
+			return true;
+		}else{
+			return false;
+		}
+		
+		/*
 		//convert the value to a byte array
 		byte[] dataToCheck = value.getBytes();
 		
@@ -312,7 +353,7 @@ public class Capabilities {
 		}
 		
 		//otherwise, return true
-		return true;
+		return true;*/
 	}
 
 	/**
@@ -323,7 +364,15 @@ public class Capabilities {
 	 * @return true if the value can be interpeted as an {@link DataType#INTEGER}, false if otherwise
 	 */
 	private boolean checkInt(String value) {
-		boolean dashFound = false;
+		String regex = "(?i)-?[0-9]+";
+		
+		if(value.matches(regex)){
+			return true;
+		}else{
+			return false;
+		}
+		
+		/*boolean dashFound = false;
 		
 		//convert the value to a byte array
 		byte[] dataToCheck = value.getBytes();
@@ -349,7 +398,7 @@ public class Capabilities {
 		}
 		
 		//if we got through all the bytes without returning false, congrats!  We're a number of some sort
-		return true;
+		return true;*/
 	}
 
 	/**
@@ -360,6 +409,14 @@ public class Capabilities {
 	 * @return true if the value can be interpeted as a {@link DataType#DOUBLE}, false if otherwise
 	 */
 	private boolean checkDouble(String value) {
+		String regex = "(i?)-?[0-9]+\\.*[0-9]*";
+		
+		if(value.matches(regex)){
+			return true;
+		}else{
+			return false;
+		}
+		/*
 		//boolean var to check to see if we have seen an ASCII dot yet
 		boolean dotFound = false;
 		boolean dashFound = false;
@@ -394,6 +451,6 @@ public class Capabilities {
 		}
 		
 		//if we got through all the bytes and never returned false, great!  we can interpet this as a double
-		return true;
+		return true;*/
 	}	
 }

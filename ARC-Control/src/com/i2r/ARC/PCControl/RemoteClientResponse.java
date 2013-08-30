@@ -35,7 +35,7 @@ public class RemoteClientResponse {
 	/**
 	 * This is the notify code that a task has been successfully completed.
 	 */
-	public static final String REMOVE_TASK_ARGUMENT = "#";
+	public static final String TASK_COMPLETE_ARGUMENT = "#";
 	
 	/**
 	 * This is the notify code that a task has errored out.
@@ -92,6 +92,10 @@ public class RemoteClientResponse {
 	 * This is the action code to set the {@link Sensor#ENVIRONMENT} in a {@link RemoteClient}
 	 */
 	public static int ENVIRONMENT_ARGS = 6;
+	
+	/**
+	 * This is the action code to set the {@link Sensor#LOCATION} in a {@link RemoteClient}
+	 */
 	public static int LOCATION_ARGS = 7;
 	
 	/**
@@ -101,15 +105,19 @@ public class RemoteClientResponse {
 	int taskID = -1;
 	
 	/**
-	 * File Size.  For when a file size exists in a response, this field is set with the file size
-	 * otherwise it remains -1
+	 * Size of the data block.  When data that we want to stream or save exists in a response, this is the amount
+	 * of bytes in the block.
 	 */
-	int fileSize = -1;
+	int dataBlockSize = -1;
 	
+	/**
+	 * The data type of the arguments passed along in this response.
+	 * Going to be one of the constants outlined at the top of the class
+	 */
 	int argType = -1;
 	
 	/**
-	 * Response Type.  This sets the action of this response, which is how methods that actually act on the response figure out
+	 * Action Type.  This sets the action of this response, which is how methods that actually act on the response figure out
 	 * what action the response is abstracting.
 	 * 
 	 * -1 is the initial set action, which is an error action.
@@ -117,10 +125,10 @@ public class RemoteClientResponse {
 	int action = -1;
 	
 	/**
-	 * An array of file data to save to a file.  This field is set when it makes sense to do so (we want to save a file)
-	 * Otherwise, this field is null
+	 * An array of file data to stream or save to a file.  When this field has data, we want to stream or save it.  Otherwise,
+	 * it remains null
 	 */
-	byte[] fileData = null;
+	byte[] dataBlock = null;
 	
 	/**
 	 * This field encapsulates any other arguments we would want to send along with a response. It's default is a <code>List</code> of
@@ -136,7 +144,7 @@ public class RemoteClientResponse {
 	 * @param taskID the taskID to set
 	 * @param data the actual data to set
 	 * 
-	 * @requires fileSize == data.length
+	 * @requires dataBlockSize == data.length
 	 */
 	static final Logger logger = Logger.getLogger(RemoteClientResponse.class);
 	
@@ -158,6 +166,7 @@ public class RemoteClientResponse {
 	private void interpet(byte[] data) {
 		
 		switch(argType){
+		
 		case(DATA_TYPE_NOTIFY):
 			//create a string from the data
 			String fullData = new String(data);
@@ -170,18 +179,27 @@ public class RemoteClientResponse {
 				controlString = fullData;
 			}
 			
-			if(controlString.equals(REMOVE_TASK_ARGUMENT) || controlString.equals(TASK_ERRORED_ARGUMENT) || 
+			if(controlString.equals(TASK_COMPLETE_ARGUMENT) || controlString.equals(TASK_ERRORED_ARGUMENT) || 
 					controlString.equals(UNSUPPORTED_SENSOR)){
 				//remove the task from the task stack
 				logger.debug("Remove Task Response created.");
 				this.action = REMOVE_TASK;
 				
 				otherArgs = new ArrayList<String>(1);
+				
 				this.otherArgs.add(controlString);
 				
 				if(message != null){
 					this.otherArgs.add(message);
 				}
+				
+			}else if (controlString.equals(NEXT_PICTURE)){
+				//save the current picture data and move on to the next chunk
+				logger.debug("Save File Task has been created.");
+				this.action = SAVE_FILE;
+				
+				otherArgs = new ArrayList<String>(1);
+				this.otherArgs.add(controlString);
 				
 			}else if(controlString.equals(PROXIMITY_ALERT)){
 				//alert the user to the fact that we have gotten close or moved away from some point
@@ -228,19 +246,12 @@ public class RemoteClientResponse {
 		case(DATA_TYPE_AUDIO):
 		case(DATA_TYPE_ENVIRONMENT):
 		case(DATA_TYPE_LOCATION):
-			//send the audio to an audio buffer
-			logger.debug("Stream task created.");
-			this.action = STREAM;
-			this.fileSize = data.length;
-			this.fileData = data;
-			break;
-			
 		case (DATA_TYPE_IMAGE):
-			//Save the image as a file
-			logger.debug("Save file task created.");
-			this.action = SAVE_FILE;
-			this.fileSize = data.length;
-			this.fileData = data;
+			//send the audio to an audio buffer
+			logger.debug("Append Data task created.");
+			this.action = STREAM;
+			this.dataBlockSize = data.length;
+			this.dataBlock = data;
 			break;
 		default:
 			logger.error("This argument action is not supported: " + argType);

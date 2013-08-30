@@ -350,7 +350,7 @@ public class Controller{
 			return;
 		}
 		
-		ui.write("For local commands, use index -1");
+		ui.write("For local commands, use index -1 or the string \"local\" (no quotes)");
 		
 		//establish the in side of the UI (from user)
 		ui.read();
@@ -441,7 +441,7 @@ public class Controller{
 			}
 			break;
 		case HELP:
-			ui.write("Help document is currently being written.");
+			ui.write("See README.txt.");
 			break;
 		case PAUSE:
 			RemoteClient devToPause = getDevice(Integer.parseInt(arcCommand.getArguments().get(0)));
@@ -465,6 +465,16 @@ public class Controller{
 			RemoteClient connDev = this.devices.get(Integer.parseInt(arcCommand.getArguments().get(0)));
 			if(connDev.connectToDevice()){
 				ui.write("Successfully Connected to the remote device!");
+			}
+			break;
+		case FREEZE:
+			ui.write("Freezing the Android Remote Controller for " + arcCommand.getArguments().get(0) + "ms.");
+			try {
+				Thread.sleep(Long.parseLong(arcCommand.getArguments().get(0)));
+			} catch (NumberFormatException e) {
+				throw new UnsupportedValueException(arcCommand.getArguments().get(0) + " is not a valid number.");
+			} catch (InterruptedException e) {
+				logger.error(e.getMessage(), e);
 			}
 			break;
 		default:

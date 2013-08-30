@@ -292,7 +292,12 @@ public class RemoteClient {
 		if(dataManager != null){
 			//send the task off
 			dataManager.write(newTask);
-			report("Sent New Task: " + newTask.getId());
+			
+			//if the task is not a ping task...
+			if(newTask.getCommand().getHeader() != CommandHeader.DO_NOTHING){
+				//tell the user that we have created a new task
+				report("Sent New Task: " + newTask.getId());
+			}
 		}else{
 			//otherwise, report that the connection might be dead maybe
 			report("Task " + newTask.getId() + " not sent, connection may be down.");
@@ -343,11 +348,11 @@ public class RemoteClient {
 	 * @param key the name of some sensor parameter to modify
 	 * @param value the value to change the sensor parameter to
 	 * 
-	 * @return the value we wanted to change the key to
+	 * @return the key/value pair on how this argument needs to be represented to communicate with a remote device if acceptable, otherwise null
 	 * 
 	 * @throws UnsupportedValueException if the value fails any checks
 	 */
-	public String checkSingleArg(Sensor sensor, String key, String value) throws UnsupportedValueException {
+	public String[] checkSingleArg(Sensor sensor, String key, String value) throws UnsupportedValueException {
 		 return supportedSensors.get(sensor).checkArg(key, value);
 	}
 
@@ -397,7 +402,9 @@ public class RemoteClient {
 	 * If a {@link Task} is in this {@link RemoteClient}'s {@link RemoteClient#pendingTaskMap}, then we don't want to remove it from
 	 * the {@link TaskStack} yet, and instead the client waits until the task is no longer pending to remove it.
 	 * <p>
-	 * To ensure that the wait doesn't cause the program to slow down, it's performed in a separate thread.
+	 * To ensure that the wait doesn't cause the program to slow down, it's per
+	 * <p>
+	 * formed in a separate thread.
 	 * <p>
 	 * @param taskID the task that we want to remove from the task stack
 	 */
