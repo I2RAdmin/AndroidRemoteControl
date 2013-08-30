@@ -10,7 +10,7 @@ public class ARC_GUI_Controller {
 	
 	private ARC_GUI_Controller(){
 		this.link = new ARCControlLink();
-		this.frame = new ARCFrame();
+		this.frame = new ARCFrame(link);
 	}
 	
 	
