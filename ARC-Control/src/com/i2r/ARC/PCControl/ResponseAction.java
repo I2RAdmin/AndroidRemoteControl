@@ -447,10 +447,11 @@ public class ResponseAction {
 			case (RemoteClientResponse.DATA_TYPE_IMAGE):
 				//attempt to get a file type associated with the camera...
 				fileType = getFileType(Sensor.CAMERA, "picture-format");
+				
 				//if none was found...
 				if(fileType.equals("default")){
 					//use a jpeg
-					fileType = "jpeg";
+					fileType = "jpg";
 				}
 				break;
 			//if the argument type was audio data...

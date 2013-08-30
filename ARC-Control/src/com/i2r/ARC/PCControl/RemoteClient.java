@@ -402,7 +402,9 @@ public class RemoteClient {
 	 * If a {@link Task} is in this {@link RemoteClient}'s {@link RemoteClient#pendingTaskMap}, then we don't want to remove it from
 	 * the {@link TaskStack} yet, and instead the client waits until the task is no longer pending to remove it.
 	 * <p>
-	 * To ensure that the wait doesn't cause the program to slow down, it's performed in a separate thread.
+	 * To ensure that the wait doesn't cause the program to slow down, it's per
+	 * <p>
+	 * formed in a separate thread.
 	 * <p>
 	 * @param taskID the task that we want to remove from the task stack
 	 */
