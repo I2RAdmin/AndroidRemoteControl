@@ -13,7 +13,6 @@ public class ARCFrame extends JFrame {
 	
 	public ARCFrame(ARCControlLink link){
 		this.androidDevicePane = new JTabbedPane();
-		this.addDevice(new AndroidDeviceTab("test", link));
 		this.setLayout(new BorderLayout());
 		this.add(androidDevicePane, BorderLayout.CENTER);
 		this.setTitle("Android Remote Control");
@@ -25,8 +24,7 @@ public class ARCFrame extends JFrame {
 	
 	
 	public void addDevice(AndroidDeviceTab tab){
-		androidDevicePane.addTab(tab.getName(),
-				null, tab, "click here to view status of this device");
+		androidDevicePane.addTab(tab.getName(), tab);
 	}
 	
 	

@@ -13,14 +13,12 @@ public class FeaturePanel extends JPanel {
 
 	private static final long serialVersionUID = -7795045743140743307L;
 
-	private String name;
 	private DataType type;
 	private Limiter limiter;
 	private List<String> args;
 	
 	public FeaturePanel(String featureName, DataType type, Limiter limiter, List<String> args){
 		setName(featureName);
-		this.name = featureName;
 		this.type = type;
 		this.limiter = limiter;
 		this.args = args;
