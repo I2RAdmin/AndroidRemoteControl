@@ -20,7 +20,7 @@ public class ARC_GUI_Controller {
 	
 	
 	public void start(){
-		frame.setVisible(true);
 		link.start();
+		frame.setVisible(true);
 	}
 }

@@ -17,6 +17,10 @@ import com.i2r.ARC.PCControl.UnsupportedValueException;
 
 public class ARCControlDevice {
 	
+	
+	public static final String CHANGE_FEATURE = "change_feature";
+	public static final String SEND_COMMAND = "send_command";
+	
 	private static final String GET_ALL_FEATURES = "features " + Constants.Sensors.CAMERA + " "
 			+ Constants.Sensors.MICROPHONE + " " + Constants.Sensors.ENVIRONMENT_SENSORS + " "
 			+ Constants.Sensors.GPS;
@@ -79,8 +83,9 @@ public class ARCControlDevice {
 					DataType type = feature.getValue();
 					Limiter limiter = capabilities.featureLimiters().get(name);
 					List<String> args = capabilities.featureLimitArguments().get(name);
+					int currentValueIndex = 0; //args.indexOf(capabilities.featureCurrentValues().get(name));
 			
-					featureList.add(new FeaturePanel(name, type, limiter, args));
+					featureList.add(new FeaturePanel(name, type, limiter, args, currentValueIndex));
 				}
 				
 				map.put(sensor.getAlias(), featureList);

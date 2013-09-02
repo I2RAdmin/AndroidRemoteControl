@@ -15,6 +15,7 @@ public class ARCFrame extends JFrame {
 		this.androidDevicePane = new JTabbedPane();
 		this.setLayout(new BorderLayout());
 		this.add(androidDevicePane, BorderLayout.CENTER);
+		this.add(new ARCMenuBar(), BorderLayout.NORTH);
 		this.setTitle("Android Remote Control");
 		this.setLocationRelativeTo(null);
 		this.setSize(800, 600);
@@ -28,13 +29,9 @@ public class ARCFrame extends JFrame {
 	}
 	
 	
-	public void refresh(){
+	public void update(){
 		androidDevicePane.repaint();
 		repaint();
 	}
 	
-	
-	public static void main(String[] args){
-		new ARCFrame(new ARCControlLink()).setVisible(true);
-	}
 }

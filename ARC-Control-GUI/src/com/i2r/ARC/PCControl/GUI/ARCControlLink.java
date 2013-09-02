@@ -1,7 +1,5 @@
 package com.i2r.ARC.PCControl.GUI;
 
-import java.util.List;
-
 import com.i2r.ARC.PCControl.Controller;
 import com.i2r.ARC.PCControl.RemoteClient;
 import com.i2r.ARC.PCControl.UnsupportedValueException;
@@ -11,20 +9,19 @@ public class ARCControlLink {
 	private Controller controller;
 	
 	public ARCControlLink(){
-//		this.controller = Controller.getInstance();
-//		this.controller.initalize();
-//		this.controller.establishUIStreams();
-//		this.controller.establishConnections();
+		this.controller = Controller.getInstance();
 	}
 	
 	
 	public void start(){
-		
+		this.controller.initalize();
+		this.controller.establishUIStreams();
+		this.controller.establishConnections();
 	}
 	
 	
-	public List<RemoteClient> getClients(){
-		return controller.getDevices();
+	public Controller getController(){
+		return controller;
 	}
 	
 	
