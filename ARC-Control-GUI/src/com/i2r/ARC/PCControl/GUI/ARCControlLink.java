@@ -15,8 +15,6 @@ public class ARCControlLink {
 	
 	public void start(){
 		this.controller.initalize();
-		this.controller.establishUIStreams();
-		this.controller.establishConnections();
 	}
 	
 	

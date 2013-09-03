@@ -28,6 +28,7 @@ public class ARCControlDevice {
 	private String name;
 	private RemoteClient client;
 	private Map<String, List<FeaturePanel>> features;
+
 	
 	public ARCControlDevice(String name, RemoteClient client) throws UnsupportedValueException {
 		this.name = name;
@@ -62,7 +63,6 @@ public class ARCControlDevice {
 	
 	
 	
-	
 	public static Map<String, List<FeaturePanel>> getFeatures(RemoteClient client){
 		
 		HashMap<String, List<FeaturePanel>> map = null;
@@ -77,15 +77,14 @@ public class ARCControlDevice {
 				Capabilities capabilities = entry.getValue();
 				ArrayList<FeaturePanel> featureList = new ArrayList<FeaturePanel>();
 				
-				for(Map.Entry<String, DataType> feature : capabilities.featureDataTypes().entrySet()){
+				for(Map.Entry<String, DataType> feature : capabilities.getFeatureDataTypes().entrySet()){
 					
 					String name = feature.getKey();
 					DataType type = feature.getValue();
-					Limiter limiter = capabilities.featureLimiters().get(name);
-					List<String> args = capabilities.featureLimitArguments().get(name);
-					int currentValueIndex = 0; //args.indexOf(capabilities.featureCurrentValues().get(name));
+					Limiter limiter = capabilities.getFeatureLimiters().get(name);
+					List<String> args = capabilities.getListArguments().get(name);
 			
-					featureList.add(new FeaturePanel(name, type, limiter, args, currentValueIndex));
+					featureList.add(new FeaturePanel(name, type, limiter, args));
 				}
 				
 				map.put(sensor.getAlias(), featureList);

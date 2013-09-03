@@ -7,36 +7,59 @@ import java.util.List;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JSlider;
 import javax.swing.JTextField;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import ARC.Constants;
 
 import com.i2r.ARC.PCControl.DataType;
 import com.i2r.ARC.PCControl.Limiter;
 
-
-public class FeaturePanel extends JPanel implements ActionListener {
+/**
+ * This class models a single feature in a given Sensor's list
+ * of available features. A list of these panels will be displayed
+ * for every sensor tab in the features panel of the
+ * corresponding {@link AndroidDeviceTab}.
+ * @author Josh Noel
+ *
+ */
+public class FeaturePanel extends JPanel implements ActionListener, ChangeListener {
 
 	private static final long serialVersionUID = -7795045743140743307L;
 
+	public static final int PARAMETER_LENGTH = 5;
+	
 	private DataType type;
 	private Limiter limiter;
 	private List<String> args;
 	private JTextField text;
-	private int currentValueIndex;
-	private double sliderValue;
+	private int currentValueIndex, sliderValue;
 	
 	
+	/**
+	 * Constructor<br>
+	 * @param featureName - the name to represent this feature
+	 * on the {@link AndroidDeviceTab}
+	 * @param type - the type of data this feature
+	 * contains (see {@link Limiter}s)
+	 * @param limiter - the listing type of this feature
+	 * (see {@link DataType}s)
+	 * @param args - the argument list for this feature; this
+	 * can be a set to choose from,<br> or a range defining min
+	 * and max values
+	 */
 	public FeaturePanel(String featureName, DataType type,
-			Limiter limiter, List<String> args, int currentValueIndex){
+			Limiter limiter, List<String> args){
 		
 		this.setName(featureName);
 		this.type = type;
 		this.limiter = limiter;
 		this.args = args;
-		this.currentValueIndex = currentValueIndex;
+		this.currentValueIndex = Constants.Args.ARG_NONE;
+		this.sliderValue = Constants.Args.ARG_NONE;
 		this.text = null;
-		this.sliderValue = Constants.Args.ARG_DOUBLE_NONE;
 		
 		switch(limiter.getType().intValue()){
 		
@@ -59,6 +82,14 @@ public class FeaturePanel extends JPanel implements ActionListener {
 		
 		}
 		
+	}
+	
+	
+	public void setCurrentValue(String value){
+		int index = args.indexOf(value);
+		if(index >= 0){
+			this.currentValueIndex = index;
+		}
 	}
 	
 	
@@ -104,6 +135,7 @@ public class FeaturePanel extends JPanel implements ActionListener {
 		for(String arg : args){
 			JRadioButton button = new JRadioButton(arg);
 			button.setActionCommand(arg);
+			button.addActionListener(this);
 			add(button);
 		}
 	}
@@ -113,7 +145,11 @@ public class FeaturePanel extends JPanel implements ActionListener {
 	private void createRange(){
 		setLayout(new GridLayout(2,1));
 		add(new JLabel(getName()));
-		
+		int min = Integer.parseInt(args.get(0));
+		int max = Integer.parseInt(args.get(1));
+		JSlider range = new JSlider(JSlider.HORIZONTAL, min, max, (min + max) / 2);
+		range.addChangeListener(this);
+		add(range);
 	}
 	
 	
@@ -129,14 +165,21 @@ public class FeaturePanel extends JPanel implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		
 		try{
-			sliderValue = Double.parseDouble(e.getActionCommand());
+			sliderValue = Integer.parseInt(e.getActionCommand());
 		} catch (NumberFormatException exeption){
-			sliderValue = Constants.Args.ARG_DOUBLE_NONE;
+			sliderValue = Constants.Args.ARG_NONE;
 			int value = args.indexOf(e.getActionCommand());
 			if(value > -1){
 				currentValueIndex = value;
 			}
 		}
+	}
+
+
+	@Override
+	public void stateChanged(ChangeEvent e) {
+		JSlider source = (JSlider) e.getSource();
+		sliderValue = source.getValue();
 	}
 	
 	

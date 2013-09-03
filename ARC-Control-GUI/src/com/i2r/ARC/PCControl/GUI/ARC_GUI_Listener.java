@@ -13,6 +13,11 @@ public class ARC_GUI_Listener implements ActionListener {
 	}
 	
 	
+	public ARCControlDevice getDevice(){
+		return device;
+	}
+	
+	
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if(e.getActionCommand().equals(ARCControlDevice.CHANGE_FEATURE)){

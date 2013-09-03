@@ -395,5 +395,20 @@ public class Capabilities {
 		
 		//if we got through all the bytes and never returned false, great!  we can interpet this as a double
 		return true;
-	}	
+	}
+	
+	
+	public Map<String, DataType> getFeatureDataTypes(){
+		return featureDataTypes;
+	}
+	
+	
+	public Map<String, Limiter> getFeatureLimiters(){
+		return featureLimiters;
+	}
+	
+	
+	public Map<String, List<String>> getListArguments(){
+		return featureLimitArguments;
+	}
 }

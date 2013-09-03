@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.log4j.Logger;
 
@@ -580,6 +579,13 @@ public class RemoteClient {
 			t.clearData();
 		}			
 	}
+	
+	
+	public Map<Sensor, Capabilities> getSupportedSensors(){
+		return supportedSensors;
+	}
+	
+	
 			
 	/**********************
 	 * INNER CLASS
