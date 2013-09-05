@@ -21,21 +21,21 @@ public enum Sensor {
 	/**
 	 * The Camera.  This may refer to every camera on a remote device, but it could also refer to just one Camera
 	 */
-	CAMERA(1, "Camera"),
+	CAMERA(1, "camera"),
 	/**
 	 * The microphone
 	 */
-	MICROPHONE(10, "Microphone"),
+	MICROPHONE(10, "microphone"),
 	/**
 	 * The passive sensor collection.  The Environment sensors are everything from the gyroscopes to the accelerometer, to the
 	 * temperature sensor
 	 */
-	ENVIRONMENT(12, "Environment"),
+	ENVIRONMENT(12, "environment"),
 	
 	/*
 	 * The passive location sensor collection.  As of the time of coding, was pretty much either a GPS or a network sensor
 	 */
-	LOCATION(15, "Location");
+	LOCATION(15, "location");
 	
 	/**
 	 * The internal map used to map the <code>integer</code> action to a particular sensor constant

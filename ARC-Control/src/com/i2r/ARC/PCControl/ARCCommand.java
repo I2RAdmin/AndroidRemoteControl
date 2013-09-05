@@ -48,6 +48,8 @@ public class ARCCommand {
 	private static final String[] DEFAULT_PAUSE_ARGUMENTS = {};
 	private static final String[] DEFAULT_CONNECT_ARGUMENTS = {NO_ARGUMENT};
 	
+	private static final String[] DEFAULT_FREEZE_ARGUMENTS = {NO_ARGUMENT};
+	
 	public static final int KILL_TASK_INDEX = 0;
 	
 	//the header to a command.
@@ -68,6 +70,7 @@ public class ARCCommand {
 		case HELP:
 		case PAUSE:
 		case CONNECT:
+		case FREEZE:
 			this.header = header;
 			this.arguments = defaultArguments(header);
 			break;
@@ -83,6 +86,7 @@ public class ARCCommand {
 		case HELP:
 		case PAUSE:
 		case CONNECT:
+		case FREEZE:
 			this.header = header;
 			this.arguments = checkArgumentsAgainstController(header, arguments);
 			logger.debug("ARCCommand has " + arguments.size() + " args");
@@ -105,9 +109,20 @@ public class ARCCommand {
 			return checkPauseArguments(arguments);
 		case CONNECT:
 			return checkConnectArguments(arguments);
+		case FREEZE:
+			return checkFreezeArguments(arguments);
 		default:
 			throw new UnsupportedValueException("Supplied Command header " + header.getAlias() + " was invalid.");
 		}
+	}
+
+	private List<String> checkFreezeArguments(List<String> arguments) throws UnsupportedValueException {
+		if(arguments.size() != 1){
+			throw new UnsupportedValueException("Incorrect number of arguments.");
+		}
+		
+		//TODO: add type checking(?)
+		return arguments;
 	}
 
 	private List<String> checkConnectArguments(List<String> arguments) throws UnsupportedValueException {
@@ -257,6 +272,8 @@ public class ARCCommand {
 			return Arrays.asList(DEFAULT_PAUSE_ARGUMENTS);
 		case CONNECT:
 			return Arrays.asList(DEFAULT_CONNECT_ARGUMENTS);
+		case FREEZE:
+			return Arrays.asList(DEFAULT_FREEZE_ARGUMENTS);
 		default:
 			throw new UnsupportedValueException("Supplied command header " + header.getAlias() + " was invalid.");
 		}
@@ -409,7 +426,11 @@ public class ARCCommand {
 					String value = subArgs.get(i);
 					i++;
 				
-					dev.checkSingleArg(sensor, key, value);
+					String[] safeVals = dev.checkSingleArg(sensor, key, value);
+					if(safeVals != null){
+						subArgs.set(i - 2, safeVals[0]);
+						subArgs.set(i - 1, safeVals[1]);
+					}
 				}
 				break;
 			case ENVIRONMENT:
@@ -421,10 +442,14 @@ public class ARCCommand {
 					String value = subArgs.get(j);
 					j++;
 				
-					dev.checkSingleArg(sensor, key, value);
+					String[] safeVals = dev.checkSingleArg(sensor, key, value);
+					if(safeVals != null){
+						subArgs.set(j - 2, safeVals[0]);
+						subArgs.set(j - 1, safeVals[1]);
+					}
 					
 					//remove the _, which we use to delimit sensors from the spaces in a user command
-					subArgs.set(j - 2, key.replace("_", " "));
+					subArgs.set(j - 2, safeVals[0].replace("_", " "));
 				}
 				break;
 			default:

@@ -87,12 +87,12 @@ public class RemoteControlActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_remote_control);
 
-	
 		// booleans to query about the state of this activity during the
 		// first steps of creation
 		this.started = false;
 		this.action = (TextView) findViewById(R.id.current_action_text_view);
 		this.manager = LocalBroadcastManager.getInstance(this);
+		this.pinger = new Pinger(PING_FREQUENCY);
 
 		// create a receiver for the BluetoothConnectionManager to send to
 		this.receiver = new BroadcastReceiver() {
@@ -172,7 +172,7 @@ public class RemoteControlActivity extends Activity {
 	 */
 	private void startMaster(String connectionType) {
 
-		// add an IntentFilter to receive updates from bluetooth manager
+		// add an IntentFilter to receive updates from data managers
 		IntentFilter filter = new IntentFilter();
 		filter.addAction(ACTION_TASK_COMPLETE);
 		filter.addAction(ACTION_CONNECTOR_RESPONDED);
@@ -181,26 +181,23 @@ public class RemoteControlActivity extends Activity {
 
 		
 		// creates a new master to control remote command flow, and a new
-		// responder
-		// to mediate between the master and the device sensors
+		// responder to mediate between the master and the device sensors
 		this.camera = Camera.open();
 		SurfaceView view = (SurfaceView) findViewById(R.id.preview);
 		this.cFilter = new CommandFilter(this, camera, view.getHolder());
 		
 		try {
-			this.master = new RemoteControlMaster(cFilter, connectionType);
 			if (!started) {
+				this.master = new RemoteControlMaster(cFilter, connectionType);
 				started = true;
 				action.setText("listening for connection to remote device...");
 				Log.d(TAG, "remote control started");
-				this.pinger = new Pinger(PING_FREQUENCY);
 				pinger.start();
 				master.start();
 			}
 
 			// goes back to main activity if connectionType parameter was not
-			// valid or
-			// no connection of the given type was found
+			// valid or no connection of the given type was found
 		} catch (ServiceNotFoundException e) {
 			
 			Toast.makeText(
@@ -208,13 +205,7 @@ public class RemoteControlActivity extends Activity {
 					"connection service for remote control not found, shutting down app",
 					Toast.LENGTH_LONG).show();
 			
-			if(master != null){
-				master.stop();
-				master = null;
-			}
-			
-			
-			finish();
+			stopMaster();
 		}
 	}
 
@@ -239,7 +230,6 @@ public class RemoteControlActivity extends Activity {
 		if (master != null) {
 			master.stop();
 			master = null;
-			System.gc();
 		}
 
 		action.setText("remote control stopped, finishing...");

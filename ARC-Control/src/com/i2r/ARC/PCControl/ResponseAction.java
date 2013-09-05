@@ -76,31 +76,38 @@ public class ResponseAction {
 		if(response.action == RemoteClientResponse.SAVE_FILE){
 			//save the data associated with the response
 			saveData();
+			
 		//if the response action is to stream data
 		}else if (response.action == RemoteClientResponse.STREAM){
-			//TODO: actually stream the data to a thing
-			//save the data associated with the response
-			saveData();
+			//append data associated with a response to the current data associated with a task
+			appendData();
+			
 		//if the response action is to remove a task
 		}else if (response.action == RemoteClientResponse.REMOVE_TASK){
+			StringBuilder sb = new StringBuilder();
 			//check to see if the response has additional data
 			
 			//if the response's additional data is that the task has errored out...
 			if(response.otherArgs.get(0).equals(RemoteClientResponse.TASK_ERRORED_ARGUMENT)){
 				
 				//tell the user that the task has errored
-				dev.report(response.taskID + " has errored out.");
+				sb.append(response.taskID + " has errored out.");
 			
 			//if the response's additional data is that the task referenced an unsupported sensor...	
 			}else if(response.otherArgs.get(0).equals(RemoteClientResponse.UNSUPPORTED_SENSOR)){
 				
 				//tell the user that the sensor referenced was unsupported
-				dev.report(response.taskID + " asked for an unsupported sensor.");
+				sb.append(response.taskID + " asked for an unsupported sensor.");
+			
+			//if the response's additional data is that the task referenced has been successfully compelted...
+			}else if(response.otherArgs.get(0).equals(RemoteClientResponse.TASK_COMPLETE_ARGUMENT)){
+				
+				//tell the user that the task has been complete
+				sb.append(response.taskID + " has been compeleted!");
 			}
 		
 			//if there is any additional data...
 			if(response.otherArgs.size() > 1){
-				StringBuilder sb = new StringBuilder();
 				
 				//for every data element with index > 1, index < size...
 				for(int i = 1; i < response.otherArgs.size(); i++){
@@ -109,8 +116,10 @@ public class ResponseAction {
 					sb.append('\n');
 				}
 				
-				dev.report(sb.toString());
+				
 			}
+			//send it off to the UI
+			dev.report(sb.toString());
 			
 			//remove the task associated with the response
 			removeTask();
@@ -184,6 +193,22 @@ public class ResponseAction {
 	}
 	
 	/**
+	 * Save the data associated with a {@link Task} to a file, and increment that {@link Task}'s {@link Task#pos} file counter.
+	 */
+	private void saveData() {
+		//get a reference to the task
+		Task ref = dev.deviceTasks.getTask(response.taskID);
+		
+		//if that reference is valid...
+		if(ref != null){
+			//save the data
+			ref.saveFile(ref.pos);
+			//increment the position
+			ref.pos++;
+		}
+	}
+
+	/**
 	 * The action that removes a task from the stack.
 	 * 
 	 * This method is called when we get a {@link RemoteClientResponse} with a {@link RemoteClientResponse#action} of type {@link RemoteClientResponse#REMOVE_TASK}
@@ -198,14 +223,13 @@ public class ResponseAction {
 	/**
 	 * The action that saves data from a task
 	 * 
-	 * This method is called when we get a {@link RemoteClientResponse} with a {@link RemoteClientResponse#action} of type {@link RemoteClientResponse#SAVE_FILE}
-	 * FIXME: or {@link RemoteClientResponse#STREAM}.
+	 * This method is called when we get a {@link RemoteClientResponse} with a {@link RemoteClientResponse#action} of type {@link RemoteClientResponse#STREAM}.
 	 * It is called to save data associated with the {@link RemoteClientResponse#taskID} of a {@link RemoteClientResponse}.  Starts the Save File thread, 
 	 * and does not block.
 	 */ 
-	private void saveData(){
+	private void appendData(){
 		Thread t = new Thread(new SaveDataRunnable(response));
-		t.setName("Save-Data-Thread");
+		t.setName("Append-Data-Thread-" + t.getId());
 		t.start();
 	}
 
@@ -248,7 +272,7 @@ public class ResponseAction {
 		
 		//for each string in the other argument section of the response...
 		for(String line : setArgumentResponse.otherArgs){
-			//break up the string by the packet delimiter
+			 //break up the string by the packet delimiter
 			String[] lineElements = line.split("\n");
 			
 			//logging loop.
@@ -334,7 +358,7 @@ public class ResponseAction {
 	 * This is the {@link Runnable} implementation that defines how the save data thread is run.  Data that the thread needs is passed 
 	 * through this constructor and the {@link Runnable#run()} method defines what the thread does when {@link Thread#start()} is called.
 	 * <p>
-	 * The save data thread takes a section of data in the {@link RemoteClientResponse#fileData} and appends it to a {@link Task}'s {@link DataSegment}
+	 * The save data thread takes a section of data in the {@link RemoteClientResponse#dataBlock} and appends it to a {@link Task}'s {@link DataSegment}
 	 * so it can be saved when there is time to do so.
 	 **************/
 	private class SaveDataRunnable implements Runnable{
@@ -423,10 +447,11 @@ public class ResponseAction {
 			case (RemoteClientResponse.DATA_TYPE_IMAGE):
 				//attempt to get a file type associated with the camera...
 				fileType = getFileType(Sensor.CAMERA, "picture-format");
+				
 				//if none was found...
 				if(fileType.equals("default")){
 					//use a jpeg
-					fileType = "jpeg";
+					fileType = "jpg";
 				}
 				break;
 			//if the argument type was audio data...
@@ -473,7 +498,7 @@ public class ResponseAction {
 			}
 			
 			//save the segment of data we got
-			ref.saveChunk(fileType, saveResponse.fileData);
+			ref.saveChunk(fileType, saveResponse.dataBlock);
 			
 			StringBuilder sb = new StringBuilder();
 			

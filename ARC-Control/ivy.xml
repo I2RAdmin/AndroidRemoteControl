@@ -17,6 +17,8 @@
    specific language governing permissions and limitations
    under the License.    
 -->
+
+<!-- DEPENDANCY MANAGEMENT IS CURRENTLY NOT USED, DUE TO THE FACT THAT SEVERAL LIBRARIES ARE NOT IN EASLY ACCESSED REPOS -->
 <ivy-module version="2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
     <info
@@ -30,5 +32,9 @@
         <dependency org="log4j" name="log4j" rev="1.2.17" />
         <dependency org="net.sf.bluecove" name="bluecove" rev="2.1.1-SNAPSHOT" />
         <dependency org="nrjavaserial" name="nrjavaserial" rev="3.8.8" />
+        <dependency org="slf4j" name="slf4j-api" rev="1.4.3" />
+        <dependency org="slf4j" name="slf4j-log4j12" rev="1.4.3" />
+        <dependency org="jsmpp" name="jsmpp" rev="2.1.0" />
+        <dependency org="smslib" name="smslib" rev="3.5.3" />
     </dependencies>
 </ivy-module>
