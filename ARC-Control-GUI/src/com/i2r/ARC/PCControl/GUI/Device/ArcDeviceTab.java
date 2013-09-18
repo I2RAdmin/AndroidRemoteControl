@@ -1,20 +1,11 @@
 package com.i2r.ARC.PCControl.GUI.Device;
 
 
-import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
-import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
-
-import com.i2r.ARC.PCControl.GUI.ArcControlLink;
 
 public class ArcDeviceTab extends JPanel {
 
@@ -42,10 +33,10 @@ public class ArcDeviceTab extends JPanel {
 		this.setLayout(gbl_devicePanel);
 		
 		this.tabPanels = new AbstractDeviceTabPanel[CONTAINER_SIZE];
-		tabPanels[SENSOR_PANEL_INDEX] = new SensorsPanel(device);
-		tabPanels[NEW_TASK_PANEL_INDEX] = null;
-		tabPanels[RUNNING_TASKS_PANEL_INDEX] = null;
-		tabPanels[LOG_PANEL_INDEX] = null;
+		tabPanels[SENSOR_PANEL_INDEX] = new SensorsPanel(device, getSensorsPanelConstraints());
+		tabPanels[NEW_TASK_PANEL_INDEX] = new NewTaskPanel(device, getNewTaskPanelConstraints());
+		tabPanels[RUNNING_TASKS_PANEL_INDEX] = new RunningTasksPanel(device, getRunningTasksPanelConstraints());
+		tabPanels[LOG_PANEL_INDEX] = new LogPanel(device, getLogPanelConstraints());
 		
 		for(AbstractDeviceTabPanel panel : tabPanels){
 			this.add(panel, panel.getConstraints());
@@ -59,16 +50,16 @@ public class ArcDeviceTab extends JPanel {
 	}
 	
 	public void addLogStatement(String statement){
-		
+		tabPanels[LOG_PANEL_INDEX].addInfo(statement);
 	}
 	
 	
 	public void addRunningTask(String runningTask){
-		// TODO: add task info to listing in GUI
+		tabPanels[RUNNING_TASKS_PANEL_INDEX].addInfo(runningTask);
 	}
 	
 	public void removRunningeTask(String runningTask){
-		// TODO: remove task from listing in GUI
+		tabPanels[RUNNING_TASKS_PANEL_INDEX].removeInfo(runningTask);
 	}
 	
 	public void repaintAll(){
@@ -79,19 +70,17 @@ public class ArcDeviceTab extends JPanel {
 	}
 	
 
-	
-	
-	
-	public static JPanel createNewTaskPanel(ArcControlDevice device){
-		
-		JPanel newTaskPanel = new JPanel();
-		newTaskPanel.setLayout(new BorderLayout(0, 0));
-		
-		// TODO: make a drop down on left and options on right
-		// JSplitPanel and something for drop down...
-		
-		return newTaskPanel;
+	public static GridBagConstraints getSensorsPanelConstraints(){
+		GridBagConstraints gbc_sensorsPanel = new GridBagConstraints();
+		gbc_sensorsPanel.anchor = GridBagConstraints.NORTHWEST;
+		gbc_sensorsPanel.fill = GridBagConstraints.BOTH;
+		gbc_sensorsPanel.insets = new Insets(0, 0, 0, 5);
+		gbc_sensorsPanel.gridheight = 2;
+		gbc_sensorsPanel.gridx = 0;
+		gbc_sensorsPanel.gridy = 0;
+		return gbc_sensorsPanel;
 	}
+	
 	
 	
 	
@@ -102,16 +91,6 @@ public class ArcDeviceTab extends JPanel {
 		gbc_newTaskPanel.gridx = 1;
 		gbc_newTaskPanel.gridy = 0;
 		return gbc_newTaskPanel;
-	}
-	
-	
-	
-	public static JPanel createRunningTasksPanel(ArcControlDevice device){
-		JPanel runningTasksPanel = new JPanel();
-		
-		//TODO: implement running tasks panel
-		
-		return runningTasksPanel;
 	}
 	
 	
@@ -128,15 +107,6 @@ public class ArcDeviceTab extends JPanel {
 	
 	
 	
-	public static JPanel createLogPanel(ArcControlDevice device){
-		JPanel logPanel = new JPanel();
-		
-		//TODO: implement logger here
-		
-		return logPanel;
-	}
-	
-	
 	public static GridBagConstraints getLogPanelConstraints(){
 		GridBagConstraints gbc_logPanel = new GridBagConstraints();
 		gbc_logPanel.anchor = GridBagConstraints.SOUTHEAST;
@@ -148,16 +118,5 @@ public class ArcDeviceTab extends JPanel {
 	}
 	
 	
-	// TODO: make update button send command
-	@SuppressWarnings("unused")
-	private class ButtonListener implements ActionListener {
-
-		@Override
-		public void actionPerformed(ActionEvent e) {
-			StringBuilder builder = new StringBuilder();
-			builder.append(device.getIndex()).append(" ");
-			builder.append(ArcControlLink.MODIFY).append(" ");
-		}
-	}
 	
-}
+} // end of ArcDeviceTab class

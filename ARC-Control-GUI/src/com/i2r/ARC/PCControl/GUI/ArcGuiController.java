@@ -21,7 +21,7 @@ public class ArcGuiController {
 	
 	private ArcFrame frame;
 	private ArcControlLink link;
-	private boolean initialized;
+	private boolean initialized, started;
 	
 	/**
 	 * Constructor<br>
@@ -54,6 +54,7 @@ public class ArcGuiController {
 		}
 		
 		this.initialized = initialized;
+		this.started = false;
 		
 		return initialized;
 	}
@@ -80,15 +81,55 @@ public class ArcGuiController {
 	
 	
 	/**
+	 * Query for this controller's state
+	 * @return true if this controller's {@link #start()}
+	 * method has already been called, false if it has
+	 * not been called yet. 
+	 */
+	public boolean started(){
+		return started;
+	}
+	
+	/**
 	 * Starts the link to this application's
 	 * {@link Controller} and presents the
 	 * user with this GUI. This can be
 	 * considered the main entry point of
 	 * this program.
 	 */
-	public void start(){
-		link.start();
-		frame.setVisible(true);
+	public synchronized void start(){
+		if(!started){
+			
+			started = true;
+			
+			if(link == null || frame == null){
+				init();
+			}
+			
+			link.start();
+			frame.setVisible(true);
+		}
+	}
+	
+	
+	/**
+	 * Kills this application, shutting down
+	 * its {@link ArcFrame} and {@link Controller}.
+	 */
+	public synchronized void stop(){
+		
+		started = false;
+		
+		if(link != null){
+			link.stop();
+			link = null;
+		}
+		
+		if(frame != null){
+			frame.setVisible(false);
+			frame.dispose();
+			frame = null;
+		}
 	}
 	
 	
