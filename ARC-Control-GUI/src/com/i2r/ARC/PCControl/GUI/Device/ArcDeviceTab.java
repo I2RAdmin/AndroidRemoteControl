@@ -20,13 +20,14 @@ public class ArcDeviceTab extends JPanel {
 
 	private static final long serialVersionUID = 4857850415235003330L;
 	
-	private static final String SENSOR_LABEL = "Sensors";
+	public static final int CONTAINER_SIZE = 4;
+	public static final int SENSOR_PANEL_INDEX = 0;
+	public static final int NEW_TASK_PANEL_INDEX = 1;
+	public static final int RUNNING_TASKS_PANEL_INDEX = 2;
+	public static final int LOG_PANEL_INDEX = 3;
 
 	private ArcControlDevice device;
-	private JPanel sensorsPanel;
-	private JPanel newTasksPanel;
-	private JPanel runningTasksPanel;
-	private JPanel logPanel;
+	private AbstractDeviceTabPanel[] tabPanels;
 	
 	public ArcDeviceTab(ArcControlDevice device){
 		this.device = device;
@@ -39,15 +40,16 @@ public class ArcDeviceTab extends JPanel {
 		gbl_devicePanel.rowWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
 		
 		this.setLayout(gbl_devicePanel);
-		this.sensorsPanel = createSensorsPanel(device);
-		this.newTasksPanel = createNewTaskPanel(device);
-		this.runningTasksPanel = createRunningTasksPanel(device);
-		this.logPanel = createLogPanel(device);
 		
-		this.add(sensorsPanel, getSensorsPanelConstraints());
-		this.add(newTasksPanel, getNewTaskPanelConstraints());
-		this.add(runningTasksPanel, getRunningTasksPanelConstraints());
-		this.add(logPanel, getLogPanelConstraints());
+		this.tabPanels = new AbstractDeviceTabPanel[CONTAINER_SIZE];
+		tabPanels[SENSOR_PANEL_INDEX] = new SensorsPanel(device);
+		tabPanels[NEW_TASK_PANEL_INDEX] = null;
+		tabPanels[RUNNING_TASKS_PANEL_INDEX] = null;
+		tabPanels[LOG_PANEL_INDEX] = null;
+		
+		for(AbstractDeviceTabPanel panel : tabPanels){
+			this.add(panel, panel.getConstraints());
+		}
 	}
 	
 	
@@ -70,51 +72,13 @@ public class ArcDeviceTab extends JPanel {
 	}
 	
 	public void repaintAll(){
-		sensorsPanel.repaint();
-		newTasksPanel.repaint();
-		runningTasksPanel.repaint();
-		logPanel.repaint();
+		for(AbstractDeviceTabPanel panel : tabPanels){
+			panel.repaint();
+		}
 		repaint();
 	}
 	
-	
-	public static JPanel createSensorsPanel(ArcControlDevice device){
-		JPanel sensorsPanel = new JPanel();
-		JLabel sensorsLabel = new JLabel(SENSOR_LABEL);
-		JTabbedPane sensorTabs = new JTabbedPane(JTabbedPane.TOP);
-		JButton updateSensorsButton = new JButton("Update Sensors");
-		
-		updateSensorsButton.addActionListener(new ActionListener(){
-			@Override
-			public void actionPerformed(ActionEvent e) {
-                 				
-			}
-		});
-		
-		sensorsPanel.setLayout(new BorderLayout(0, 0));
-		
-		for(GuiSensor sensor : device.getSensorList()){
-		     sensorTabs.addTab(sensor.getName(), new JScrollPane(sensor));
-		}
-		
-		sensorsPanel.add(sensorsLabel, BorderLayout.NORTH);
-		sensorsPanel.add(sensorTabs, BorderLayout.CENTER);
-		sensorsPanel.add(updateSensorsButton, BorderLayout.SOUTH);
-		
-		return sensorsPanel;
-	}
-	
-	
-	public static GridBagConstraints getSensorsPanelConstraints(){
-		GridBagConstraints gbc_sensorsPanel = new GridBagConstraints();
-		gbc_sensorsPanel.anchor = GridBagConstraints.NORTHWEST;
-		gbc_sensorsPanel.fill = GridBagConstraints.BOTH;
-		gbc_sensorsPanel.insets = new Insets(0, 0, 0, 5);
-		gbc_sensorsPanel.gridheight = 2;
-		gbc_sensorsPanel.gridx = 0;
-		gbc_sensorsPanel.gridy = 0;
-		return gbc_sensorsPanel;
-	}
+
 	
 	
 	
