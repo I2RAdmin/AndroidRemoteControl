@@ -2,6 +2,7 @@ package com.i2r.ARC.PCControl.GUI;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JLabel;
@@ -16,6 +17,7 @@ import ARC.Constants;
 
 import com.i2r.ARC.PCControl.DataType;
 import com.i2r.ARC.PCControl.Limiter;
+import com.i2r.ARC.PCControl.UnsupportedValueException;
 
 /**
  * This class models a single feature in a given Sensor's list
@@ -30,6 +32,11 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 	private static final long serialVersionUID = -7795045743140743307L;
 
 	public static final int PARAMETER_LENGTH = 5;
+	
+	private static final int NAME_INDEX = 0;
+	private static final int TYPE_INDEX = 1;
+	private static final int LIMITER_INDEX = 2;
+	private static final int PARAM_START_INDEX = 3;
 	
 	private DataType type;
 	private Limiter limiter;
@@ -51,7 +58,11 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 	 * and max values
 	 */
 	public FeaturePanel(String featureName, DataType type,
-			Limiter limiter, List<String> args){
+			Limiter limiter, List<String> args) throws UnsupportedValueException {
+		
+		if(featureName == null || type == null || limiter == null || args == null){
+			throw new UnsupportedValueException("no parameters in FeaturePanel constructor can be null");
+		}
 		
 		this.setName(featureName);
 		this.type = type;
@@ -60,7 +71,30 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 		this.currentValueIndex = Constants.Args.ARG_NONE;
 		this.sliderValue = Constants.Args.ARG_NONE;
 		this.text = null;
+	
+		initializePanel();
+	}
+	
+	
+	
+	public FeaturePanel(String details) throws UnsupportedValueException {
 		
+		String[] info = details.split("\n");
+		setName(info[NAME_INDEX]);
+		this.type = DataType.get(info[TYPE_INDEX]);
+		this.limiter = Limiter.get(info[LIMITER_INDEX]);
+		
+		this.args = new ArrayList<String>(info.length - PARAM_START_INDEX);
+		for(int i = PARAM_START_INDEX; i < info.length; i++){
+			args.add(info[i]);
+		}
+		
+		initializePanel();
+	}
+	
+	
+	
+	public void initializePanel(){
 		switch(limiter.getType().intValue()){
 		
 		case Constants.DataTypes.SET:
@@ -77,12 +111,12 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 			
 			default:
 				System.err.println("init went to default case");
-				this.setName(featureName + " errored on creation");
+				this.setName(getName() + " errored on creation");
 				break;
 		
 		}
-		
 	}
+	
 	
 	
 	public void setCurrentValue(String value){

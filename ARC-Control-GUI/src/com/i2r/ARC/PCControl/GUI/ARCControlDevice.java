@@ -1,97 +1,73 @@
 package com.i2r.ARC.PCControl.GUI;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
-import ARC.Constants;
-
-import com.i2r.ARC.PCControl.ARCCommand;
-import com.i2r.ARC.PCControl.Capabilities;
-import com.i2r.ARC.PCControl.DataType;
-import com.i2r.ARC.PCControl.Limiter;
-import com.i2r.ARC.PCControl.RemoteClient;
-import com.i2r.ARC.PCControl.Sensor;
 import com.i2r.ARC.PCControl.UnsupportedValueException;
 
+/**
+ * This class models a data structure for information
+ * obtained from the control stream about a certain device.
+ * @author Josh Noel
+ */
 public class ARCControlDevice {
 	
 	
-	public static final String CHANGE_FEATURE = "change_feature";
-	public static final String SEND_COMMAND = "send_command";
-	
-	private static final String GET_ALL_FEATURES = "features " + Constants.Sensors.CAMERA + " "
-			+ Constants.Sensors.MICROPHONE + " " + Constants.Sensors.ENVIRONMENT_SENSORS + " "
-			+ Constants.Sensors.GPS;
-	
 	private String name;
-	private RemoteClient client;
-	private Map<String, List<FeaturePanel>> features;
+	private int index;
+	private List<GUISensor> features;
 
 	
-	public ARCControlDevice(String name, RemoteClient client) throws UnsupportedValueException {
+	/**
+	 * Constructor<br>
+	 * creates a new Android device structure to
+	 * query for information when making its
+	 * graphical counterpart for this GUI.
+	 * @param name - the name of this android device
+	 * @param index - the index of this android device in the {@link Controller}
+	 * @param sensorList - the sensor list for this device - each sub-array is
+	 * a unique sensor with its name at index zero, followed by all of its manipulatable features.
+	 * @throws UnsupportedValueException if the given sensor list cannot be properly parsed
+	 */
+	public ARCControlDevice(String name, int index, String[][] sensorList) throws UnsupportedValueException {
 		this.name = name;
-		this.client = client;
-		this.features = new HashMap<String, List<FeaturePanel>>();
+		this.features = new LinkedList<GUISensor>();
 		
-		if(!client.connectToDevice()){
-			throw new UnsupportedValueException("failed to connect to device");
+		for(int i = 0; i < sensorList.length; i++){
+			String[] featureList = sensorList[i];
+			for(int j = 0; j < featureList.length; j++){
+				features.add(new GUISensor(featureList));
+			}
 		}
-		
-		ARCCommand getFeatures = ARCCommand.fromString(GET_ALL_FEATURES);
-		client.sendTask(getFeatures);
-		
-		this.features = getFeatures(client);
 	}
 	
-	
-	
-	public String getDeviceName(){
+	/**
+	 * Query for this device's name
+	 * @return the name given to this android device object
+	 * upon its creation
+	 */
+	public String getName(){
 		return name;
 	}
 	
 	
-	public RemoteClient getClient(){
-		return client;
+	/**
+	 * Query for this device's index - to be used when
+	 * sending remote commands to this device
+	 * @return this device's index in this GUI's {@link Controller}
+	 */
+	public int getIndex(){
+		return index;
 	}
 	
-	
-	public Map<String, List<FeaturePanel>> getFeaturePanels(){
+	/**
+	 * Query for this device's sensor information.
+	 * @return a {@link List} of all this device's
+	 * manipulatable sensors
+	 * @see {@link GUISensor}
+	 */
+	public List<GUISensor> getSensorList(){
 		return features;
-	}
-	
-	
-	
-	public static Map<String, List<FeaturePanel>> getFeatures(RemoteClient client){
-		
-		HashMap<String, List<FeaturePanel>> map = null;
-		
-		if(client != null && !client.getSupportedSensors().isEmpty()){
-			
-			map = new HashMap<String, List<FeaturePanel>>();
-			
-			for(Map.Entry<Sensor, Capabilities> entry : client.getSupportedSensors().entrySet()){
-				
-				Sensor sensor = entry.getKey();
-				Capabilities capabilities = entry.getValue();
-				ArrayList<FeaturePanel> featureList = new ArrayList<FeaturePanel>();
-				
-				for(Map.Entry<String, DataType> feature : capabilities.getFeatureDataTypes().entrySet()){
-					
-					String name = feature.getKey();
-					DataType type = feature.getValue();
-					Limiter limiter = capabilities.getFeatureLimiters().get(name);
-					List<String> args = capabilities.getListArguments().get(name);
-			
-					featureList.add(new FeaturePanel(name, type, limiter, args));
-				}
-				
-				map.put(sensor.getAlias(), featureList);
-			}
-		}
-		
-		return map;
 	}
 	
 }
