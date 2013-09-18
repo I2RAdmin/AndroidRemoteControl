@@ -33,15 +33,17 @@ public class ArcGuiController {
 	 * @see {@link ArcControlLink}
 	 */
 	private ArcGuiController() {
-		this.initialized = init();
+		init();
 	}
 	
 	/**
 	 * Initializes this controller's {@link ArcControlLink}
 	 * and {@link ArcFrame}
 	 */
-	private synchronized boolean init(){
+	public synchronized boolean init(){
+		
 		boolean initialized;
+		
 		try{
 			this.link = new ArcControlLink(Controller.getInstance());
 			this.frame = new ArcFrame();
@@ -50,6 +52,9 @@ public class ArcGuiController {
 			e.printStackTrace();
 			initialized = false;
 		}
+		
+		this.initialized = initialized;
+		
 		return initialized;
 	}
 	

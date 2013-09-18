@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
 
+import com.i2r.ARC.PCControl.GUI.Device.ArcDeviceTab;
+
 /**
  * This class models the graphical interface for
  * this application. This interface will be updated

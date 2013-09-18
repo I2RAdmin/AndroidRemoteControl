@@ -1,4 +1,4 @@
-package com.i2r.ARC.PCControl.GUI;
+package com.i2r.ARC.PCControl.GUI.Device;
 
 
 import java.awt.BorderLayout;
@@ -13,6 +13,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+
+import com.i2r.ARC.PCControl.GUI.ArcControlLink;
 
 public class ArcDeviceTab extends JPanel {
 
@@ -55,7 +57,7 @@ public class ArcDeviceTab extends JPanel {
 	}
 	
 	public void addLogStatement(String statement){
-		// TODO: dump statement to log panel
+		
 	}
 	
 	
@@ -67,7 +69,7 @@ public class ArcDeviceTab extends JPanel {
 		// TODO: remove task from listing in GUI
 	}
 	
-	public void refresh(){
+	public void repaintAll(){
 		sensorsPanel.repaint();
 		newTasksPanel.repaint();
 		runningTasksPanel.repaint();

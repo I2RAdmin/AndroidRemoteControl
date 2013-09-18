@@ -1,4 +1,4 @@
-package com.i2r.ARC.PCControl.GUI;
+package com.i2r.ARC.PCControl.GUI.Device;
 
 import java.awt.GridLayout;
 import java.util.LinkedList;

@@ -1,4 +1,4 @@
-package com.i2r.ARC.PCControl.GUI;
+package com.i2r.ARC.PCControl.GUI.Device;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -18,6 +18,7 @@ import ARC.Constants;
 import com.i2r.ARC.PCControl.DataType;
 import com.i2r.ARC.PCControl.Limiter;
 import com.i2r.ARC.PCControl.UnsupportedValueException;
+import com.i2r.ARC.PCControl.GUI.ArcGuiController;
 
 /**
  * This class models a single feature in a given Sensor's list
@@ -197,16 +198,7 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		
-		try{
-			sliderValue = Integer.parseInt(e.getActionCommand());
-		} catch (NumberFormatException exeption){
-			sliderValue = Constants.Args.ARG_NONE;
-			int value = args.indexOf(e.getActionCommand());
-			if(value > -1){
-				currentValueIndex = value;
-			}
-		}
+		ArcGuiController.getInstance().sendCommand(e.getActionCommand());
 	}
 
 
@@ -215,6 +207,7 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 		JSlider source = (JSlider) e.getSource();
 		sliderValue = source.getValue();
 	}
+	
 	
 	
 } // end of FeaturePanel class

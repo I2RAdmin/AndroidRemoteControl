@@ -1,4 +1,4 @@
-package com.i2r.ARC.PCControl.GUI;
+package com.i2r.ARC.PCControl.GUI.Device;
 
 import java.util.LinkedList;
 import java.util.List;
