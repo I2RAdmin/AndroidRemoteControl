@@ -15,13 +15,13 @@ import com.i2r.ARC.PCControl.UI.StreamUI;
  * user interface of this application.
  * @author Josh Noel
  */
-public class ARCControlLink {
+public class ArcControlLink {
 
 	public static final String MODIFY = "modify";
 	
 	
 	private Controller controller;
-	private ARC_GUI_Controller guiCont;
+	private ArcGuiController guiCont;
 	private PipedInputStream guiIn, controlIn;
 	private PipedOutputStream guiOut, controlOut;
 	private StreamUI<OutputStream, InputStream, String> ui;
@@ -35,8 +35,8 @@ public class ARCControlLink {
 	 * @throws IOException if streams to the controller
 	 * could not be properly established.
 	 */
-	public ARCControlLink(ARC_GUI_Controller guiCont, Controller controller) throws IOException {
-		this.guiCont = guiCont;
+	public ArcControlLink(Controller controller) throws IOException {
+		this.guiCont = ArcGuiController.getInstance();
 		this.controller = controller;
 		resetStreams();
 	}
@@ -65,7 +65,7 @@ public class ARCControlLink {
 	/**
 	 * Starts the read loop for this link.
 	 * All received messages will be handed
-	 * to the {@link ARC_GUI_Controller}
+	 * to the {@link ArcGuiController}
 	 */
 	public synchronized void start(){
          reader = new ReadThread(guiIn);
@@ -165,7 +165,7 @@ public class ARCControlLink {
 	/**
 	 * This class models a read thread for
 	 * this link, and alerts the
-	 * {@link ARC_GUI_Controller} when the
+	 * {@link ArcGuiController} when the
 	 * {@link Controller} has new information
 	 * to present to the user.
 	 * @author Josh Noel

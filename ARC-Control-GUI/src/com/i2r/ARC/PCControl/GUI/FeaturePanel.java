@@ -23,7 +23,7 @@ import com.i2r.ARC.PCControl.UnsupportedValueException;
  * This class models a single feature in a given Sensor's list
  * of available features. A list of these panels will be displayed
  * for every sensor tab in the features panel of the
- * corresponding {@link AndroidDeviceTab}.
+ * corresponding {@link ArcDeviceTab}.
  * @author Josh Noel
  *
  */
@@ -48,7 +48,7 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 	/**
 	 * Constructor<br>
 	 * @param featureName - the name to represent this feature
-	 * on the {@link AndroidDeviceTab}
+	 * on the {@link ArcDeviceTab}
 	 * @param type - the type of data this feature
 	 * contains (see {@link Limiter}s)
 	 * @param limiter - the listing type of this feature

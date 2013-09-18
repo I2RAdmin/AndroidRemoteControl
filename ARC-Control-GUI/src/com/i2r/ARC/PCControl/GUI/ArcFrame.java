@@ -9,32 +9,32 @@ import javax.swing.JTabbedPane;
 /**
  * This class models the graphical interface for
  * this application. This interface will be updated
- * by the {@link ARC_GUI_Controller} as new information
+ * by the {@link ArcGuiController} as new information
  * from the {@Controller} becomes available.
  * @author Josh Noel
  */
-public class ARCFrame extends JFrame {
+public class ArcFrame extends JFrame {
 
 	private static final long serialVersionUID = 2982094766360421621L;
 
 	private JTabbedPane androidDevicePane;
-	private ArrayList<AndroidDeviceTab> devices;
-	private ARCMenuBar menuBar;
+	private ArrayList<ArcDeviceTab> devices;
+	private ArcMenuBar menuBar;
 	
 	/**
 	 * Constructor<br>
 	 * creates a new standard {@link JFrame}
 	 * which will be populated with android devices
 	 * as the user establishes connections to them.
-	 * @param controller - the {@link ARC_GUI_Controller}
+	 * @param controller - the {@link ArcGuiController}
 	 * which this application will use to pass information
 	 * to the {@link Controller} when the user wishes to
 	 * send a new command or establish a new connection.
 	 */
-	public ARCFrame(ARC_GUI_Controller controller){
+	public ArcFrame(){
 		this.androidDevicePane = new JTabbedPane();
-		this.devices = new ArrayList<AndroidDeviceTab>();
-		this.menuBar = new ARCMenuBar();
+		this.devices = new ArrayList<ArcDeviceTab>();
+		this.menuBar = new ArcMenuBar();
 		this.setLayout(new BorderLayout());
 		this.add(androidDevicePane, BorderLayout.CENTER);
 		this.add(menuBar, BorderLayout.NORTH);
@@ -46,7 +46,7 @@ public class ARCFrame extends JFrame {
 	
 	
 	/**
-	 * Used by this class's {@link ARC_GUI_Controller}
+	 * Used by this class's {@link ArcGuiController}
 	 * to allow this GUI to respond to new information
 	 * presented by the {@link Controller}
 	 * @param response - the response to parse and

@@ -14,7 +14,7 @@ import com.i2r.ARC.PCControl.UnsupportedValueException;
  * an android device sensor.
  * @author Josh Noel
  */
-public class GUISensor extends JPanel {
+public class GuiSensor extends JPanel {
 
 	public static final int NAME_INDEX = 0;
 	
@@ -32,7 +32,7 @@ public class GUISensor extends JPanel {
 	 * comply with the rules for generating a sensor panel.
 	 * @see {@link FeaturePanel}
 	 */
-	public GUISensor(String[] rawFeatures) throws UnsupportedValueException {
+	public GuiSensor(String[] rawFeatures) throws UnsupportedValueException {
 		
 		this.setName(rawFeatures[NAME_INDEX]);
 		this.features = new LinkedList<FeaturePanel>();

@@ -14,19 +14,19 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 
-public class AndroidDeviceTab extends JPanel {
+public class ArcDeviceTab extends JPanel {
 
 	private static final long serialVersionUID = 4857850415235003330L;
 	
 	private static final String SENSOR_LABEL = "Sensors";
 
-	private ARCControlDevice device;
+	private ArcControlDevice device;
 	private JPanel sensorsPanel;
 	private JPanel newTasksPanel;
 	private JPanel runningTasksPanel;
 	private JPanel logPanel;
 	
-	public AndroidDeviceTab(ARCControlDevice device){
+	public ArcDeviceTab(ArcControlDevice device){
 		this.device = device;
         this.setName(device.getName());
 		
@@ -50,7 +50,7 @@ public class AndroidDeviceTab extends JPanel {
 	
 	
 	
-	public ARCControlDevice getDevice(){
+	public ArcControlDevice getDevice(){
 		return device;
 	}
 	
@@ -76,7 +76,7 @@ public class AndroidDeviceTab extends JPanel {
 	}
 	
 	
-	public static JPanel createSensorsPanel(ARCControlDevice device){
+	public static JPanel createSensorsPanel(ArcControlDevice device){
 		JPanel sensorsPanel = new JPanel();
 		JLabel sensorsLabel = new JLabel(SENSOR_LABEL);
 		JTabbedPane sensorTabs = new JTabbedPane(JTabbedPane.TOP);
@@ -91,7 +91,7 @@ public class AndroidDeviceTab extends JPanel {
 		
 		sensorsPanel.setLayout(new BorderLayout(0, 0));
 		
-		for(GUISensor sensor : device.getSensorList()){
+		for(GuiSensor sensor : device.getSensorList()){
 		     sensorTabs.addTab(sensor.getName(), new JScrollPane(sensor));
 		}
 		
@@ -116,7 +116,7 @@ public class AndroidDeviceTab extends JPanel {
 	
 	
 	
-	public static JPanel createNewTaskPanel(ARCControlDevice device){
+	public static JPanel createNewTaskPanel(ArcControlDevice device){
 		
 		JPanel newTaskPanel = new JPanel();
 		newTaskPanel.setLayout(new BorderLayout(0, 0));
@@ -140,7 +140,7 @@ public class AndroidDeviceTab extends JPanel {
 	
 	
 	
-	public static JPanel createRunningTasksPanel(ARCControlDevice device){
+	public static JPanel createRunningTasksPanel(ArcControlDevice device){
 		JPanel runningTasksPanel = new JPanel();
 		
 		//TODO: implement running tasks panel
@@ -162,7 +162,7 @@ public class AndroidDeviceTab extends JPanel {
 	
 	
 	
-	public static JPanel createLogPanel(ARCControlDevice device){
+	public static JPanel createLogPanel(ArcControlDevice device){
 		JPanel logPanel = new JPanel();
 		
 		//TODO: implement logger here
@@ -190,7 +190,7 @@ public class AndroidDeviceTab extends JPanel {
 		public void actionPerformed(ActionEvent e) {
 			StringBuilder builder = new StringBuilder();
 			builder.append(device.getIndex()).append(" ");
-			builder.append(ARCControlLink.MODIFY).append(" ");
+			builder.append(ArcControlLink.MODIFY).append(" ");
 		}
 	}
 	

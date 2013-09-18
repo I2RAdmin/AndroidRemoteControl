@@ -10,12 +10,12 @@ import com.i2r.ARC.PCControl.UnsupportedValueException;
  * obtained from the control stream about a certain device.
  * @author Josh Noel
  */
-public class ARCControlDevice {
+public class ArcControlDevice {
 	
 	
 	private String name;
 	private int index;
-	private List<GUISensor> features;
+	private List<GuiSensor> features;
 
 	
 	/**
@@ -29,14 +29,14 @@ public class ARCControlDevice {
 	 * a unique sensor with its name at index zero, followed by all of its manipulatable features.
 	 * @throws UnsupportedValueException if the given sensor list cannot be properly parsed
 	 */
-	public ARCControlDevice(String name, int index, String[][] sensorList) throws UnsupportedValueException {
+	public ArcControlDevice(String name, int index, String[][] sensorList) throws UnsupportedValueException {
 		this.name = name;
-		this.features = new LinkedList<GUISensor>();
+		this.features = new LinkedList<GuiSensor>();
 		
 		for(int i = 0; i < sensorList.length; i++){
 			String[] featureList = sensorList[i];
 			for(int j = 0; j < featureList.length; j++){
-				features.add(new GUISensor(featureList));
+				features.add(new GuiSensor(featureList));
 			}
 		}
 	}
@@ -64,9 +64,9 @@ public class ARCControlDevice {
 	 * Query for this device's sensor information.
 	 * @return a {@link List} of all this device's
 	 * manipulatable sensors
-	 * @see {@link GUISensor}
+	 * @see {@link GuiSensor}
 	 */
-	public List<GUISensor> getSensorList(){
+	public List<GuiSensor> getSensorList(){
 		return features;
 	}
 	
