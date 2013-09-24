@@ -41,6 +41,7 @@ public class ArcControlDevice {
 		}
 	}
 	
+	
 	/**
 	 * Query for this device's name
 	 * @return the name given to this android device object

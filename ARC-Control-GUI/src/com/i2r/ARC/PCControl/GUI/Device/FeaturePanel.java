@@ -10,6 +10,7 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
+import javax.swing.JToggleButton;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -99,7 +100,11 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 		switch(limiter.getType().intValue()){
 		
 		case Constants.DataTypes.SET:
-			createSet();
+			if(args.size() > 2){
+				createSet();
+			} else {
+				createToggle();
+			}
 			break;
 			
 		case Constants.DataTypes.RANGE:
@@ -178,7 +183,9 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 	
 	
 	private void createRange(){
+		
 		setLayout(new GridLayout(2,1));
+		
 		add(new JLabel(getName()));
 		int min = Integer.parseInt(args.get(0));
 		int max = Integer.parseInt(args.get(1));
@@ -194,6 +201,18 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 		add(new JLabel(getName()));
 		add(text);
 	}
+	
+	
+	private void createToggle(){
+		
+		JToggleButton toggle = new JToggleButton();
+		toggle.setActionCommand(getParent().getName());
+		toggle.addActionListener(this);
+		
+		setLayout(new GridLayout(2,1));
+		add(new JLabel(getName()));
+		
+	}
 
 
 	@Override
@@ -206,6 +225,8 @@ public class FeaturePanel extends JPanel implements ActionListener, ChangeListen
 	public void stateChanged(ChangeEvent e) {
 		JSlider source = (JSlider) e.getSource();
 		sliderValue = source.getValue();
+		String command = sliderValue + ""; // TODO: make this a legitimate command
+		ArcGuiController.getInstance().sendCommand(command);
 	}
 	
 	

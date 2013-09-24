@@ -1,12 +1,14 @@
 package com.i2r.ARC.PCControl.GUI;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.util.ArrayList;
 
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
-import com.i2r.ARC.PCControl.GUI.Device.ArcDeviceTab;
+import com.i2r.ARC.PCControl.Controller;
 
 /**
  * This class models the graphical interface for
@@ -20,8 +22,9 @@ public class ArcFrame extends JFrame {
 	private static final long serialVersionUID = 2982094766360421621L;
 
 	private JTabbedPane androidDevicePane;
-	private ArrayList<ArcDeviceTab> devices;
+	private ArrayList<JPanel> devices;
 	private ArcMenuBar menuBar;
+	private DefaultTabPanel defaultPanel;
 	
 	/**
 	 * Constructor<br>
@@ -34,16 +37,24 @@ public class ArcFrame extends JFrame {
 	 * send a new command or establish a new connection.
 	 */
 	public ArcFrame(){
+		
+		// instantiating variables
 		this.androidDevicePane = new JTabbedPane();
-		this.devices = new ArrayList<ArcDeviceTab>();
+		this.devices = new ArrayList<JPanel>();
 		this.menuBar = new ArcMenuBar();
+		this.defaultPanel = new DefaultTabPanel();
+		
+		// setting up this frame
 		this.setLayout(new BorderLayout());
-		this.add(androidDevicePane, BorderLayout.CENTER);
-		this.add(menuBar, BorderLayout.NORTH);
 		this.setTitle("Android Remote Control");
 		this.setLocationRelativeTo(null);
 		this.setSize(800, 600);
 		this.setDefaultCloseOperation(EXIT_ON_CLOSE);
+		
+		// adding components to this frame
+		this.devices.add(defaultPanel);
+		this.add(androidDevicePane, BorderLayout.CENTER);
+		this.add(menuBar, BorderLayout.NORTH);
 	}
 	
 	
@@ -72,6 +83,7 @@ public class ArcFrame extends JFrame {
 	 * this GUI.
 	 */
 	public void repaintAll(){
+		
 		androidDevicePane.repaint();
 		menuBar.repaint();
 		repaint();

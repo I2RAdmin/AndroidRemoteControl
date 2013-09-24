@@ -10,7 +10,5 @@
 	<classpathentry kind="lib" path="lib/slf4j-api-1.4.3.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-log4j12-1.4.3.jar"/>
 	<classpathentry kind="lib" path="lib/comm.jar"/>
-	<classpathentry kind="lib" path="lib/jsr80-1.0.1.jar"/>
-	<classpathentry kind="lib" path="lib/nrjavaserial-3.8.8.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
