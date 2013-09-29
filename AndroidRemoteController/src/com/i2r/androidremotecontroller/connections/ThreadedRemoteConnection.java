@@ -12,8 +12,8 @@ import android.util.Log;
  * acts as a self contained process in its own thread.
  * @author Josh Noel
  */
-public abstract class ThreadedRemoteConnection extends Thread
-										implements RemoteConnection {
+public abstract class ThreadedRemoteConnection
+		extends Thread implements RemoteConnection, DataResponder<byte[]> {
 	
 	private static final String TAG = "ThreadedRemoteConnection";
 	
@@ -145,16 +145,5 @@ public abstract class ThreadedRemoteConnection extends Thread
 	public final String getDisconnectMessage(){
 		return disconnectMessage;
 	}
-	
-	
-	/**
-	 * Callback for when data becomes available on
-	 * this connection's input stream.
-	 * @param data - the data that has been read on
-	 * the input stream.
-	 */
-	public abstract void onDataReceived(byte[] data);
-	
-	
 
 } // end of ThreadedRemoteConnection class

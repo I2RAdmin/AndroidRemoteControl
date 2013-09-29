@@ -36,6 +36,7 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	private Socket socket;
 	private String alias;
 	private int type;
+	private byte[] lastReceived;
 	
 	/**
 	 * Constructor<br>
@@ -52,6 +53,8 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 * 
 	 * @see {@link #hasConnection()}
 	 * @see {@link #getConnection()}
+	 * @see {@link #SENDING}
+	 * @see {@link #RECEIVING}
 	 */
 	public DataBouncerConnector(Activity activity,
 			int type, String address, int port, String alias){
@@ -60,6 +63,7 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 		this.alias = alias;
 		this.address = new InetSocketAddress(address, port);
 		this.connection = null;
+		this.lastReceived = null;
 		
 		WifiP2pConfig config = new WifiP2pConfig();
 		config.deviceAddress = address;
@@ -122,6 +126,32 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 */
 	public int getType(){
 		return type;
+	}
+	
+	
+	/**
+	 * Query for the equality of the given data to the
+	 * last data this connector received. This is used
+	 * to prevent infinite chatter between devices.
+	 * @param data - the data to compare to the last
+	 * data received on this connector
+	 * @return true if the data given matches the
+	 * last data received, false otherwise
+	 */
+	public boolean isOriginOfData(byte[] data){
+		
+		boolean dataMatches = false;
+		
+		if(lastReceived != null && lastReceived.length == data.length){
+			dataMatches = true;
+			for(int i = 0; i < lastReceived.length && dataMatches; i++){
+				dataMatches = lastReceived[i] == data[i];
+			}
+		} else {
+			lastReceived = data;
+		}
+		
+		return dataMatches;
 	}
 	
 	

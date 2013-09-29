@@ -56,7 +56,9 @@ public class DataBouncer {
 	public synchronized void bounce(byte[] data){
 		if(data != null){
 			for(DataBouncerConnector c : outgoing){
-				c.getConnection().write(data);
+				if(!c.isOriginOfData(data)){
+					c.getConnection().write(data);
+				}
 			}
 		} else {
 			Log.e(TAG, "byte array is null, data bounce cancelled");
@@ -66,15 +68,7 @@ public class DataBouncer {
 	
 	/**
 	 * <p>Adds the given {@link DataBouncerConnector} to this bouncer's
-	 * pool of incoming connectors. The given connector will not be
-	 * added if the outgoing pool contains the same connector.</p>
-	 * 
-	 * <p>Here, "same" implies that the connector has a mac-address
-	 * that matches another connector in the opposite pool. This cannot
-	 * be allowed to happen - if it did, then when the first device
-	 * bounces data to this device, this device will simply bounce it back
-	 * to the first. This will cause an infinite loop and severely drain
-	 * both devices' batteries, as well as clogging other data streaming.</p>
+	 * pool of incoming connectors.</p>
 	 * 
 	 * <p>WARNING: this method attempts to start the given connector's
 	 * connection's read thread before adding it to the pool. Do not start
@@ -87,12 +81,8 @@ public class DataBouncer {
 	 */
 	public synchronized void addIncoming(DataBouncerConnector connector){
 		if(connector != null && connector.hasConnection()){
-			if(!outgoing.contains(connector)){
-				connector.getConnection().start();
-				incoming.add(connector);
-			} else {
-				Log.e(TAG, "outgoing bouncer list contains given connector, add cancelled");
-			}
+			connector.getConnection().start();
+			incoming.add(connector);
 		} else {
 			Log.e(TAG, "connector has no valid conneciton, add cancelled");
 		}
@@ -101,15 +91,7 @@ public class DataBouncer {
 	
 	/**
 	 * <p>Adds the given {@link DataBouncerConnector} to this bouncer's
-	 * pool of outgoing connectors. The given connector will not be
-	 * added if the outgoing pool contains the same connector.</p>
-	 * 
-	 * <p>Here, "same" implies that the connector has a mac-address
-	 * that matches another connector in the opposite pool. This cannot
-	 * be allowed to happen - if it did, then when the first device
-	 * bounces data to this device, this device will simply bounce it back
-	 * to the first. This will cause an infinite loop and severely drain
-	 * both devices' batteries, as well as clogging other data streaming.</p>
+	 * pool of outgoing connectors.</p>
 	 * 
 	 * <p>WARNING: this method attempts to start the given connector's
 	 * connection's read thread before adding it to the pool. Do not start
@@ -121,12 +103,8 @@ public class DataBouncer {
 	 */
 	public synchronized void addOutgoing(DataBouncerConnector connector){
 		if(connector != null && connector.hasConnection()){
-			if(!incoming.contains(connector)){
-				connector.getConnection().start();
-				outgoing.add(connector);
-			} else {
-				Log.e(TAG, "incoming bouncer list contains given connector, add cancelled");
-			}
+			connector.getConnection().start();
+			outgoing.add(connector);
 		} else {
 			Log.e(TAG, "connector has no valid conneciton, add cancelled");
 		}
