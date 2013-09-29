@@ -3,7 +3,11 @@ package com.i2r.androidremotecontroller.main.databouncer;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import com.i2r.androidremotecontroller.connections.ThreadedRemoteConnection;
+import android.content.Context;
+import android.content.Intent;
+
+import com.i2r.androidremotecontroller.connections.AndroidThreadedRemoteConnection;
+import com.i2r.androidremotecontroller.main.RemoteControlActivity;
 
 
 /**
@@ -13,7 +17,7 @@ import com.i2r.androidremotecontroller.connections.ThreadedRemoteConnection;
  * @author Josh Noel
  *
  */
-public class DataBouncerConnection extends ThreadedRemoteConnection {
+public class DataBouncerConnection extends AndroidThreadedRemoteConnection {
 
 	private DataBouncer bouncer;
 	private byte[] lastReceived;
@@ -21,8 +25,8 @@ public class DataBouncerConnection extends ThreadedRemoteConnection {
 	/**
 	 * {@inheritDoc}
 	 */
-	public DataBouncerConnection(InputStream in, OutputStream out) {
-		super(in, out);
+	public DataBouncerConnection(Context context, InputStream in, OutputStream out) {
+		super(context, in, out);
 		this.bouncer = DataBouncer.getInstance();
 		this.lastReceived = null;
 	}
@@ -33,6 +37,12 @@ public class DataBouncerConnection extends ThreadedRemoteConnection {
 	@Override
 	public void onDataReceived(byte[] data) {
 		lastReceived = data;
+		if(bouncer.isCapturePoint()){
+			String result = new String(data);
+			Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTION_READ);
+			intent.putExtra(RemoteControlActivity.EXTRA_COMMAND, result);
+			getLocalBroadcastManager().sendBroadcast(intent);
+		}
 		bouncer.bounce(data);
 	}
 	

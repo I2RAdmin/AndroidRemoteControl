@@ -14,5 +14,6 @@
     <string name="bluetooth_button_text">Control Remotely with Bluetooth</string>
     <string name="usb_button_text">Control via USB Connection</string>
     <string name="exit_button_text">EXIT</string>
+    <string name="set_capture_point">Set this device as a capture point in device array</string>
 
 </resources>

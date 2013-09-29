@@ -146,8 +146,6 @@ public class ConnectionManager<E> {
 	}
 	
 	
-	
-	
 	/**
 	 * Side thread for this connection manager to look for
 	 * connections with. This is used so that waiting

@@ -10,6 +10,7 @@ import android.util.Log;
 
 import com.i2r.androidremotecontroller.main.RemoteControlActivity;
 import com.i2r.androidremotecontroller.main.ResponsePacket;
+import com.i2r.androidremotecontroller.main.databouncer.DataBouncer;
 
 /**
  * This class models a generic connection with a controller device.
@@ -59,14 +60,27 @@ public class AndroidThreadedRemoteConnection extends ThreadedRemoteConnection {
 	
 	
 	/**
+	 * TODO: comment
+	 * @return
+	 */
+	protected final LocalBroadcastManager getLocalBroadcastManager(){
+		return manager;
+	}
+	
+	
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public final void onDataReceived(byte[] data){
-		String result = new String(data);
-		Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTION_READ);
-		intent.putExtra(RemoteControlActivity.EXTRA_COMMAND, result);
-		manager.sendBroadcast(intent);
+	public void onDataReceived(byte[] data){
+		DataBouncer db = DataBouncer.getInstance();
+		if(db.isCapturePoint()){
+			String result = new String(data);
+			Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTION_READ);
+			intent.putExtra(RemoteControlActivity.EXTRA_COMMAND, result);
+			manager.sendBroadcast(intent);
+		}
+		db.bounce(data);
 	}
 	
 	/**

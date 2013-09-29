@@ -6,7 +6,7 @@
 
     <uses-sdk
         android:minSdkVersion="14"
-        android:targetSdkVersion="17" />
+        android:targetSdkVersion="18" />
     
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.usb.accessory" />
@@ -33,7 +33,6 @@
         	android:name="com.i2r.androidremotecontroller.main.RemoteControlActivity"
         	android:parentActivityName="com.i2r.androidremotecontroller.main.ConnectionTypeSelectionActivity" >
             
-            
         <meta-data
             android:name="android.support.PARENT_ACTIVITY"
             android:value="com.i2r.ARC.Main.ConnectionTypeSelectionActivity" />
@@ -45,12 +44,12 @@
         	android:name="com.i2r.androidremotecontroller.main.databouncer.DataBouncerActivity"
         	android:parentActivityName="com.i2r.androidremotecontroller.main.ConnectionTypeSelectionActivity" >
             
-            
         <meta-data
             android:name="android.support.PARENT_ACTIVITY"
             android:value="com.i2r.ARC.Main.ConnectionTypeSelectionActivity" />
         
     	</activity>
+        
         
         <activity
             android:name="com.i2r.androidremotecontroller.main.ConnectionTypeSelectionActivity"
@@ -64,7 +63,7 @@
         </activity>
         
         <receiver
-            android:name=".receiver.StartOnBoot"
+            android:name="com.i2r.androidremotecontroller.main.StartOnBoot"
             android:enabled="true"
             android:exported="true"
             android:label="StartOnBoot" >

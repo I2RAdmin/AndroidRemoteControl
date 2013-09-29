@@ -18,6 +18,8 @@ import android.widget.Toast;
 
 import com.i2r.androidremotecontroller.R;
 import com.i2r.androidremotecontroller.exceptions.ServiceNotFoundException;
+import com.i2r.androidremotecontroller.main.databouncer.DataBouncer;
+import com.i2r.androidremotecontroller.main.databouncer.DataBouncerConnector;
 import com.i2r.androidremotecontroller.sensors.SensorDurationHandler;
 
 /**
@@ -145,6 +147,12 @@ public class RemoteControlActivity extends Activity {
 	@Override
 	protected void onResume() {
 		super.onResume();
+		
+		for(DataBouncerConnector db :
+				DataBouncer.getInstance().getConnectors()){
+			db.setContext(this);
+			db.initialize();
+		}
 		
 		String connectionType = getIntent()
 					.getStringExtra(

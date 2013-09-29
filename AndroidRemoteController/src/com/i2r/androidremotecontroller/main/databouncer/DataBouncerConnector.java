@@ -31,6 +31,7 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	
 	private static final String TAG = "DataBouncerConnector";
 	
+	private Context context;
 	private InetSocketAddress address;
 	private DataBouncerConnection connection;
 	private Socket socket;
@@ -62,6 +63,7 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 		this.alias = alias;
 		this.address = new InetSocketAddress(address, port);
 		this.connection = null;
+		this.context = null;
 		
 		WifiP2pConfig config = new WifiP2pConfig();
 		config.deviceAddress = address;
@@ -202,7 +204,20 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 */
 	@Override
 	public void onSuccess() {
-		
+		Log.d(TAG, "wifi direct connect attempt succeeded");
+	}
+	
+	
+	public void setContext(Context context){
+		this.context = context;
+	}
+	
+	
+	/**
+	 * TODO: comment
+	 * @param activity
+	 */
+	public synchronized void initialize(){
 		try{
 			
 			if(type == SERVER){
@@ -216,7 +231,7 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 			
 			if(socket != null){
 				this.connection = new DataBouncerConnection
-						(socket.getInputStream(), socket.getOutputStream());
+						(context, socket.getInputStream(), socket.getOutputStream());
 			}
 			
 		} catch (IOException e){

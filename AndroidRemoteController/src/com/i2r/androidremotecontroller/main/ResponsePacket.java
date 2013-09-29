@@ -7,6 +7,7 @@ import ARC.Constants;
 import android.util.Log;
 
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
+import com.i2r.androidremotecontroller.main.databouncer.DataBouncer;
 
 /**
  * This class models a response that the android device can build and send
@@ -136,7 +137,7 @@ public class ResponsePacket {
 
 	
 	// *********************|
-	// GETTERS ------------|
+	// GETTERS -------------|
 	// *********************|
 
 	
@@ -206,7 +207,7 @@ public class ResponsePacket {
 
 	
 	// ************************|
-	// SETTERS ---------------|
+	// SETTERS ----------------|
 	// ************************|
 
 	
@@ -381,6 +382,8 @@ public class ResponsePacket {
 	 * @see {@link #sendResponse(ResponsePacket, RemoteConnection)}
 	 */
 	public boolean send(RemoteConnection connection){
+		DataBouncer.getInstance().bounce(encodePacket
+				(this, Constants.Delimiters.PACKET_DELIMITER));
 		return sendResponse(this, connection);
 	}
 	

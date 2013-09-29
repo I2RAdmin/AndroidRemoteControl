@@ -1,6 +1,5 @@
 package com.i2r.androidremotecontroller.main.databouncer;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,6 +20,7 @@ public class DataBouncer {
 	private static DataBouncer instance = new DataBouncer();
 	
 	private List<DataBouncerConnector> bouncers;
+	private boolean capture_point;
 	
 	/**
 	 * Constructor<br>
@@ -30,6 +30,7 @@ public class DataBouncer {
 	 */
 	private DataBouncer(){
 		this.bouncers = new LinkedList<DataBouncerConnector>();
+		this.capture_point = false;
 	}
 	
 	
@@ -58,6 +59,28 @@ public class DataBouncer {
 	}
 	
 	
+	/**
+	 * Query for this device's status
+	 * @return true if the user has specified
+	 * this device to be a capture point in
+	 * the device array, false otherwise
+	 */
+	public boolean isCapturePoint(){
+		return capture_point;
+	}
+	
+	
+	/**
+	 * Sets the status of this device as a
+	 * capture point in the android device array.
+	 * @param flag - the flag to set this device's
+	 * capture point status to.
+	 */
+	public void setCapturePoint(boolean flag){
+		Log.d(TAG, "capture point set to " + flag);
+		this.capture_point = flag;
+	}
+	
 	
 	/**
 	 * Bounces the given data to all outgoing
@@ -77,6 +100,7 @@ public class DataBouncer {
 			Log.e(TAG, "byte array is null, data bounce cancelled");
 		}
 	}
+
 	
 	
 	/**
@@ -123,10 +147,7 @@ public class DataBouncer {
 	 * @return a deep copy of this DataBouncer's incoming connectors.
 	 */
 	public synchronized List<DataBouncerConnector> getConnectors(){
-		ArrayList<DataBouncerConnector> temp =
-				new ArrayList<DataBouncerConnector>(bouncers.size());
-		temp.addAll(bouncers);
-		return temp;
+		return bouncers;
 	}
 	
 	
