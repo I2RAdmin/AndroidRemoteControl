@@ -72,7 +72,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	 */
 	@Override
 	public ThreadedRemoteConnection listenForRemoteConnection() {
-		GenericThreadedRemoteConnection connection = null;
+		AndroidThreadedRemoteConnection connection = null;
 		socket = null;
 		
 		try{
@@ -81,7 +81,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 			
 			if(socket != null){
 				Log.d(TAG, "connection accepted");
-				connection = new GenericThreadedRemoteConnection(activity, 
+				connection = new AndroidThreadedRemoteConnection(activity, 
 						socket.getInputStream(), socket.getOutputStream());
 			} else {
 				Log.e(TAG, "no connection found");
@@ -101,12 +101,12 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	 */
 	@Override
 	public ThreadedRemoteConnection connectTo(BluetoothDevice remote) {
-		GenericThreadedRemoteConnection connection = null;
+		AndroidThreadedRemoteConnection connection = null;
 		try{
 			Log.d(TAG, "creating connection to device : " + remote.getName());
 			socket = remote.createInsecureRfcommSocketToServiceRecord(uuid);
 			socket.connect();
-			connection = new GenericThreadedRemoteConnection(activity, 
+			connection = new AndroidThreadedRemoteConnection(activity, 
 					socket.getInputStream(), socket.getOutputStream());
 			Log.d(TAG, "successfully connected to  " + remote.getName());
 		} catch (IOException e) {

@@ -1,10 +1,10 @@
 package com.i2r.androidremotecontroller.connections;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import android.content.Context;
-import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 
 /**
  * This class models the abstract definition of a
@@ -15,11 +15,17 @@ import android.support.v4.content.LocalBroadcastManager;
 public abstract class ThreadedRemoteConnection extends Thread
 										implements RemoteConnection {
 	
+	private static final String TAG = "ThreadedRemoteConnection";
 	
-	private LocalBroadcastManager manager;
-	private Context context;
+	public static final int DEFAULT_BUFFER_SIZE = 1024;
+
 	private InputStream in;
 	private OutputStream out;
+	private String disconnectMessage;
+	
+	private boolean connected;
+	private int bytesRead;
+	private byte[] buffer;
 	
 	/**
 	 * Constructor<br>
@@ -31,50 +37,110 @@ public abstract class ThreadedRemoteConnection extends Thread
 	 * @param in - the input stream of this connection
 	 * @param out - the output stream of this connection
 	 */
-	public ThreadedRemoteConnection(Context context, InputStream in,
-													OutputStream out){
-		this.manager = LocalBroadcastManager.getInstance(context);
+	public ThreadedRemoteConnection(InputStream in, OutputStream out){
 		this.in = in;
 		this.out = out;
-		this.context = context;
+		this.connected = (in != null && out != null) ? true : false;
+		this.bytesRead = 0;
+		this.buffer = new byte[DEFAULT_BUFFER_SIZE];
+		this.disconnectMessage = null;
 	}
 	
 	
 	/**
-	 * Query for this connection's {@link InputStream}
-	 * @return the input stream given at creation.
+	 * {@inheritDoc}
 	 */
-	protected InputStream in(){
-		return in;
+	@Override
+	public final void run() {
+		
+		Log.i(TAG, "starting read thread");
+		while(connected){
+			try{
+				bytesRead = in.read(buffer);
+				if(bytesRead > 0){
+					Log.d(TAG, "bytes read successfully - " + bytesRead);
+					byte[] trimmed = new byte[bytesRead];
+					for(int i = 0; i < bytesRead; i++){
+						trimmed[i] = buffer[i];
+					}
+					onDataReceived(trimmed);
+				}
+			} catch(IOException e){
+				Log.d(TAG, "connection closed by remote device");
+				onDisconnected(e.getMessage());
+			}
+		}
+	}
+
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public synchronized final void write(byte[] bytes) {
+		if(out != null){
+			try{
+				out.write(bytes);
+				Log.d(TAG, "successfully wrote bytes to stream - "
+						+ bytes.length);
+			} catch (IOException e){
+				Log.e(TAG, "error writing bytes to stream - "
+						+ bytes.length);
+				onDisconnected(e.getMessage());
+			}
+		}
+	}
+
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public final void disconnect() {
+		Log.d(TAG, "disconnecting streams and closing connection");
+		connected = false;
+		
+		if(in != null){
+		try{in.close();}
+		catch(IOException e){Log.e(TAG, e.getMessage());}}
+		
+		if(out != null){
+		try{out.flush(); out.close();}
+		catch(IOException e){Log.e(TAG, e.getMessage());}}
+	}
+	
+	
+	public void onDisconnected(String message){
+		this.connected = false;
+		this.disconnectMessage = message;
+	}
+	
+	
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public final boolean isConnected() {
+		return connected;
 	}
 	
 	
 	/**
-	 * Query for this connection's {@link OutputStream}
-	 * @return the output stream given at creation
+	 * TODO: comment
+	 * @return
 	 */
-	protected OutputStream out(){
-		return out;
+	public final String getDisconnectMessage(){
+		return disconnectMessage;
 	}
 	
 	
 	/**
-	 * Query for this connection's {@link LocalBroadcastManager}
-	 * @return the local broadcast manager retrieved from
-	 * the {@link Context} given at creation
+	 * TODO: comment
+	 * @param data
 	 */
-	protected LocalBroadcastManager getManager(){
-		return manager;
-	}
+	public abstract void onDataReceived(byte[] data);
 	
 	
-	/**
-	 * Query for this connection's {@link Context}
-	 * @return the context in which this connection
-	 * was created
-	 */
-	protected Context getContext(){
-		return context;
-	}
 
 } // end of ThreadedRemoteConnection class

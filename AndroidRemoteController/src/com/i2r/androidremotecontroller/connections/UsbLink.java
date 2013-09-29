@@ -112,7 +112,7 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 */
 	@Override
 	public ThreadedRemoteConnection listenForRemoteConnection() {
-		GenericThreadedRemoteConnection connection = null;
+		AndroidThreadedRemoteConnection connection = null;
 		
 		UsbAccessory[] a = usbManager.getAccessoryList();
 		
@@ -155,15 +155,15 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * that were obtained from the given accessory, or null if no connection
 	 * with the given accessory could be created.
 	 */
-	private GenericThreadedRemoteConnection getConnectionFromAccessory(UsbAccessory accessory){
-		GenericThreadedRemoteConnection connection = null;
+	private AndroidThreadedRemoteConnection getConnectionFromAccessory(UsbAccessory accessory){
+		AndroidThreadedRemoteConnection connection = null;
 		ParcelFileDescriptor d = usbManager.openAccessory(accessory);
 		
 		if(d != null){
 			Log.d(TAG, "creating streams from accessory descriptor");
 			FileInputStream input = new FileInputStream(d.getFileDescriptor());
 			FileOutputStream output = new FileOutputStream(d.getFileDescriptor());
-			connection = new GenericThreadedRemoteConnection(context, input, output);
+			connection = new AndroidThreadedRemoteConnection(context, input, output);
 		} else {
 			Log.e(TAG, "error opening file descriptor");
 		}
@@ -180,8 +180,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * as the host device is the one powering the bus
 	 */
 	@Override
-	public GenericThreadedRemoteConnection connectTo(UsbDevice remote) {
-		GenericThreadedRemoteConnection connection = null;
+	public AndroidThreadedRemoteConnection connectTo(UsbDevice remote) {
+		AndroidThreadedRemoteConnection connection = null;
 		if(isCorrectDevice(remote)){
 			if(usbManager.hasPermission(remote)){
 				

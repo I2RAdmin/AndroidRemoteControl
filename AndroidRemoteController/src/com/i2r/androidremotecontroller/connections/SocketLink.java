@@ -53,13 +53,13 @@ public class SocketLink implements Link<Object> {
 	 */
 	@Override
 	public ThreadedRemoteConnection listenForRemoteConnection() {
-		GenericThreadedRemoteConnection connection = null;
+		AndroidThreadedRemoteConnection connection = null;
 		try {
 			listener = new ServerSocket(Constants.Info.WIFI_PORT);
 			 socket = listener.accept();
 
 			if (socket != null) {
-				connection = new GenericThreadedRemoteConnection(activity,
+				connection = new AndroidThreadedRemoteConnection(activity,
 						socket.getInputStream(), socket.getOutputStream());
 			}
 			
@@ -76,11 +76,11 @@ public class SocketLink implements Link<Object> {
 	 */
 	@Override
 	public ThreadedRemoteConnection connectTo(Object remote) {
-		GenericThreadedRemoteConnection connection = null;
+		AndroidThreadedRemoteConnection connection = null;
 		try {
 			socket = new Socket(Constants.Info.CONTROLLER_IP_ADDRESS,
 					Constants.Info.WIFI_PORT);
-			connection = new GenericThreadedRemoteConnection(activity, 
+			connection = new AndroidThreadedRemoteConnection(activity, 
 					socket.getInputStream(), socket.getOutputStream());
 		} catch (UnknownHostException e) {
 			Log.e(TAG, e.getMessage());

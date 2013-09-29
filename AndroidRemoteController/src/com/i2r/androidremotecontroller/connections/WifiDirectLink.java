@@ -76,12 +76,12 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 	@Override
 	public ThreadedRemoteConnection listenForRemoteConnection() {
 		Socket socket = null;
-		GenericThreadedRemoteConnection connection = null;
+		AndroidThreadedRemoteConnection connection = null;
 		try {
 			ServerSocket listener = new ServerSocket(Constants.Info.WIFI_PORT);
 			socket = listener.accept();
 			if (socket != null) {
-				connection = new GenericThreadedRemoteConnection(activity,
+				connection = new AndroidThreadedRemoteConnection(activity,
 						socket.getInputStream(), socket.getOutputStream());
 			}
 		} catch (IOException e) {
@@ -100,7 +100,7 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 		WifiP2pDevice device = (WifiP2pDevice) remote;
 		WifiP2pConfig config = new WifiP2pConfig();
 		config.deviceAddress = device.deviceAddress;
-		GenericThreadedRemoteConnection connection = null;
+		AndroidThreadedRemoteConnection connection = null;
 
 		try {
 
@@ -108,7 +108,7 @@ public class WifiDirectLink implements Link<WifiP2pDevice> {
 					Constants.Info.WIFI_PORT);
 
 			if (socket != null) {
-				connection = new GenericThreadedRemoteConnection(activity,
+				connection = new AndroidThreadedRemoteConnection(activity,
 						socket.getInputStream(), socket.getOutputStream());
 
 				// TODO: figure out what to do with this
