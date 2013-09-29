@@ -90,7 +90,33 @@ public class DataBouncerActivity extends Activity
 	 */
 	@Override
 	public void onFailure(int reason) {
-		Log.e(TAG, "failed to discover peers : error code - " + reason);
+		
+		String result = "failed to discover peers";
+		
+		switch(reason){
+		case WifiP2pManager.P2P_UNSUPPORTED:
+			result = "this device does not support wifi direct";
+			inform(result);
+			finish();
+			break;
+			
+		case WifiP2pManager.BUSY:
+			result = result + "p2p manager is in busy state";
+			break;
+			
+		case WifiP2pManager.NO_SERVICE_REQUESTS:
+			result = result + " : no service requests set";
+			break;
+			
+		case WifiP2pManager.ERROR:
+			result = result + " : internal error";
+			
+			default:
+				result = result + " : unknown error";
+				break;
+		}
+		
+		Log.e(TAG, result);
 	}
 
 

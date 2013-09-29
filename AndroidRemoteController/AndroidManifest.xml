@@ -39,6 +39,18 @@
             android:value="com.i2r.ARC.Main.ConnectionTypeSelectionActivity" />
         
     	</activity>
+    	
+        
+        <activity
+        	android:name="com.i2r.androidremotecontroller.main.databouncer.DataBouncerActivity"
+        	android:parentActivityName="com.i2r.androidremotecontroller.main.ConnectionTypeSelectionActivity" >
+            
+            
+        <meta-data
+            android:name="android.support.PARENT_ACTIVITY"
+            android:value="com.i2r.ARC.Main.ConnectionTypeSelectionActivity" />
+        
+    	</activity>
         
         <activity
             android:name="com.i2r.androidremotecontroller.main.ConnectionTypeSelectionActivity"
