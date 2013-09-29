@@ -238,7 +238,8 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 		if(other instanceof DataBouncerConnector){
 			try{
 				DataBouncerConnector temp = (DataBouncerConnector) other;
-				equal = temp.address.getHostName().equals(address.getHostName());
+				equal = temp.address.getHostName().equals(address.getHostName()) &&
+						temp.alias.equals(alias);
 			} catch (ClassCastException e){}
 		}
 		

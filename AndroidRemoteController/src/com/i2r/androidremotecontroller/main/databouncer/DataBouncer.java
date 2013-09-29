@@ -46,6 +46,20 @@ public class DataBouncer {
 	
 	
 	/**
+	 * Query asking if this bouncer already has the
+	 * given connector.
+	 * @param connector - the connector to search for in
+	 * this collection of {@link DataBouncerConnector}s.
+	 * @return true if the given connector exists in this
+	 * collection, false otherwise.
+	 */
+	public boolean contains(DataBouncerConnector connector){
+		return bouncers.contains(connector);
+	}
+	
+	
+	
+	/**
 	 * Bounces the given data to all outgoing
 	 * {@link DataBouncerConnection}s. The incoming connections,
 	 * in turn, use this when new data becomes available so

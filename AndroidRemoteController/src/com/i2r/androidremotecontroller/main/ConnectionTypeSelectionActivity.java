@@ -16,6 +16,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.i2r.androidremotecontroller.R;
+import com.i2r.androidremotecontroller.main.databouncer.DataBouncerActivity;
 
 
 /*********************************************************
@@ -32,7 +33,7 @@ import com.i2r.androidremotecontroller.R;
  * @author Josh Noel
  *********************************************************
  */
-public class ConnectionTypeSelectionActivity extends Activity implements DialogInterface.OnClickListener {
+public class ConnectionTypeSelectionActivity extends Activity implements DialogInterface.OnClickListener, OnItemClickListener {
 	
 	/**
 	 * Used to specify in an Intent that the result
@@ -64,6 +65,18 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	public static final String EXTRA_USB = "USB";
 	
 	
+	/**
+	 * Used to signify that the user wishes to start this
+	 * application's {@link DataBouncerActivity} to manage
+	 * data bouncing between android devices.
+	 */
+	public static final String MANAGE_BOUNCERS = "Manage Data Bouncers";
+	
+	
+	/**
+	 * Used to signify that the user manually halted the application,
+	 * so it shouldn't be automatically restarted.
+	 */
 	public static final String ACTION_USER_TERMINATED_CONNECTION = "i2r_action_user_terminated_connection";
 	
 	
@@ -78,7 +91,7 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	 * @see {@link #EXTRA_WIFI}
 	 */
 	public static final String[] CONNECTION_TYPES = {
-		EXTRA_WIFI, EXTRA_BLUETOOTH, EXTRA_USB, EXIT
+		EXTRA_WIFI, EXTRA_BLUETOOTH, EXTRA_USB, MANAGE_BOUNCERS, EXIT
 	};
 	
 	private static final int BLUETOOTH_CODE = 1;
@@ -107,14 +120,7 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 
         list.addHeaderView(tv);
 		list.setAdapter(adapter);
-		list.setOnItemClickListener(new OnItemClickListener() {
-			  public void onItemClick(AdapterView<?> parent, View view,
-			    int position, long id) {
-				  if(position > 0){
-					  ensureSelection(CONNECTION_TYPES[position - 1]);
-				  }
-			  }
-			});
+		list.setOnItemClickListener(this);
 		
 	}
 	
@@ -213,15 +219,21 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	 */
 	private void ensureSelection(String selection){
 		
-		this.selection = selection;
-		
-		String message = selection.equals(EXIT) ? 
-			"Are you sure you want to exit the application?" :
-			"Are you sure you would like to start using remote control with a "
-			+ selection + " connection type?";
-		
-		builder.setMessage(message).setPositiveButton("OK", this)
-		    .setNegativeButton("Cancel", this).show();
+		if(selection.equals(MANAGE_BOUNCERS)){
+			this.startActivity(new Intent(this, DataBouncerActivity.class));
+			
+		} else {
+			
+			this.selection = selection;
+			
+			String message = selection.equals(EXIT) ? 
+				"Are you sure you want to exit the application?" :
+				"Are you sure you would like to start using remote control with a "
+				+ selection + " connection type?";
+			
+			builder.setMessage(message).setPositiveButton("OK", this)
+			    .setNegativeButton("Cancel", this).show();
+		}
 	}
 	
 	
@@ -296,6 +308,16 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 	private void inform(String message){
 		Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
 	}
+
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void onItemClick(AdapterView<?> adapter, View view, int position, long id) {
+		  if(position > 0){
+			  ensureSelection(CONNECTION_TYPES[position - 1]);
+		  }
+	}
 	
-	
-}
+} // end of ConnectionTypeSelectionActivity class
