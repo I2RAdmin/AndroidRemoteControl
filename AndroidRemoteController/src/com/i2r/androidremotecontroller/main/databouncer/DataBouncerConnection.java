@@ -16,6 +16,7 @@ import com.i2r.androidremotecontroller.connections.ThreadedRemoteConnection;
 public class DataBouncerConnection extends ThreadedRemoteConnection {
 
 	private DataBouncer bouncer;
+	private byte[] lastReceived;
 	
 	/**
 	 * {@inheritDoc}
@@ -23,6 +24,7 @@ public class DataBouncerConnection extends ThreadedRemoteConnection {
 	public DataBouncerConnection(InputStream in, OutputStream out) {
 		super(in, out);
 		this.bouncer = DataBouncer.getInstance();
+		this.lastReceived = null;
 	}
 
 	/**
@@ -30,7 +32,20 @@ public class DataBouncerConnection extends ThreadedRemoteConnection {
 	 */
 	@Override
 	public void onDataReceived(byte[] data) {
+		lastReceived = data;
 		bouncer.bounce(data);
+	}
+	
+	
+	/**
+	 * Query for the last chunk read on
+	 * this connection's input stream.
+	 * @return the last byte array chunk
+	 * read on the input stream, or null
+	 * if no data has been read yet.
+	 */
+	public byte[] getLastPacketReceived(){
+		return lastReceived;
 	}
 
 }

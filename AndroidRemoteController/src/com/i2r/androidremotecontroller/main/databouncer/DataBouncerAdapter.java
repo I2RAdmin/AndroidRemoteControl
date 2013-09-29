@@ -12,18 +12,14 @@ public class DataBouncerAdapter extends BaseExpandableListAdapter implements OnC
 	
 	private static final String TAG = "DataBouncerAdapter";
 	
-	private static final int ADD_INCOMING_POSITION = 0;
-	private static final int REMOVE_INCOMING_POSITION = 1;
-	private static final int ADD_OUTGOING_POSITION = 2;
-	private static final int REMOVE_OUTGOING_POSITION = 3;
+	private static final int ADD_POSITION = 0;
+	private static final int REMOVE_POSITION = 1;
 	
-	private static final String ADD_INCOMING = "Add incoming bouncer";
-	private static final String REMOVE_INCOMING = "Remove incoming bouncer";
-	private static final String ADD_OUTGOING = "Add outgoing bouncer";
-	private static final String REMOVE_OUTGOING = "Remove outgoing bouncer";
+	private static final String ADD_BOUNCER = "Add bouncer";
+	private static final String REMOVE_BOUNCER = "Remove bouncers";
 	
 	private static final String[] PARENT_GROUP = {
-		ADD_INCOMING, REMOVE_INCOMING, ADD_OUTGOING, REMOVE_OUTGOING
+		ADD_BOUNCER,REMOVE_BOUNCER
 	};
 	
 	private Context context;
@@ -38,11 +34,11 @@ public class DataBouncerAdapter extends BaseExpandableListAdapter implements OnC
 	public Object getChild(int parent, int child) {
 		Object result = null;
 		switch(parent){
-		case REMOVE_INCOMING_POSITION:
+		case ADD_POSITION:
 			
 			break;
 			
-		case REMOVE_OUTGOING_POSITION:
+		case REMOVE_POSITION:
 			
 			break;
 			
@@ -69,11 +65,11 @@ public class DataBouncerAdapter extends BaseExpandableListAdapter implements OnC
 	public int getChildrenCount(int parent) {
 		int result = 0;
 		switch(parent){
-		case REMOVE_INCOMING_POSITION:
+		case ADD_POSITION:
 			
 			break;
 			
-		case REMOVE_OUTGOING_POSITION:
+		case REMOVE_POSITION:
 			
 			break;
 			
@@ -89,12 +85,12 @@ public class DataBouncerAdapter extends BaseExpandableListAdapter implements OnC
 		Object result = null;
 		switch(parent){
 		
-		case REMOVE_INCOMING_POSITION:
-			result = bouncer.getIncomingConnectors();
+		case ADD_POSITION:
+			result = bouncer.getConnectors();
 			break;
 			
-		case REMOVE_OUTGOING_POSITION:
-			result = bouncer.getOutgoingConnectors();
+		case REMOVE_POSITION:
+			result = bouncer.getConnectors();
 			break;
 			
 			default:
@@ -127,8 +123,7 @@ public class DataBouncerAdapter extends BaseExpandableListAdapter implements OnC
 
 	@Override
 	public boolean isChildSelectable(int group, int child) {
-		return group == REMOVE_INCOMING_POSITION ||
-				group == REMOVE_OUTGOING_POSITION;
+		return true;
 	}
 	
 	public Context getContext(){
@@ -143,11 +138,11 @@ public class DataBouncerAdapter extends BaseExpandableListAdapter implements OnC
 	public boolean onChildClick(ExpandableListView parent, View v,
 			int groupPosition, int childPosition, long id) {
 		switch(groupPosition){
-		case REMOVE_INCOMING_POSITION:
+		case ADD_POSITION:
 			
 			break;
 			
-		case REMOVE_OUTGOING_POSITION:
+		case REMOVE_POSITION:
 			
 			break;
 			

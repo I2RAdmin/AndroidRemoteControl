@@ -20,7 +20,7 @@ public class DataBouncer {
 	private static final String TAG = "DataBouncer";
 	private static DataBouncer instance = new DataBouncer();
 	
-	private List<DataBouncerConnector> incoming, outgoing;
+	private List<DataBouncerConnector> bouncers;
 	
 	/**
 	 * Constructor<br>
@@ -29,8 +29,7 @@ public class DataBouncer {
 	 * be properly passed along.
 	 */
 	private DataBouncer(){
-		this.incoming = new LinkedList<DataBouncerConnector>();
-		this.outgoing = new LinkedList<DataBouncerConnector>();
+		this.bouncers = new LinkedList<DataBouncerConnector>();
 	}
 	
 	
@@ -55,7 +54,7 @@ public class DataBouncer {
 	 */
 	public synchronized void bounce(byte[] data){
 		if(data != null){
-			for(DataBouncerConnector c : outgoing){
+			for(DataBouncerConnector c : bouncers){
 				if(!c.isOriginOfData(data)){
 					c.getConnection().write(data);
 				}
@@ -79,32 +78,10 @@ public class DataBouncer {
 	 * of incoming connections.
 	 * @see {@link DataBouncerConnector#getConnection()}
 	 */
-	public synchronized void addIncoming(DataBouncerConnector connector){
+	public synchronized void add(DataBouncerConnector connector){
 		if(connector != null && connector.hasConnection()){
 			connector.getConnection().start();
-			incoming.add(connector);
-		} else {
-			Log.e(TAG, "connector has no valid conneciton, add cancelled");
-		}
-	}
-	
-	
-	/**
-	 * <p>Adds the given {@link DataBouncerConnector} to this bouncer's
-	 * pool of outgoing connectors.</p>
-	 * 
-	 * <p>WARNING: this method attempts to start the given connector's
-	 * connection's read thread before adding it to the pool. Do not start
-	 * the given connector's connection's read thread before adding it
-	 * to this pool</p>
-	 * 
-	 * @param connector - the connector to be added to this bouncer's pool
-	 * of outgoing connections.
-	 */
-	public synchronized void addOutgoing(DataBouncerConnector connector){
-		if(connector != null && connector.hasConnection()){
-			connector.getConnection().start();
-			outgoing.add(connector);
+			bouncers.add(connector);
 		} else {
 			Log.e(TAG, "connector has no valid conneciton, add cancelled");
 		}
@@ -117,26 +94,11 @@ public class DataBouncer {
 	 * given connector is not in its incoming pool.
 	 * @param connector - the connector to remove from this bouncer's pool.
 	 */
-	public synchronized void removeIncoming(DataBouncerConnector connector){
+	public synchronized void remove(DataBouncerConnector connector){
 		try{
-			incoming.remove(connector);
+			bouncers.remove(connector);
 		} catch(Exception e){
 			Log.e(TAG, "failed to remove incoming connector : " + e.getMessage());
-		}
-	}
-	
-	
-	/**
-	 * Removes the given connector from this bouncer's pool of outgoing
-	 * {@link DataBouncerConnector}s. This method does nothing if the
-	 * given connector is not in its outgoing pool.
-	 * @param connector - the connector to remove from this bouncer's pool.
-	 */
-	public synchronized void removeOutgoing(DataBouncerConnector connector){
-		try{
-			outgoing.remove(connector);
-		} catch(Exception e){
-			Log.e(TAG, "failed to remove outgoing connector : " + e.getMessage());
 		}
 	}
 	
@@ -146,26 +108,12 @@ public class DataBouncer {
 	 * incoming {@link DataBouncerConnector}s.
 	 * @return a deep copy of this DataBouncer's incoming connectors.
 	 */
-	public synchronized List<DataBouncerConnector> getIncomingConnectors(){
+	public synchronized List<DataBouncerConnector> getConnectors(){
 		ArrayList<DataBouncerConnector> temp =
-				new ArrayList<DataBouncerConnector>(incoming.size());
-		temp.addAll(incoming);
+				new ArrayList<DataBouncerConnector>(bouncers.size());
+		temp.addAll(bouncers);
 		return temp;
 	}
-	
-	
-	/**
-	 * Query for this {@link DataBouncer}s current list of
-	 * outgoing {@link DataBouncerConnector}s.
-	 * @return a deep copy of this DataBouncer's outgoing connectors.
-	 */
-	public synchronized List<DataBouncerConnector> getOutgoingConnectors(){
-		ArrayList<DataBouncerConnector> temp =
-				new ArrayList<DataBouncerConnector>(outgoing.size());
-		temp.addAll(outgoing);
-		return temp;
-	}
-	
 	
 	
 	/**
@@ -176,21 +124,13 @@ public class DataBouncer {
 	 */
 	public synchronized void clearAll(){
 		
-		for(DataBouncerConnector c : incoming){
+		for(DataBouncerConnector c : bouncers){
 			if(c.getConnection().isConnected()){
 				c.getConnection().disconnect();
 			}
 		}
 		
-		this.incoming.clear();
-		
-		for(DataBouncerConnector c : outgoing){
-			if(c.getConnection().isConnected()){
-				c.getConnection().disconnect();
-			}
-		}
-		
-		this.outgoing.clear();
+		this.bouncers.clear();
 	}
 	
 } // end of DataBouncer class

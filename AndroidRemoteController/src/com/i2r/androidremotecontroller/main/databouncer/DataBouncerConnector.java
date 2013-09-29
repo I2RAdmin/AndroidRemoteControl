@@ -26,8 +26,8 @@ import android.util.Log;
  */
 public class DataBouncerConnector implements ActionListener, ChannelListener {
 
-	public static final int RECEIVING = 0;
-	public static final int SENDING = 1;
+	public static final int SERVER = 0;
+	public static final int CLIENT = 1;
 	
 	private static final String TAG = "DataBouncerConnector";
 	
@@ -36,7 +36,6 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	private Socket socket;
 	private String alias;
 	private int type;
-	private byte[] lastReceived;
 	
 	/**
 	 * Constructor<br>
@@ -46,15 +45,15 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 * @param activity - the activity to retrieve a {@link WifiP2pManager}
 	 * from, in order to establish this connection.
 	 * @param type - the relationship this connection has with the remote
-	 * device - can be {@link #SENDING} or {@link #RECEIVING}
+	 * device - can be {@link #CLIENT} or {@link #SERVER}
 	 * @param address - the address to the remote device
 	 * @param port - the port to communicate with the remote device on
 	 * @param alias - the remote device's human readable name
 	 * 
 	 * @see {@link #hasConnection()}
 	 * @see {@link #getConnection()}
-	 * @see {@link #SENDING}
-	 * @see {@link #RECEIVING}
+	 * @see {@link #CLIENT}
+	 * @see {@link #SERVER}
 	 */
 	public DataBouncerConnector(Activity activity,
 			int type, String address, int port, String alias){
@@ -63,7 +62,6 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 		this.alias = alias;
 		this.address = new InetSocketAddress(address, port);
 		this.connection = null;
-		this.lastReceived = null;
 		
 		WifiP2pConfig config = new WifiP2pConfig();
 		config.deviceAddress = address;
@@ -121,8 +119,8 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 * Query for this connector's creation type.
 	 * @return the type of connection this connector
 	 * will try to make.
-	 * @see #RECEIVING
-	 * @see #SENDING
+	 * @see #SERVER
+	 * @see #CLIENT
 	 */
 	public int getType(){
 		return type;
@@ -130,9 +128,16 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	
 	
 	/**
-	 * Query for the equality of the given data to the
+	 * <p>Query for the equality of the given data to the
 	 * last data this connector received. This is used
-	 * to prevent infinite chatter between devices.
+	 * to prevent infinite chatter between devices.</p>
+	 * 
+	 * <p>WARNING: this query can only account for
+	 * direct origin, i.e. the device that put the given
+	 * data on this connector's connection's input stream.
+	 * Linking devices in a circle of more than two devices
+	 * will still result in an infinite loop.</p>
+	 * 
 	 * @param data - the data to compare to the last
 	 * data received on this connector
 	 * @return true if the data given matches the
@@ -141,6 +146,7 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	public boolean isOriginOfData(byte[] data){
 		
 		boolean dataMatches = false;
+		byte[] lastReceived = connection != null ? connection.getLastPacketReceived() : null;
 		
 		if(lastReceived != null && lastReceived.length == data.length){
 			dataMatches = true;
@@ -199,7 +205,7 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 		
 		try{
 			
-			if(type == SENDING){
+			if(type == SERVER){
 				ServerSocket srv = new ServerSocket(Constants.Info.WIFI_PORT);
 				this.socket = srv.accept();
 				
@@ -253,6 +259,6 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 		return new StringBuilder().append(alias)
 				.append(" - ").append(address.getHostName()).toString();
 	}
-	
+
 	
 } // end of DataBouncerConnector class
