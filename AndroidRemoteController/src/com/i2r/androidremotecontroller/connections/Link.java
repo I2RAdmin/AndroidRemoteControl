@@ -24,7 +24,7 @@ public interface Link<E> {
 	 * @return a {@link ThreadedRemoteConnection} to a controller
 	 * device if one was found, else returns null.
 	 */
-	public ThreadedRemoteConnection listenForRemoteConnection();
+	public AndroidThreadedRemoteConnection listenForRemoteConnection();
 	
 	
 	/**
@@ -37,7 +37,7 @@ public interface Link<E> {
 	 * device if the device accepted this request, else
 	 * returns null.
 	 */
-	public ThreadedRemoteConnection connectTo(E remote);
+	public AndroidThreadedRemoteConnection connectTo(E remote);
 
 	
 	/**

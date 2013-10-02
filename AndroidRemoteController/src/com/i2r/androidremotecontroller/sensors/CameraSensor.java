@@ -12,8 +12,8 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.i2r.androidremotecontroller.main.ResponsePacket;
-import com.i2r.androidremotecontroller.supported_features.CameraFeatureSet;
-import com.i2r.androidremotecontroller.supported_features.FormatExchanger;
+import com.i2r.androidremotecontroller.supportedfeatures.CameraFeatureSet;
+import com.i2r.androidremotecontroller.supportedfeatures.FormatExchanger;
 
 /**
  * This class models a camera sensor that responds to commands

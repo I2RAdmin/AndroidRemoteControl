@@ -1,4 +1,4 @@
-package com.i2r.androidremotecontroller.supported_features;
+package com.i2r.androidremotecontroller.supportedfeatures;
 
 
 import ARC.Constants;

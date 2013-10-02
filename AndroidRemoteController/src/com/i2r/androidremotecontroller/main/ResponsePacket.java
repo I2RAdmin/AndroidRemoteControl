@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import ARC.Constants;
+import ARC.Constants.Args;
 import android.util.Log;
 
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
@@ -382,8 +383,6 @@ public class ResponsePacket {
 	 * @see {@link #sendResponse(ResponsePacket, RemoteConnection)}
 	 */
 	public boolean send(RemoteConnection connection){
-		DataBouncer.getInstance().bounce(encodePacket
-				(this, Constants.Delimiters.PACKET_DELIMITER));
 		return sendResponse(this, connection);
 	}
 	
@@ -548,9 +547,14 @@ public class ResponsePacket {
 	
 
 	/**
-	 * Sends the byte array encoded version of the response packet across the
+	 * <p>Sends the byte array encoded version of the response packet across the
 	 * given connection, providing the packet and connection are valid and not
-	 * null.
+	 * null.</p>
+	 * 
+	 * <p>As a side-effect, this method also tries to send the given packet
+	 * to this application's current {@link DataBouncer} instance, in the case
+	 * that this device is not directly connected to the controlling machine so
+	 * that the data can bounce to the controlling machine.</p>
 	 * 
 	 * @param packet
 	 *            - the packet to encode and send across the given connection
@@ -559,15 +563,29 @@ public class ResponsePacket {
 	 * @return true if the packet was successfully sent, false otherwise
 	 */
 	public static synchronized boolean sendResponse(ResponsePacket packet, RemoteConnection connection) {
+		
 		byte[] result = null;
-		if (packet != null && packet.isValid() && connection != null && connection.isConnected()) {
+		
+		if (packet != null && packet.isValid()) {
+			
 			result = encodePacket(packet, Constants.Delimiters.PACKET_DELIMITER);
+			
 			if (result != null) {
-				//Log.d(TAG, "response:\n" + packet.toStringWithData());
-				connection.write(result);
+				
+				// bounce the data down the line. This is so it can
+				// eventually reach the controlling machine if this device
+				// is not directly connected to it
+				DataBouncer.getInstance().bounce(result);
+				
+				if(connection != null && connection.isConnected()){
+					//Log.d(TAG, "response:\n" + packet.toStringWithData());
+					connection.write(result);
+				}
+				
 			} else {
 				Log.e(TAG, "could not send response because encodedPacket returned null");
 			}
+			
 		} else {
 
 			StringBuilder builder = new StringBuilder();
@@ -584,6 +602,7 @@ public class ResponsePacket {
 		return result != null;
 	}
 
+	
 	
 	/**
 	 * Encodes the given ResponsePacket to a byte array that can be sent across

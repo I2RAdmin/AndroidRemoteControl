@@ -7,8 +7,8 @@ import android.media.AudioRecord;
 import android.media.MediaRecorder.AudioSource;
 import android.util.Log;
 
-import com.i2r.androidremotecontroller.supported_features.FormatExchanger;
-import com.i2r.androidremotecontroller.supported_features.MicrophoneFeatureSet;
+import com.i2r.androidremotecontroller.supportedfeatures.FormatExchanger;
+import com.i2r.androidremotecontroller.supportedfeatures.MicrophoneFeatureSet;
 
 
 /**

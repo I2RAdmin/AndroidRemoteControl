@@ -1,4 +1,4 @@
-package com.i2r.androidremotecontroller.supported_features;
+package com.i2r.androidremotecontroller.supportedfeatures;
 
 import java.util.Iterator;
 import java.util.LinkedList;

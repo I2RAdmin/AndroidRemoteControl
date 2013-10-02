@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
-import ARC.Constants;
 import android.app.Activity;
 import android.content.Context;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -21,6 +20,7 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.Toast;
@@ -35,7 +35,8 @@ import com.i2r.androidremotecontroller.R;
  */
 public class DataBouncerActivity extends Activity
 		implements ChannelListener, ActionListener,
-		PeerListListener, OnItemClickListener {
+				   PeerListListener, OnItemClickListener,
+				   OnCheckedChangeListener {
 	
 	private static final String TAG = "DataBouncerActivity";
 	private static final String UPDATE = "Update List";
@@ -62,20 +63,13 @@ public class DataBouncerActivity extends Activity
 		this.capturePointSwitch = (Switch) findViewById(R.id.capture_point);
 		this.manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
 		this.adapter = new ArrayAdapter<String>(this, android.R.layout.simple_expandable_list_item_1);
+		
 		this.devices = null;
 		
 		this.adapter.add(UPDATE);
-		
 		this.bouncerOptions.setAdapter(adapter);
 		this.bouncerOptions.setOnItemClickListener(this);
-		
-		this.capturePointSwitch.setOnCheckedChangeListener
-			(new CompoundButton.OnCheckedChangeListener(){
-			@Override
-			public void onCheckedChanged(CompoundButton arg0, boolean flag) {
-				bouncer.setCapturePoint(flag);
-			}
-		});
+		this.capturePointSwitch.setOnCheckedChangeListener(this);
 	}
 	
 	
@@ -100,6 +94,16 @@ public class DataBouncerActivity extends Activity
 		this.channel = null;
 	}
 
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void onSuccess() {
+		Log.d(TAG, "channel created, getting peer list");
+		this.manager.requestPeers(channel, this);
+	}
+	
 
 	/**
 	 * {@inheritDoc}
@@ -139,18 +143,20 @@ public class DataBouncerActivity extends Activity
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void onSuccess() {
-		manager.requestPeers(channel, this);
+	public synchronized void onChannelDisconnected() {
+		String result = "main channel disconnected, attempting to re-establish...";
+		Log.e(TAG, result);
+		inform(result);
+		this.channel = manager.initialize(this, getMainLooper(), this);
 	}
-
-
+	
+	
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public synchronized void onChannelDisconnected() {
-		Log.e(TAG, "main channel disconnected, attempting to re-establish...");
-		this.channel = manager.initialize(this, getMainLooper(), this);
+	public void onCheckedChanged(CompoundButton button, boolean flag) {
+		bouncer.setCapturePoint(flag);
 	}
 
 
@@ -159,6 +165,7 @@ public class DataBouncerActivity extends Activity
 	 */
 	@Override
 	public synchronized void onPeersAvailable(WifiP2pDeviceList peers) {
+		Log.d(TAG, "new peer list available, updating current list");
 		
 		this.devices = peers.getDeviceList();
 		ArrayList<String> temp = new ArrayList<String>();
@@ -176,18 +183,24 @@ public class DataBouncerActivity extends Activity
 
 	/**
 	 * {@inheritDoc}
-	 * 
-	 * TODO: make a fragment on item click to
-	 * give more options for a remote device - i.e.,
-	 * adding removing and setting source direction
-	 * (source direction implies the connector that
-	 * data needs to be given to so that it reaches
-	 * the commanding machine that is controlling this
-	 * array of phones.
 	 */
 	@Override
 	public void onItemClick(AdapterView<?> adapter, View view, int position, long id) {
-		
+		if(manager != null && devices != null && channel != null){
+			respondToClick(position);
+		}
+	}
+	
+	
+	/**
+	 * Helper method for {@link #onItemClick(AdapterView, View, int, long)}.
+	 * Creates a new {@link WifiDirectConnector} if the selected item has
+	 * not already been added, otherwise removes the item at the given position.
+	 * 
+	 * @param position - the position of the {@link WifiP2pDevice} to add or
+	 * remove from this {@link DataBouncer}
+	 */
+	private void respondToClick(int position){
 		// if position is 0 in the list, user has selected "Update List"
 		if(position == 0){
 			this.manager.discoverPeers(channel, this);
@@ -204,18 +217,19 @@ public class DataBouncerActivity extends Activity
 			
 			// create a new DataBouncerConnector with the obtained device
 			WifiP2pDevice device = iter.next();
-			DataBouncerConnector connector = new DataBouncerConnector(this, DataBouncerConnector.CLIENT,
-					device.deviceAddress, Constants.Info.WIFI_PORT, device.deviceName);
+			WifiDirectConnector connector = new WifiDirectConnector(manager, channel, device);
 			
 			// if the DataBouncer already has this connector, remove it
 			if(bouncer.contains(connector)){
 				bouncer.remove(connector);
 				inform(device.deviceName + " removed from data bouncer");
+                this.adapter.insert(this.adapter.getItem(position) + " : disconnected", position);
 				
 				// else add the connector to the bouncer array
 			} else {
 				bouncer.add(connector);
 				inform(device.deviceName + " added to data bouncer");
+				this.adapter.insert(this.adapter.getItem(position) + " : connected", position);
 			}
 		}
 	}
@@ -231,4 +245,4 @@ public class DataBouncerActivity extends Activity
 		Toast.makeText(this, info, Toast.LENGTH_SHORT).show();
 	}
 	
-}
+} // end of DataBouncerActivity class

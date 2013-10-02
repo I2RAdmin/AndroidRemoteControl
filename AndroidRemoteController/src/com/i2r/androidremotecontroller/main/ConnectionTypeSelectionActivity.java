@@ -17,6 +17,7 @@ import android.widget.Toast;
 
 import com.i2r.androidremotecontroller.R;
 import com.i2r.androidremotecontroller.main.databouncer.DataBouncerActivity;
+import com.i2r.androidremotecontroller.main.databouncer.DataBouncerService;
 
 
 /*********************************************************
@@ -109,6 +110,7 @@ public class ConnectionTypeSelectionActivity extends Activity implements DialogI
 		
 		this.selection = NO_SELECTION;
 		this.builder = new AlertDialog.Builder(this);
+		this.startService(new Intent(this, DataBouncerService.class));
 		
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, 
 				android.R.layout.simple_expandable_list_item_1, CONNECTION_TYPES);

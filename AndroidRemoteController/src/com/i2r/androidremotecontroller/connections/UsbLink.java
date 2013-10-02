@@ -19,7 +19,7 @@ import android.os.ParcelFileDescriptor;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.i2r.androidremotecontroller.main.RemoteControlActivity;
+import com.i2r.androidremotecontroller.main.RemoteControlReceiver;
 
 
 /**
@@ -111,7 +111,7 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 	 * convenience purposes with the ConnectionManager
 	 */
 	@Override
-	public ThreadedRemoteConnection listenForRemoteConnection() {
+	public AndroidThreadedRemoteConnection listenForRemoteConnection() {
 		AndroidThreadedRemoteConnection connection = null;
 		
 		UsbAccessory[] a = usbManager.getAccessoryList();
@@ -130,8 +130,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 			}
 			
 		} else {
-			Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-			intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE,
+			Intent intent = new Intent(RemoteControlReceiver.ACTION_TASK_COMPLETE);
+			intent.putExtra(RemoteControlReceiver.EXTRA_INFO_MESSAGE,
 					"no USB device detected, please connect a USB device...");
 			broadcastManager.sendBroadcast(intent);
 			
@@ -309,8 +309,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		if(action.equals(UsbManager.ACTION_USB_ACCESSORY_ATTACHED)){
 			
 			Log.d(TAG, "accessory attatched");
-			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "accessory attached");
+			Intent ui = new Intent(RemoteControlReceiver.ACTION_TASK_COMPLETE);
+			ui.putExtra(RemoteControlReceiver.EXTRA_INFO_MESSAGE, "accessory attached");
 			broadcastManager.sendBroadcast(ui);
 			
 			this.accessory = intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
@@ -320,8 +320,8 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 		} else if(action.equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)){
 			
 			Log.d(TAG, "device attached");
-			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "device attached");
+			Intent ui = new Intent(RemoteControlReceiver.ACTION_TASK_COMPLETE);
+			ui.putExtra(RemoteControlReceiver.EXTRA_INFO_MESSAGE, "device attached");
 			broadcastManager.sendBroadcast(ui);
 			
 			device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
@@ -340,16 +340,16 @@ public class UsbLink extends BroadcastReceiver implements Link<UsbDevice> {
 			
 		} else if(action.equals(UsbManager.ACTION_USB_ACCESSORY_DETACHED)){
 		
-			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "accessory detached");
+			Intent ui = new Intent(RemoteControlReceiver.ACTION_TASK_COMPLETE);
+			ui.putExtra(RemoteControlReceiver.EXTRA_INFO_MESSAGE, "accessory detached");
 			broadcastManager.sendBroadcast(ui);
 		
 			
 			
 		} else if(action.equals(UsbManager.ACTION_USB_DEVICE_DETACHED)) {
 			
-			Intent ui = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-			ui.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "device detached");
+			Intent ui = new Intent(RemoteControlReceiver.ACTION_TASK_COMPLETE);
+			ui.putExtra(RemoteControlReceiver.EXTRA_INFO_MESSAGE, "device detached");
 			broadcastManager.sendBroadcast(ui);
 		
 			

@@ -52,7 +52,7 @@ public class SocketLink implements Link<Object> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public ThreadedRemoteConnection listenForRemoteConnection() {
+	public AndroidThreadedRemoteConnection listenForRemoteConnection() {
 		AndroidThreadedRemoteConnection connection = null;
 		try {
 			listener = new ServerSocket(Constants.Info.WIFI_PORT);
@@ -75,7 +75,7 @@ public class SocketLink implements Link<Object> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public ThreadedRemoteConnection connectTo(Object remote) {
+	public AndroidThreadedRemoteConnection connectTo(Object remote) {
 		AndroidThreadedRemoteConnection connection = null;
 		try {
 			socket = new Socket(Constants.Info.CONTROLLER_IP_ADDRESS,

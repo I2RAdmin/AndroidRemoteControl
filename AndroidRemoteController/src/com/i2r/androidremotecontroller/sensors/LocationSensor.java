@@ -15,7 +15,7 @@ import android.util.Log;
 import android.util.StringBuilderPrinter;
 
 import com.i2r.androidremotecontroller.main.ResponsePacket;
-import com.i2r.androidremotecontroller.supported_features.LocationFeatureSet;
+import com.i2r.androidremotecontroller.supportedfeatures.LocationFeatureSet;
 
 /**
  * This class models a GPS sensor that can be queried for

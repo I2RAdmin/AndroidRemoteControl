@@ -4,8 +4,8 @@ import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
-import com.i2r.androidremotecontroller.main.RemoteControlActivity;
-import com.i2r.androidremotecontroller.main.RemoteControlMaster;
+import com.i2r.androidremotecontroller.main.RemoteControlReceiver;
+import com.i2r.androidremotecontroller.main.databouncer.Connector;
 
 /**
  * This class models a manager for a connection type
@@ -15,7 +15,7 @@ import com.i2r.androidremotecontroller.main.RemoteControlMaster;
  * so that this object can be queried for it later.
  * @author Josh Noel
  */
-public class ConnectionManager<E> {
+public class ConnectionManager<E> implements Connector {
 
 	public static final boolean CONNECTION_TYPE_SERVER = true;
 	public static final boolean CONNECTION_TYPE_CLIENT = false;
@@ -24,7 +24,7 @@ public class ConnectionManager<E> {
 	
 	private Link<E> linker;
 	private LocalBroadcastManager manager;
-	private ThreadedRemoteConnection connection;
+	private AndroidThreadedRemoteConnection connection;
 	private ConnectionFinder finder;
 	
 	/**
@@ -131,7 +131,7 @@ public class ConnectionManager<E> {
 	 * established connection.
 	 * @see {@link RemoteConnection}
 	 */
-	public RemoteConnection getConnection(){
+	public AndroidThreadedRemoteConnection getConnection(){
 		return connection;
 	}
 	
@@ -190,9 +190,9 @@ public class ConnectionManager<E> {
 			
 			
 			// notify main Activity that connection search has finished
-			Intent intent = new Intent(RemoteControlActivity.ACTION_CONNECTOR_RESPONDED);
+			Intent intent = new Intent(RemoteControlReceiver.ACTION_CONNECTOR_RESPONDED);
 			String message = connection != null ? "connection found" : "no connection found";
-			intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, message);
+			intent.putExtra(RemoteControlReceiver.EXTRA_INFO_MESSAGE, message);
 			manager.sendBroadcast(intent);
 		}
 		

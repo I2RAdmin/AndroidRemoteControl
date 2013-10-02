@@ -19,9 +19,9 @@ import android.util.Log;
 
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
 import com.i2r.androidremotecontroller.main.CommandFilter;
-import com.i2r.androidremotecontroller.main.RemoteControlActivity;
+import com.i2r.androidremotecontroller.main.RemoteControlReceiver;
 import com.i2r.androidremotecontroller.main.ResponsePacket;
-import com.i2r.androidremotecontroller.supported_features.FeatureSet;
+import com.i2r.androidremotecontroller.supportedfeatures.FeatureSet;
 
 /**
  * This abstract class models the implementation needed for a piece of hardware
@@ -297,8 +297,8 @@ public abstract class GenericDeviceSensor {
 	 * @see {@link ResponsePacket#getNotificationPacket(int, char, RemoteConnection)}
 	 */
 	protected void sendTaskComplete() {
-		Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-		intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, "task complete: " + taskID);
+		Intent intent = new Intent(RemoteControlReceiver.ACTION_TASK_COMPLETE);
+		intent.putExtra(RemoteControlReceiver.EXTRA_INFO_MESSAGE, "task complete: " + taskID);
 		ResponsePacket.getNotificationPacket(taskID,
 				Constants.Notifications.TASK_COMPLETE).send(connection);
 		manager.sendBroadcast(intent);

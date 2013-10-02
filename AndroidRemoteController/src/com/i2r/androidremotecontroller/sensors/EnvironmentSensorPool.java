@@ -11,8 +11,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.util.Log;
 
-import com.i2r.androidremotecontroller.supported_features.EnvironmentFeatureSet;
-import com.i2r.androidremotecontroller.supported_features.FormatExchanger;
+import com.i2r.androidremotecontroller.supportedfeatures.EnvironmentFeatureSet;
+import com.i2r.androidremotecontroller.supportedfeatures.FormatExchanger;
 
 
 /**

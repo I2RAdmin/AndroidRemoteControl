@@ -3,10 +3,14 @@ package com.i2r.androidremotecontroller.main.databouncer;
 import java.util.LinkedList;
 import java.util.List;
 
+import android.content.Context;
 import android.util.Log;
 
 
 /**
+ * TODO: may make all connections (including direct connections
+ * to controlling machine) bounce-able;
+ * 
  * This class models a protocol for bouncing data between
  * android devices so that the data being bounced may get
  * to the end target by means of an array of these devices.
@@ -19,7 +23,8 @@ public class DataBouncer {
 	private static final String TAG = "DataBouncer";
 	private static DataBouncer instance = new DataBouncer();
 	
-	private List<DataBouncerConnector> bouncers;
+	private List<Connector> bouncers;
+	private Context context;
 	private boolean capture_point;
 	
 	/**
@@ -29,7 +34,8 @@ public class DataBouncer {
 	 * be properly passed along.
 	 */
 	private DataBouncer(){
-		this.bouncers = new LinkedList<DataBouncerConnector>();
+		this.bouncers = new LinkedList<Connector>();
+		this.context = null;
 		this.capture_point = false;
 	}
 	
@@ -50,11 +56,11 @@ public class DataBouncer {
 	 * Query asking if this bouncer already has the
 	 * given connector.
 	 * @param connector - the connector to search for in
-	 * this collection of {@link DataBouncerConnector}s.
+	 * this collection of {@link WifiDirectConnector}s.
 	 * @return true if the given connector exists in this
 	 * collection, false otherwise.
 	 */
-	public boolean contains(DataBouncerConnector connector){
+	public boolean contains(WifiDirectConnector connector){
 		return bouncers.contains(connector);
 	}
 	
@@ -83,6 +89,34 @@ public class DataBouncer {
 	
 	
 	/**
+	 * Sets the context for this bouncer. This
+	 * method is meant to be used by the
+	 * {@link DataBouncerService} and should
+	 * not be called directly.
+	 * @param context - the context to set for
+	 * this bouncer.
+	 */
+	public void setContext(Context context){
+		this.context = context;
+	}
+	
+	
+	/**
+	 * Query for this bouncer's context. This
+	 * is used in all {@link DataBouncerConnection}s
+	 * for dropping commands onto the main application.
+	 * Commands received will be given to the main
+	 * application if {@link #capture_point} is set
+	 * to true.
+	 * @return the context set by this
+	 * {@link DataBouncer}'s {@link DataBouncerService}
+	 */
+	public Context getContext(){
+		return context;
+	}
+	
+	
+	/**
 	 * Bounces the given data to all outgoing
 	 * {@link DataBouncerConnection}s. The incoming connections,
 	 * in turn, use this when new data becomes available so
@@ -91,8 +125,8 @@ public class DataBouncer {
 	 */
 	public synchronized void bounce(byte[] data){
 		if(data != null){
-			for(DataBouncerConnector c : bouncers){
-				if(!c.isOriginOfData(data)){
+			for(Connector c : bouncers){
+				if(!dataIsEqual(data, c.getConnection().getLastPacketReceived())){
 					c.getConnection().write(data);
 				}
 			}
@@ -104,7 +138,7 @@ public class DataBouncer {
 	
 	
 	/**
-	 * <p>Adds the given {@link DataBouncerConnector} to this bouncer's
+	 * <p>Adds the given {@link WifiDirectConnector} to this bouncer's
 	 * pool of incoming connectors.</p>
 	 * 
 	 * <p>WARNING: this method attempts to start the given connector's
@@ -114,9 +148,9 @@ public class DataBouncer {
 	 * 
 	 * @param connector - the connector to be added to this bouncer's pool
 	 * of incoming connections.
-	 * @see {@link DataBouncerConnector#getConnection()}
+	 * @see {@link WifiDirectConnector#getConnection()}
 	 */
-	public synchronized void add(DataBouncerConnector connector){
+	public synchronized void add(Connector connector){
 		if(connector != null && connector.hasConnection()){
 			connector.getConnection().start();
 			bouncers.add(connector);
@@ -128,25 +162,35 @@ public class DataBouncer {
 	
 	/**
 	 * Removes the given connector from this bouncer's pool of incoming
-	 * {@link DataBouncerConnector}s. This method does nothing if the
+	 * {@link WifiDirectConnector}s. This method does nothing if the
 	 * given connector is not in its incoming pool.
 	 * @param connector - the connector to remove from this bouncer's pool.
 	 */
-	public synchronized void remove(DataBouncerConnector connector){
+	public synchronized void remove(Connector connector){
 		try{
 			bouncers.remove(connector);
 		} catch(Exception e){
-			Log.e(TAG, "failed to remove incoming connector : " + e.getMessage());
+			Log.e(TAG, "failed to remove connector : " + e.getMessage());
 		}
 	}
 	
 	
 	/**
+	 * Query for this bouncer list's state
+	 * @return true if this bouncer has no
+	 * open connections, false otherwise.
+	 */
+	public boolean isEmpty(){
+		return bouncers.isEmpty();
+	}
+	
+	
+	/**
 	 * Query for this {@link DataBouncer}s current list of
-	 * incoming {@link DataBouncerConnector}s.
+	 * incoming {@link WifiDirectConnector}s.
 	 * @return a deep copy of this DataBouncer's incoming connectors.
 	 */
-	public synchronized List<DataBouncerConnector> getConnectors(){
+	public synchronized List<Connector> getConnectors(){
 		return bouncers;
 	}
 	
@@ -159,13 +203,34 @@ public class DataBouncer {
 	 */
 	public synchronized void clearAll(){
 		
-		for(DataBouncerConnector c : bouncers){
+		for(Connector c : bouncers){
 			if(c.getConnection().isConnected()){
 				c.getConnection().disconnect();
 			}
 		}
 		
 		this.bouncers.clear();
+	}
+	
+	
+	/**
+	 * Query for the relation between two byte arrays
+	 * @param first - the first to test against the second
+	 * @param second - the second to test against the first
+	 * @return true if the data in these arrays match
+	 */
+	public static boolean dataIsEqual(byte[] first, byte[] second){
+		
+		boolean dataMatches = false;
+		
+		if(first != null && second != null && first.length == second.length){
+			dataMatches = true;
+			for(int i = 0; i < first.length && dataMatches; i++){
+				dataMatches = first[i] == second[i];
+			}
+		} 
+		
+		return dataMatches;
 	}
 	
 } // end of DataBouncer class

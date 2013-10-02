@@ -71,7 +71,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public ThreadedRemoteConnection listenForRemoteConnection() {
+	public AndroidThreadedRemoteConnection listenForRemoteConnection() {
 		AndroidThreadedRemoteConnection connection = null;
 		socket = null;
 		
@@ -100,7 +100,7 @@ public class BluetoothLink implements Link<BluetoothDevice> {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public ThreadedRemoteConnection connectTo(BluetoothDevice remote) {
+	public AndroidThreadedRemoteConnection connectTo(BluetoothDevice remote) {
 		AndroidThreadedRemoteConnection connection = null;
 		try{
 			Log.d(TAG, "creating connection to device : " + remote.getName());

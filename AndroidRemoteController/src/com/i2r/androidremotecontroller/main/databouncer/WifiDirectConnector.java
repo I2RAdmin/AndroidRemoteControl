@@ -6,15 +6,19 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import ARC.Constants;
-import android.app.Activity;
 import android.content.Context;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
+import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
 import android.util.Log;
+
+import com.i2r.androidremotecontroller.connections.AndroidThreadedRemoteConnection;
 
 
 /**
@@ -24,7 +28,7 @@ import android.util.Log;
  * life-cycle so that the user can add and remove bouncers dynamically. 
  * @author Josh Noel
  */
-public class DataBouncerConnector implements ActionListener, ChannelListener {
+public class WifiDirectConnector implements ActionListener, ChannelListener, ConnectionInfoListener, Connector {
 
 	public static final int SERVER = 0;
 	public static final int CLIENT = 1;
@@ -33,10 +37,11 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	
 	private Context context;
 	private InetSocketAddress address;
-	private DataBouncerConnection connection;
+	private AndroidThreadedRemoteConnection connection;
+	private WifiP2pManager manager;
+	private Channel channel;
+	private WifiP2pDevice device;
 	private Socket socket;
-	private String alias;
-	private int type;
 	
 	/**
 	 * Constructor<br>
@@ -56,21 +61,20 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 * @see {@link #CLIENT}
 	 * @see {@link #SERVER}
 	 */
-	public DataBouncerConnector(Activity activity,
-			int type, String address, int port, String alias){
+	public WifiDirectConnector(WifiP2pManager manager, Channel channel, WifiP2pDevice device){
 		
-		this.type = type;
-		this.alias = alias;
-		this.address = new InetSocketAddress(address, port);
+		this.manager = manager;
+		this.channel = channel;
+		this.device = device;
+		
+		this.address = new InetSocketAddress(device.deviceAddress, Constants.Info.WIFI_PORT);
+		this.context = DataBouncer.getInstance().getContext();
 		this.connection = null;
-		this.context = null;
 		
 		WifiP2pConfig config = new WifiP2pConfig();
-		config.deviceAddress = address;
+		config.deviceAddress = device.deviceAddress;
 		config.wps.setup = WpsInfo.PBC;
 		
-		WifiP2pManager manager = (WifiP2pManager) activity.getSystemService(Context.WIFI_P2P_SERVICE);
-		Channel channel = manager.initialize(activity, activity.getMainLooper(), this);
 		manager.connect(channel, config, this);
 	}
 	
@@ -92,7 +96,7 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 * else returns this connector's resulting connection upon
 	 * creation.
 	 */
-	public DataBouncerConnection getConnection(){
+	public AndroidThreadedRemoteConnection getConnection(){
 		return connection;
 	}
 	
@@ -114,52 +118,7 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 * @return the remote device's human readable name
 	 */
 	public String getAlias(){
-		return alias;
-	}
-	
-	/**
-	 * Query for this connector's creation type.
-	 * @return the type of connection this connector
-	 * will try to make.
-	 * @see #SERVER
-	 * @see #CLIENT
-	 */
-	public int getType(){
-		return type;
-	}
-	
-	
-	/**
-	 * <p>Query for the equality of the given data to the
-	 * last data this connector received. This is used
-	 * to prevent infinite chatter between devices.</p>
-	 * 
-	 * <p>WARNING: this query can only account for
-	 * direct origin, i.e. the device that put the given
-	 * data on this connector's connection's input stream.
-	 * Linking devices in a circle of more than two devices
-	 * will still result in an infinite loop.</p>
-	 * 
-	 * @param data - the data to compare to the last
-	 * data received on this connector
-	 * @return true if the data given matches the
-	 * last data received, false otherwise
-	 */
-	public boolean isOriginOfData(byte[] data){
-		
-		boolean dataMatches = false;
-		byte[] lastReceived = connection != null ? connection.getLastPacketReceived() : null;
-		
-		if(lastReceived != null && lastReceived.length == data.length){
-			dataMatches = true;
-			for(int i = 0; i < lastReceived.length && dataMatches; i++){
-				dataMatches = lastReceived[i] == data[i];
-			}
-		} else {
-			lastReceived = data;
-		}
-		
-		return dataMatches;
+		return device.deviceName;
 	}
 	
 	
@@ -204,23 +163,27 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 */
 	@Override
 	public void onSuccess() {
-		Log.d(TAG, "wifi direct connect attempt succeeded");
+		Log.d(TAG, "wifi direct connect attempt succeeded, opening connection");
+		manager.requestConnectionInfo(channel, this);
 	}
-	
-	
-	public void setContext(Context context){
-		this.context = context;
+
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void onConnectionInfoAvailable(WifiP2pInfo info) {
+		openConnection(info);
 	}
-	
 	
 	/**
 	 * TODO: comment
 	 * @param activity
 	 */
-	public synchronized void initialize(){
+	public synchronized void openConnection(WifiP2pInfo info){
 		try{
 			
-			if(type == SERVER){
+			if(info.groupFormed && info.isGroupOwner){
 				ServerSocket srv = new ServerSocket(Constants.Info.WIFI_PORT);
 				this.socket = srv.accept();
 				
@@ -230,8 +193,8 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 			}
 			
 			if(socket != null){
-				this.connection = new DataBouncerConnection
-						(context, socket.getInputStream(), socket.getOutputStream());
+				this.connection = new AndroidThreadedRemoteConnection
+						(context, socket.getInputStream(), socket.getOutputStream(), false);
 			}
 			
 		} catch (IOException e){
@@ -243,18 +206,18 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	
 	
 	/**
-	 * Compares two {@link DataBouncerConnector}s for
+	 * Compares two {@link WifiDirectConnector}s for
 	 * equality by the mac-address given at creation.
 	 * @see {@link InetSocketAddress}
 	 */
 	@Override
 	public boolean equals(Object other){
 		boolean equal = false;
-		if(other instanceof DataBouncerConnector){
+		if(other instanceof WifiDirectConnector){
 			try{
-				DataBouncerConnector temp = (DataBouncerConnector) other;
+				WifiDirectConnector temp = (WifiDirectConnector) other;
 				equal = temp.address.getHostName().equals(address.getHostName()) &&
-						temp.alias.equals(alias);
+						temp.device.deviceName.equals(device.deviceName);
 			} catch (ClassCastException e){}
 		}
 		
@@ -272,9 +235,10 @@ public class DataBouncerConnector implements ActionListener, ChannelListener {
 	 */
 	@Override
 	public String toString(){
-		return new StringBuilder().append(alias)
+		return new StringBuilder().append(device.deviceName)
 				.append(" - ").append(address.getHostName()).toString();
 	}
+
 
 	
 } // end of DataBouncerConnector class

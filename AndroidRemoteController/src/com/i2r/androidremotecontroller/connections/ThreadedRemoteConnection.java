@@ -67,7 +67,9 @@ public abstract class ThreadedRemoteConnection
 				}
 			} catch(IOException e){
 				Log.d(TAG, "connection closed by remote device");
-				onDisconnected(e.getMessage());
+				this.connected = false;
+				this.disconnectMessage = e.getMessage();
+				onDisconnected();
 			}
 		}
 	}
@@ -86,7 +88,9 @@ public abstract class ThreadedRemoteConnection
 			} catch (IOException e){
 				Log.e(TAG, "error writing bytes to stream - "
 						+ bytes.length);
-				onDisconnected(e.getMessage());
+				this.connected = false;
+				this.disconnectMessage = e.getMessage();
+				onDisconnected();
 			}
 		}
 	}
@@ -108,7 +112,7 @@ public abstract class ThreadedRemoteConnection
 		try{out.flush(); out.close();}
 		catch(IOException e){Log.e(TAG, e.getMessage());}}
 		
-		onDisconnected("disconnect called locally");
+		onDisconnected();
 	}
 	
 	
@@ -116,13 +120,8 @@ public abstract class ThreadedRemoteConnection
 	 * Callback for when this connection has been
 	 * terminated, regardless of whether the termination
 	 * was local or by the remote device.
-	 * @param message - the message explaining the reason
-	 * for termination.
 	 */
-	public void onDisconnected(String message){
-		this.connected = false;
-		this.disconnectMessage = message;
-	}
+	public abstract void onDisconnected();
 	
 	
 	

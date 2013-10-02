@@ -5,15 +5,15 @@ import java.util.LinkedList;
 
 import ARC.Constants;
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.hardware.Camera;
-import android.hardware.SensorManager;
-import android.location.LocationManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
+import com.i2r.androidremotecontroller.R;
 import com.i2r.androidremotecontroller.connections.RemoteConnection;
 import com.i2r.androidremotecontroller.exceptions.PacketStitchException;
 import com.i2r.androidremotecontroller.sensors.CameraSensor;
@@ -21,10 +21,7 @@ import com.i2r.androidremotecontroller.sensors.EnvironmentSensorPool;
 import com.i2r.androidremotecontroller.sensors.GenericDeviceSensor;
 import com.i2r.androidremotecontroller.sensors.LocationSensor;
 import com.i2r.androidremotecontroller.sensors.MicrophoneSensor;
-import com.i2r.androidremotecontroller.supported_features.CameraFeatureSet;
-import com.i2r.androidremotecontroller.supported_features.EnvironmentFeatureSet;
-import com.i2r.androidremotecontroller.supported_features.LocationFeatureSet;
-import com.i2r.androidremotecontroller.supported_features.MicrophoneFeatureSet;
+import com.i2r.androidremotecontroller.supportedfeatures.FullFeatureSet;
 
 
 /**
@@ -44,15 +41,17 @@ public class CommandFilter {
 	private static final String TAG = "CommandFilter";
 	private static final int MAX_COMMAND_CAPACITY = 10;
 	
-	private static final int SENSOR_SIZE = 4;
-	
 	private Activity activity;
 	private LocalBroadcastManager manager;
+	private RemoteConnection connection;
+	private FullFeatureSet features;
+	
 	private Camera camera;
 	private LinkedList<CommandPacket> commandQueue;
 	private LinkedList<CommandPacket> stitchQueue;
-	private GenericDeviceSensor[] sensors;
-	private RemoteConnection connection;
+	
+	private SparseArray<GenericDeviceSensor> sensors;
+
 	
 	
 	/**
@@ -63,19 +62,22 @@ public class CommandFilter {
 	 * @param camera - the camera from the main activity.
 	 * @param holder - the surface holder from the view of the main activity
 	 */
-	public CommandFilter(Activity activity, Camera camera, SurfaceHolder holder){
+	public CommandFilter(Activity activity){
+		
 		this.activity = activity;
-		this.camera = camera;
+		this.camera = Camera.open();
 		this.manager = LocalBroadcastManager.getInstance(activity);
 		this.commandQueue = new LinkedList<CommandPacket>();
 		this.stitchQueue = new LinkedList<CommandPacket>();
+		this.features = new FullFeatureSet(activity, camera);
 		this.connection = null;
 		
-		this.sensors = new GenericDeviceSensor[SENSOR_SIZE];
-		this.sensors[Constants.Commands.TAKE_PICTURE] = new CameraSensor(activity, camera, holder);
-		this.sensors[Constants.Commands.RECORD_AUDIO] = new MicrophoneSensor(activity);
-		this.sensors[Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS] = new EnvironmentSensorPool(activity);
-		this.sensors[Constants.Commands.GET_LOCATION] = new LocationSensor(activity);
+		SurfaceHolder holder = ((SurfaceView) activity.findViewById(R.id.preview)).getHolder();
+		
+		this.sensors.append(Constants.Commands.TAKE_PICTURE, new CameraSensor(activity, camera, holder));
+		this.sensors.append(Constants.Commands.RECORD_AUDIO, new MicrophoneSensor(activity));
+		this.sensors.append(Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS, new EnvironmentSensorPool(activity));
+		this.sensors.append(Constants.Commands.GET_LOCATION, new LocationSensor(activity));
 	}
 	
 
@@ -232,8 +234,9 @@ public class CommandFilter {
 		
 		if(packet.isTaskStarter()){
 			try{
-				sensors[packet.getCommand()].setConnection(connection);
-				sensors[packet.getCommand()].startNewTask(packet.getTaskID(),
+				GenericDeviceSensor sensor = sensors.get(packet.getCommand());
+				sensor.setConnection(connection);
+				sensor.startNewTask(packet.getTaskID(),
 					packet.getIntParameters());
 			} catch(Exception e){
 				Log.e(TAG, "command is undefined");
@@ -306,7 +309,7 @@ public class CommandFilter {
 	private void modifyService(CommandPacket packet){
 		
 		if(packet.hasExtraStringParameters() && packet.hasExtraIntParameters()){
-			GenericDeviceSensor sensor = getSensor(packet.getInt(Constants.Args.CP_SENSOR_INDEX));
+			GenericDeviceSensor sensor = sensors.get(packet.getInt(Constants.Args.CP_SENSOR_INDEX));
 			
 			if(sensor != null){
 				
@@ -351,14 +354,18 @@ public class CommandFilter {
 			
 			int[] tasksToKill = packet.getIntParameters();
 			
-			for(int i = 0; i < sensors.length; i++){
-				if (sensors[i] != null && arrayContainsValue(tasksToKill,
-						sensors[i].getTaskID())) {
-					Log.d(TAG, "killing current task: " + sensors[i].getTaskID());
-					sensors[i].killTask();
+			// search currently running for task to kill
+			for(int i = 0; i < sensors.size(); i++){
+				GenericDeviceSensor sensor = sensors.valueAt(i);
+				if (sensor != null && arrayContainsValue(tasksToKill,
+						sensor.getTaskID())) {
+					Log.d(TAG, "killing current task: " + sensor.getTaskID());
+					sensor.killTask();
 				}
 			}
  		
+			
+			// search queue for task to kill
 			boolean found = false;
 			Iterator<CommandPacket> iter = commandQueue.iterator();
 
@@ -406,83 +413,20 @@ public class CommandFilter {
 	
 	
 	
+
 	/**
-	 * FILTER CASE SUPPORTED FEATURES:
 	 * Called if the given packet is a query for features of this device, so
 	 * find out which feature descriptions the controller wants and send them.
 	 * @param packet - the packet containing a request for this device's features
 	 */
-	private synchronized void findSupportedFeatures(CommandPacket packet){
-		
+	private void findSupportedFeatures(CommandPacket packet){
 		if(packet.hasExtraIntParameters()){
-			int[] features = packet.getIntParameters();
-			boolean wentToDefault = false;
-			
-			for(int i = 0; i < features.length; i++){
-				
-				switch(features[i]){
-				
-				case Constants.Sensors.CAMERA:
-					sendFeatures(packet.getTaskID(), features[i], 
-							new CameraFeatureSet(camera).encode());
-					break;
-					
-				case Constants.Sensors.MICROPHONE:
-					sendFeatures(packet.getTaskID(), features[i],
-							MicrophoneFeatureSet.FEATURES);
-					break;
-					
-				case Constants.Sensors.ENVIRONMENT_SENSORS:
-					SensorManager manager = (SensorManager)
-							activity.getSystemService(Context.SENSOR_SERVICE);
-					sendFeatures(packet.getTaskID(), features[i],
-							new EnvironmentFeatureSet(manager).encode());
-					break;
-					
-				case Constants.Sensors.GPS:
-					LocationManager lManager = (LocationManager)
-							activity.getSystemService(Context.LOCATION_SERVICE);
-					sendFeatures(packet.getTaskID(), features[i],
-							new LocationFeatureSet(lManager).encode());
-					break;
-					
-					
-				default:
-					Log.e(TAG, "supported features went to default case");
-					wentToDefault = true;
-					ResponsePacket.getNotificationPacket(packet.getTaskID(),
-							Constants.Notifications.TASK_ERRORED_OUT, 
-							String.valueOf(features[i])).send(connection);
-					break;
-				}
-				
-				if(!wentToDefault){
-					ResponsePacket.getNotificationPacket(packet.getTaskID(),
-							Constants.Notifications.TASK_COMPLETE).send(connection);
-				}
-			}
-			
+			features.sendFeatures(packet.getIntParameters(),
+					packet.getTaskID(), connection);
 		} else {
-			
 			Log.e(TAG, "no int parameters found in command");
 			ResponsePacket.getNotificationPacket(packet.getTaskID(),
-					Constants.Notifications.TASK_ERRORED_OUT).send(connection);
-		}
-
-	}
-	
-	
-	// Supported features helper method
-	private void sendFeatures(int taskID, int sensorType, byte[] features){
-		
-		Log.d(TAG, "sending supported features to controller: " + sensorType);
-		
-		if(features != null){
-			new ResponsePacket(taskID, sensorType, features).send(connection);
-		} else {
-			ResponsePacket.getNotificationPacket(taskID, 
-					Constants.Notifications.SENSOR_NOT_SUPPORTED,
-					String.valueOf(sensorType)).send(connection);
+				Constants.Notifications.TASK_ERRORED_OUT).send(connection);
 		}
 	}
 	
@@ -495,11 +439,11 @@ public class CommandFilter {
 	 * and pauses the state of this controller
 	 */
 	public void cancel(){
-		for(int i = 0; i < sensors.length; i++){
-			if(sensors[i] != null){ 
-				sensors[i].killTask();
-				sensors[i].releaseSensor(); 
-				sensors[i] = null;
+		for(int i = 0; i < sensors.size(); i++){
+			GenericDeviceSensor sensor = sensors.valueAt(i);
+			if(sensor != null){ 
+				sensor.killTask();
+				sensor.releaseSensor(); 
 			}
 		}
 		commandQueue.clear();
@@ -517,8 +461,8 @@ public class CommandFilter {
 	 * @param notifyType - the type of notification to send back to main
 	 */
 	private void notifyMain(String message){
-		Intent intent = new Intent(RemoteControlActivity.ACTION_TASK_COMPLETE);
-		intent.putExtra(RemoteControlActivity.EXTRA_INFO_MESSAGE, message);
+		Intent intent = new Intent(RemoteControlReceiver.ACTION_TASK_COMPLETE);
+		intent.putExtra(RemoteControlReceiver.EXTRA_INFO_MESSAGE, message);
 		manager.sendBroadcast(intent);
 	}
 	
@@ -535,6 +479,12 @@ public class CommandFilter {
 		this.connection = connection;
 	}
 	
+	
+	
+	
+	//|*****************************************************|
+	//|--------------------- QUERIES -----------------------|
+	//|*****************************************************|
 	
 	
 	
@@ -557,7 +507,6 @@ public class CommandFilter {
 	}
 	
 	
-	
 	/**
 	 * Query for the availability of a given process.
 	 * @param service - the service to check against the currently
@@ -566,7 +515,7 @@ public class CommandFilter {
 	 * @see {@link Constants#Commands}
 	 */
 	public boolean isAvailableService(int service){
-		return service >= 0 || isAvailableService(sensors[service]);
+		return service >= 0 || isAvailableService(sensors.get(service));
 		
 	}
 
@@ -581,43 +530,6 @@ public class CommandFilter {
 		return sensor != null && (sensor.taskCompleted() || 
 				sensor.getTaskID() == Constants.Args.ARG_NONE);
 	}
-	
-	
-	
-	/**
-	 * @param sensorID - the task ID to check against all this controllers
-	 * current sensors.
-	 * @return the sensor which has a matching sensor ID to the one
-	 * given, or null if no sensor with the given ID was found
-	 * @see {@link Constants#DataTypes}
-	 */
-	public GenericDeviceSensor getSensor(int sensorID){
-		GenericDeviceSensor sensor;
-		switch (sensorID){
-		case Constants.Sensors.CAMERA:
-			sensor = sensors[Constants.Commands.TAKE_PICTURE];
-			break;
-			
-		case Constants.Sensors.MICROPHONE:
-			sensor = sensors[Constants.Commands.RECORD_AUDIO];
-			break;
-			
-		case Constants.Sensors.ENVIRONMENT_SENSORS:
-			sensor = sensors[Constants.Commands.LISTEN_TO_ENVIRONMENT_SENSORS];
-			break;
-			
-		case Constants.Sensors.GPS:
-			sensor = sensors[Constants.Commands.GET_LOCATION];
-			break;
-			
-		default:
-			sensor = null;
-			break;
-		}
-		
-		return sensor;
-	}
-	
 	
 	
 	/**
