@@ -97,82 +97,84 @@ public class StreamUI<U extends OutputStream, T extends InputStream, V> {
 		public void run() {
 			//implementation of the read method
 			while(true){
+				logger.debug("Startin read loop");
 				while(!readScan.hasNextLine());
-				//shift the input line to lower case for case insensitivity.
-				String line = readScan.nextLine().toLowerCase();
-				logger.debug("Read in: " + line);
-
-				boolean endFlag = false;
-				for(String endString : STOP_UI_FLAGS){
-					if(line.equals(endString)){
-						endFlag = true;
-						
+					//shift the input line to lower case for case insensitivity.
+					String line = readScan.nextLine();
+				
+					line = line.toLowerCase();
+					logger.debug("Read in: " + line);
+	
+					boolean endFlag = false;
+					for(String endString : STOP_UI_FLAGS){
+						if(line.equals(endString)){
+							endFlag = true;
+							
+							try {
+								dest.write("Shutting down UI...".getBytes());
+							} catch (IOException e) {
+								logger.error(e.getMessage(), e);
+							}
+							
+							break;
+						}
+					}
+	
+					if(endFlag){
+						inClosed.set(true);
 						try {
-							dest.write("Shutting down UI...".getBytes());
+							source.close();
 						} catch (IOException e) {
 							logger.error(e.getMessage(), e);
 						}
-						
 						break;
 					}
-				}
-
-				if(endFlag){
-					inClosed.set(true);
-					try {
-						source.close();
-					} catch (IOException e) {
-						logger.error(e.getMessage(), e);
-					}
-					break;
-				}
-				
-				int remoteDeviceIndex = -2;
-				
-				try{
 					
-					if(line.substring(0, line.indexOf(' ')).equals("local")){
-						remoteDeviceIndex = -1;
-					}else if(line.substring(0, line.indexOf(' ')).matches("[0-9]+")){
-						remoteDeviceIndex = Integer.valueOf(line.substring(0, line.indexOf(' ')));
+					int remoteDeviceIndex = -2;
+					
+					try{
+						
+						if(line.substring(0, line.indexOf(' ')).equals("local")){
+							remoteDeviceIndex = -1;
+						}else if(line.substring(0, line.indexOf(' ')).matches("[0-9]+")){
+							remoteDeviceIndex = Integer.valueOf(line.substring(0, line.indexOf(' ')));
+						}
+					}catch(NumberFormatException e){
+						try {
+							dest.write("Malformed Command, could not get a Remote Device or local reference.".getBytes());
+							logger.error(e.getMessage(), e);
+							continue;
+						} catch (IOException e1) {
+							logger.error(e1.getMessage(), e1);
+							continue;
+						}
 					}
-				}catch(NumberFormatException e){
-					try {
-						dest.write("Malformed Command, could not get a Remote Device or local reference.".getBytes());
-						logger.error(e.getMessage(), e);
-						continue;
-					} catch (IOException e1) {
-						logger.error(e1.getMessage(), e1);
-						continue;
-					}
-				}
-				
-				try {
-					if(remoteDeviceIndex > -1){
-						RemoteClient dev = cntrl.getDevice(remoteDeviceIndex);
-						cntrl.send(dev, ARCCommand.fromString(dev, line.substring(line.indexOf(' '))));
-					}else if (remoteDeviceIndex == -1){
-						logger.debug("Command: ");
-						logger.debug(line.substring(line.indexOf(' ')));
-						cntrl.performLocal(ARCCommand.fromString(line.substring(line.indexOf(' '))));
-					}else{
-						throw new UnsupportedValueException("Invalid Remote Device Specified (given: " + remoteDeviceIndex + ").");
-					}
-				} catch (UnsupportedValueException e) {
-					logger.error(e.getMessage(), e);
-					String uiMessage = "Invalid Command Arguments.\n";
 					
 					try {
-						dest.write(uiMessage.getBytes());
-						dest.write(e.getMessage().getBytes());
-						dest.write("\n".getBytes());
-					} catch (IOException e1) {
-						logger.error(e1.getMessage(), e1);
-						continue;
+						if(remoteDeviceIndex > -1){
+							RemoteClient dev = cntrl.getDevice(remoteDeviceIndex);
+							cntrl.send(dev, ARCCommand.fromString(dev, line.substring(line.indexOf(' '))));
+						}else if (remoteDeviceIndex == -1){
+							logger.debug("Command: ");
+							logger.debug(line.substring(line.indexOf(' ')));
+							cntrl.performLocal(ARCCommand.fromString(line.substring(line.indexOf(' '))));
+						}else{
+							throw new UnsupportedValueException("Invalid Remote Device Specified (given: " + remoteDeviceIndex + ").");
+						}
+					} catch (UnsupportedValueException e) {
+						logger.error(e.getMessage(), e);
+						String uiMessage = "Invalid Command Arguments.\n";
+						
+						try {
+							dest.write(uiMessage.getBytes());
+							dest.write(e.getMessage().getBytes());
+							dest.write("\n".getBytes());
+						} catch (IOException e1) {
+							logger.error(e1.getMessage(), e1);
+							continue;
+						}
 					}
 				}
-			}
-			
 			logger.debug("Stopping UI Read Thread.");
 		}
 	}

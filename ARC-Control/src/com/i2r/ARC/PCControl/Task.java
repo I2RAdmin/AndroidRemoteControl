@@ -2,6 +2,7 @@ package com.i2r.ARC.PCControl;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
@@ -141,11 +142,19 @@ public class Task {
 		
 		//if we found file data...
 		if(file != null){
+			//FIXME: Hotfix, 12/20/13
+			//Changing file save style to current system time, right now.
+			long time = System.currentTimeMillis();
+			
 			//create a new file header string, ala string builder
 			StringBuilder sb = new StringBuilder();
-			sb.append(id);
-			sb.append("_");
-			sb.append(dataPos);
+			//sb.append(id);
+			//sb.append("_");
+			//sb.append(dataPos);
+			sb.append(String.format("%d-%d-%d-%d", TimeUnit.MILLISECONDS.toHours(time), 
+											TimeUnit.MILLISECONDS.toMinutes(time) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(time)), 
+											TimeUnit.MILLISECONDS.toSeconds(time) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(time)), 
+											TimeUnit.MILLISECONDS.toMillis(time) - TimeUnit.SECONDS.toMillis(TimeUnit.MILLISECONDS.toSeconds(time))));
 			//save the data
 			file.saveSegmentAsFile(sb.toString());
 		}
